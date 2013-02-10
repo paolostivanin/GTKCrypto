@@ -1,0 +1,30 @@
+??/??/2013 - v1.0-alpha
+	* ADDED: GUI (GTK+ v3);
+	* ADDED: Encrypt/Decrypt with AES256-CBC + MAC (Encrypt-then-MAC, HMAC+SHA512);
+
+??/??/2013 - v1.0-beta
+	* ADDED: documentation;
+	* FIXED: bugs [if any];
+
+??/??/2013 - v1.0.0
+	* NEWSTABLE RELEASE :)
+
+??/??/2013 - v1.1.0-alpha
+	* ADDED: SHA-1, RMD160, MD2, MD4, MD5, TIGER, TIGER1, TIGER2, SHA224, SHA256, SHA384, SHA512, CRC32, WHIRLPOOL
+
+??/??/2013 - v1.1.0-beta
+	* IMPROVED: documentation;
+	* FIXED: bugs [if any];
+
+??/??/2013 - v1.1.0
+	* NEWSTABLE RELEASE :)
+
+??/??/2013 - v1.2.0-alpha
+	* ADDED: database where to store file's checksums;
+
+??/??/2013 - v1.2.0-beta
+	* IMPROVED: documentation;
+	* FIXED: bugs [if any];
+
+??/??/2013 - v1.2.0
+	* NEWSTABLE RELEASE :)
