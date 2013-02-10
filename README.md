@@ -17,7 +17,7 @@ Security
 
 Mockup
 ------
-![Image Alt](https://www.dropbox.com/s/z6tvennp06x4iw6/polcrypt.png)
+![Image Alt](https://raw.github.com/polslinux/PolCrypt/master/docs/polcrypt.png)
 
 RoadMap
 -------
