@@ -21,6 +21,7 @@ Mockup
 
 RoadMap
 -------
+**The code is in PREALPHA stage, there isn't any ETA for the first alpha**
 ??/??/2013 - v1.0-alpha
 * ADDED: GUI (GTK+ v3);
 * ADDED: Encrypt/Decrypt with AES256-CBC + MAC (Encrypt-then-MAC, HMAC+SHA512);
@@ -30,6 +31,8 @@ Requirements
 * GCC or Clang	: required version of Clang **>= 3.1**
 * Gcrypt	: required version **>=1.5.0**
 * GTK+		: required version **>=3.6.0**
+* Glib
+* OpenSSL
 
 How it works
 ------------
