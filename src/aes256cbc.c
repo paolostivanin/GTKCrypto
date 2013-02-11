@@ -9,13 +9,10 @@
 #include <stdlib.h>
 #include <string.h>
 #include <gcrypt.h>
-#include <openssl/rand.h>
 #include <fcntl.h>
 #include <unistd.h>
 #include <sys/types.h>
 #include <sys/stat.h>
-#include <termios.h>
-#include <glib.h>
 #include "polcrypt.h"
 
 #define GCRYPT_MIN_VER "1.5.0"
@@ -26,30 +23,65 @@ int main(int argc, char **argv){
 		exit(2);
 	}
 	gcry_control(GCRYCTL_INIT_SECMEM, 16384, 0);
-	gcry_control (GCRYCTL_INITIALIZATION_FINISHED, 0);
+	gcry_control(GCRYCTL_INITIALIZATION_FINISHED, 0);
 
-	int retval;
+	int retval, fd_input, fd_output;
+	char *output_file;
+	size_t output_len;
+	const char *ext=".pcry";
 
-	if(argc != 2){
-		printf("Usage: %s [-e] | [-d]\n", argv[0]);
+	if(argc != 4){
+		printf("Usage: %s [-e] | [-d] <path-to-input_file> <path_to_output_file>\n", argv[0]);
 		return 0;
 	}
 
 	if(strcmp(argv[1], "-e") == 0){
-		retval = encrypt_file();
+		const char *path_to_input_file = argv[2];	
+		output_len = strlen(argv[3])+1;
+		output_file = malloc(output_len);
+		strcpy(output_file, argv[3]);
+		output_file = (char *)realloc(output_file, output_len+6);
+		strcat(output_file, ext);
+		const char *path_to_output_file = (const char *)output_file;
+
+		fd_input = open(path_to_input_file, O_RDONLY | O_NOFOLLOW);
+		fd_output = open(path_to_output_file, O_WRONLY | O_NOFOLLOW | O_CREAT, 0644);
+		if(fd_input == -1 || fd_output == -1){
+			perror("input or output file open failed\n");
+			free(output_file);
+			return -1;
+		}
+		close(fd_input);
+		close(fd_output);
+		retval = encrypt_file(path_to_input_file, path_to_output_file);
 		if(retval == -1){
 			printf("Error during file encryption\n");
+			free(output_file);
 			return -1;
 		}
 	}
 
 	if(strcmp(argv[1], "-d") == 0){
-		retval = decrypt_file();
+		const char *path_to_input_file = argv[2];
+		const char *path_to_output_file = argv[3];
+
+		fd_input = open(path_to_input_file, O_RDONLY | O_NOFOLLOW);
+		fd_output = open(path_to_output_file, O_WRONLY | O_NOFOLLOW | O_CREAT, 0644);
+		if(fd_input == -1 || fd_output == -1){
+			perror("input or output file open failed\n");
+			return -1;
+		}
+		close(fd_input);
+		close(fd_output);
+		retval = decrypt_file(path_to_input_file, path_to_output_file);
 		if(retval == -1){
 			printf("Error during file decryption\n");
 			return -1;
 		}
+		goto end;
 	}
 
+	free(output_file);
+	end:
 	return 0;
 }

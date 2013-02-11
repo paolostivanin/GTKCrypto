@@ -8,8 +8,8 @@
 #define POLCRYPT_H_INCLUDED
 
 int check_pkcs7(unsigned char *, unsigned char *);
-int encrypt_file(void);
-int decrypt_file(void);
+int encrypt_file(const char *, const char *);
+int decrypt_file(const char *, const char *);
 
 struct metadata{
 	char header[32];

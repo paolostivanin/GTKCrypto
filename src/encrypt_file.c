@@ -17,14 +17,34 @@
 #include <glib.h>
 #include "polcrypt.h"
 
-int encrypt_file(void){
+/********************************************
+ * TODO:
+ * - Calcolare il MAC e appenderlo alla fine;
+ * - Errori e uscite;
+ * - Migliorare il codice;
+ * - I commenti!!!!!!!!!!!!!!!!!!
+ * - secure file deletion (vedere fsync, fclear)
+ ********************************************/
+
+int encrypt_file(const char *input_file_path, const char *output_file_path){
 	int algo = -1, fd, number_of_block, block_done = 0;
 	struct metadata s_mdata;
 	struct termios oldt, newt;
+	struct stat fileStat;
 	memset(&s_mdata, 0, sizeof(struct metadata));
-	unsigned char hex[15] = { 0x01,0x02,0x03,0x04,0x05,0x06,0x07,0x08,0x09,0x0A,0x0B,0x0C,0x0D,0x0E,0x0F};
-	unsigned char *derived_key = NULL, *crypto_key = NULL, *mac_key = NULL;
+	unsigned char hex[15] = { 0x01,0x02,0x03,0x04,0x05,0x06,0x07,0x08,0x09,0x0A,0x0B,0x0C,0x0D,0x0E,0x0F}, plain_text[16];
+	unsigned char *derived_key = NULL, *crypto_key = NULL, *mac_key = NULL, *encBuffer = NULL;
 	char *input_key = NULL, *compare_key = NULL;
+	float result_of_division_by_16, fsize_float;
+	off_t fsize = 0;
+	const char *name = "aes256";
+	size_t blkLength, keyLength, txtLenght = 16, retval = 0, i, pwd_len;
+
+	blkLength = gcry_cipher_get_algo_blklen(GCRY_CIPHER_AES256);
+	keyLength = gcry_cipher_get_algo_keylen(GCRY_CIPHER_AES256);
+	algo = gcry_cipher_map_name(name);
+	encBuffer = gcry_malloc(txtLenght);
+
 	if(RAND_bytes(s_mdata.iv, 16) == 0){
 		printf("Error on IV generation\n");
 		return -1; // migliorare l'uscita
@@ -33,15 +53,8 @@ int encrypt_file(void){
 		printf("Error on salt generation\n");
 		return -1; // migliorare l'uscita
 	}
-	unsigned char plain_text[16];
-	unsigned char *encBuffer = NULL;
-	strncpy(s_mdata.header, "CREATED_BY_CPassMan_1.0", sizeof(s_mdata.header));
-	float result_of_division_by_16, fsize_float;
-	struct stat fileStat;
-	off_t fsize = 0;
-	const char *name = "aes256";
-	size_t blkLength, keyLength, txtLenght = 16, retval = 0;
-	size_t i, pwd_len;
+	strncpy(s_mdata.header, "CREATED_BY_PolCrypt", sizeof(s_mdata.header));
+
  	if(((input_key = gcry_malloc_secure(256)) == NULL) || ((compare_key = gcry_malloc_secure(256)) == NULL)){
 		perror("Memory allocation error\n");
 		return -1;
@@ -82,10 +95,11 @@ int encrypt_file(void){
 	g_utf8_strncpy(input_key, compare_key, pwd_len); //...per copiare la pwd SENZA \n\0 di fgets
 	gcry_free(compare_key);
 
-	blkLength = gcry_cipher_get_algo_blklen(GCRY_CIPHER_AES256);
-	keyLength = gcry_cipher_get_algo_keylen(GCRY_CIPHER_AES256);
-
-	fd = open("prova", O_RDONLY);
+	fd = open(input_file_path, O_RDONLY | O_NOFOLLOW);
+	if(fd == -1){
+		perror("open failed\n");
+		return -1;
+	}
   	if(fstat(fd, &fileStat) < 0){
   		perror("Fstat error");
   		gcry_free(input_key);
@@ -94,20 +108,19 @@ int encrypt_file(void){
   	}
   	fsize = fileStat.st_size; // file size in bytes
   	close(fd);
+
 	fsize_float = (float)fsize; // file size in float
 	result_of_division_by_16 = fsize_float / 16; // divisione per 16 bytes della grandezza in bytes
 	number_of_block = (int)result_of_division_by_16; // numbero di blocchi in cui viene diviso
 	if(result_of_division_by_16 > number_of_block) number_of_block += 1; // se il numero con virgola > del numero intero allora necessito di 1 blocco in più
 	
-	FILE *fp = fopen("prova", "r");
-	FILE *fpout = fopen("out", "w");	
+	FILE *fp = fopen(input_file_path, "r");
+	FILE *fpout = fopen(output_file_path, "w");
 	if(fp == NULL || fpout == NULL){
 		perror("File opening error\n");
 		gcry_free(input_key);
 		return -1;
 	}
-	algo = gcry_cipher_map_name(name);
-	encBuffer = gcry_malloc(txtLenght);
 
 	gcry_cipher_hd_t hd;
 	gcry_cipher_open(&hd, algo, GCRY_CIPHER_MODE_CBC, 0);

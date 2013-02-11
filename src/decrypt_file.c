@@ -17,20 +17,31 @@
 #include <glib.h>
 #include "polcrypt.h"
 
-int decrypt_file(void){
+/********************************************
+ * TODO:
+ * - Calcolo MAC
+ * - Errori e uscite
+ * - Migliorare codice
+ * - COMMENTIII!!!
+ ********************************************/
+
+int decrypt_file(const char *input_file_path, const char *output_file_path){
 	int algo = -1, fd, number_of_block, block_done = 0, number_of_pkcs7_byte;	
 	struct metadata s_mdata;
 	struct termios oldt, newt;
+	struct stat fileStat;
 	memset(&s_mdata, 0, sizeof(struct metadata));
-	unsigned char *derived_key = NULL, *crypto_key = NULL, *mac_key = NULL;
-	unsigned char cipher_text[16];
-	unsigned char *decBuffer = NULL;
-	unsigned char hex[15] = { 0x01,0x02,0x03,0x04,0x05,0x06,0x07,0x08,0x09,0x0A,0x0B,0x0C,0x0D,0x0E,0x0F};
+	unsigned char *derived_key = NULL, *crypto_key = NULL, *mac_key = NULL, *decBuffer = NULL;
+	unsigned char hex[15] = { 0x01,0x02,0x03,0x04,0x05,0x06,0x07,0x08,0x09,0x0A,0x0B,0x0C,0x0D,0x0E,0x0F}, cipher_text[16];
 	char *input_key = NULL, *tmp_key = NULL;
 	off_t fsize = 0;
-	struct stat fileStat;
 	const char *name = "aes256";
 	size_t blkLength, keyLength, txtLenght = 16, retval = 0, pwd_len;
+
+	blkLength = gcry_cipher_get_algo_blklen(GCRY_CIPHER_AES256);
+	keyLength = gcry_cipher_get_algo_keylen(GCRY_CIPHER_AES256);
+	algo = gcry_cipher_map_name(name);
+	decBuffer = gcry_malloc(txtLenght);
 
  	if(((tmp_key = gcry_malloc_secure(256)) == NULL)){
 		perror("Memory allocation error\n");
@@ -56,10 +67,11 @@ int decrypt_file(void){
 	g_utf8_strncpy(input_key, tmp_key, pwd_len); //...per copiare la pwd SENZA \n\0 di fgets
 	gcry_free(tmp_key);
 
-	blkLength = gcry_cipher_get_algo_blklen(GCRY_CIPHER_AES256);
-	keyLength = gcry_cipher_get_algo_keylen(GCRY_CIPHER_AES256);
-
-	fd = open("out", O_RDONLY);
+	fd = open(input_file_path, O_RDONLY | O_NOFOLLOW);
+	if(fd == -1){
+		perror("open failed\n");
+		return -1;
+	}
   	if(fstat(fd, &fileStat) < 0){
   		perror("Fstat error");
     	close(fd);
@@ -71,14 +83,12 @@ int decrypt_file(void){
 	number_of_block = (fsize / 16)-5; /* a differenza della cifratura qua avrò sempre un numero divisibile per 16 e devo fare - 5 perchè
 									   * perchè 2 blocchi vanno all'header, 1 blocco va all'IV e 2 al SALT*/
 	
-	FILE *fp = fopen("out", "r");
-	FILE *fpout = fopen("origdec", "w");
+	FILE *fp = fopen(input_file_path, "r");
+	FILE *fpout = fopen(output_file_path, "w");
 	if(fp == NULL || fpout == NULL){
 		perror("Error on file opening\n");
 		exit(1); // migliorare l'uscita
 	}
-	algo = gcry_cipher_map_name(name);
-	decBuffer = gcry_malloc(txtLenght);
 
 	fseek(fp, 0, SEEK_SET);
 
