@@ -11,6 +11,7 @@
 
 ??/??/2013 - v1.1.0-alpha
 	* ADDED: SHA-1, RMD160, MD2, MD4, MD5, TIGER, TIGER1, TIGER2, SHA224, SHA256, SHA384, SHA512, CRC32, WHIRLPOOL
+	* ADDED: pthread (for multiple hashing computation the program will run faster)
 
 ??/??/2013 - v1.1.0-beta
 	* IMPROVED: documentation;
