@@ -21,10 +21,11 @@ Mockup
 
 RoadMap
 -------
-**The code is in PREALPHA stage, there isn't any ETA for the first alpha**
-??/??/2013 - v1.0-alpha
-* ADDED: GUI (GTK+ v3);
-* ADDED: Encrypt/Decrypt with AES256-CBC + MAC (Encrypt-then-MAC, HMAC+SHA512);
+**The code is in PREALPHA stage, no feature is currently working**
+??/02/2013 - v1.0-alpha
+- [ ] ADDED: command line interface;
+- [X] ADDED: Encrypt/Decrypt with AES256-CBC;
+- [ ] ADDED: MAC (Encrypt-then-MAC, HMAC+SHA512);
 
 Requirements
 ------------
