@@ -178,12 +178,14 @@ int encrypt_file(const char *input_file_path, const char *output_file_path){
 		fwrite(encBuffer, 1, 16, fpout);
 		block_done++;
 	}
-	
-	unsigned char *hmac = calculate_hmac(output_file_path, mac_key, keyLength);
+	fclose(fpout); //chiudere il file prima di calcolare il MAC altrimenti bug
+
+	unsigned char *hmac = calculate_hmac(output_file_path, mac_key, keyLength, 0);
 	if(hmac == (unsigned char *)-1){
 		printf("Error during HMAC calculation\n");
 		return -1;
 	}
+	fpout = fopen(output_file_path, "a"); //aprire file modalità append per aggiungere il MAC
 	fwrite(hmac, 1, 64, fpout);
 	free(hmac);
 

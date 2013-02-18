@@ -146,7 +146,7 @@ int decrypt_file(const char *input_file_path, const char *output_file_path){
 		gcry_free(input_key);
 		return -1;
 	}
-	unsigned char *hmac = calculate_hmac(input_file_path, mac_key, keyLength);
+	unsigned char *hmac = calculate_hmac(input_file_path, mac_key, keyLength, 1);
 	if(hmac == (unsigned char *)-1){
 		printf("Error during HMAC calculation\n");
 		gcry_free(derived_key);

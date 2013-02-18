@@ -7,7 +7,8 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 
-unsigned char *calculate_hmac(const char *filename, const unsigned char *key, size_t keylen){
+//mode = 0 encrypt, mode = 1 decrypt
+unsigned char *calculate_hmac(const char *filename, const unsigned char *key, size_t keylen, int mode){
 	int fd;
 	struct stat fileStat;
 	char *buffer;
@@ -19,6 +20,7 @@ unsigned char *calculate_hmac(const char *filename, const unsigned char *key, si
     	return (unsigned char *)-1;
   	}
   	fsize = fileStat.st_size;
+  	if(mode == 1) fsize -= 64; //se siamo in decrypt togliamo 64 bytes (hmac)
   	close(fd);  	
 	FILE *fp;
 	fp = fopen(filename, "r");
@@ -51,7 +53,7 @@ unsigned char *calculate_hmac(const char *filename, const unsigned char *key, si
 		gcry_md_write(hd, buffer, 16); //...scrivo 16 byte....
 		donesize+=16; //...aumento i byte letti di 16...
 		diff=fsize-donesize; //...calcolo la differenza...
-		if(diff < 16){ //...e se la differenza è minore di 16 allora termino con l'ultima chiamata...
+		if(diff > 0 && diff < 16){ //...e se la differenza è minore di 16 allora termino con l'ultima chiamata...
 			if(fread(buffer, 1, diff, fp) != diff){  //...che legge soltanto i byte necessari...
 				perror("fread error hmac\n");
 				return (unsigned char *)-1;
