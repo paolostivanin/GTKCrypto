@@ -19,7 +19,6 @@
 
 /********************************************
  * TODO:
- * - Calcolo MAC
  * - Errori e uscite
  * - Migliorare codice
  * - COMMENTIII!!!
@@ -32,11 +31,13 @@ int decrypt_file(const char *input_file_path, const char *output_file_path){
 	struct stat fileStat;
 	memset(&s_mdata, 0, sizeof(struct metadata));
 	unsigned char *derived_key = NULL, *crypto_key = NULL, *mac_key = NULL, *decBuffer = NULL;
-	unsigned char hex[15] = { 0x01,0x02,0x03,0x04,0x05,0x06,0x07,0x08,0x09,0x0A,0x0B,0x0C,0x0D,0x0E,0x0F}, cipher_text[16];
+	unsigned char hex[15] = { 0x01,0x02,0x03,0x04,0x05,0x06,0x07,0x08,0x09,0x0A,0x0B,0x0C,0x0D,0x0E,0x0F}, cipher_text[16], mac_of_file[64] ={0};
 	char *input_key = NULL, *tmp_key = NULL;
 	off_t fsize = 0;
 	const char *name = "aes256";
 	size_t blkLength, keyLength, txtLenght = 16, retval = 0, pwd_len;
+	long current_file_offset, bytes_before_mac;
+	FILE *fp, *fpout;
 
 	blkLength = gcry_cipher_get_algo_blklen(GCRY_CIPHER_AES256);
 	keyLength = gcry_cipher_get_algo_keylen(GCRY_CIPHER_AES256);
@@ -80,16 +81,14 @@ int decrypt_file(const char *input_file_path, const char *output_file_path){
   	}
   	fsize = fileStat.st_size; // file size in bytes
   	close(fd);
-	number_of_block = (fsize / 16)-5; /* a differenza della cifratura qua avrò sempre un numero divisibile per 16 e devo fare - 5 perchè
-									   * perchè 2 blocchi vanno all'header, 1 blocco va all'IV e 2 al SALT*/
-	
-	FILE *fp = fopen(input_file_path, "r");
-	FILE *fpout = fopen(output_file_path, "w");
-	if(fp == NULL || fpout == NULL){
+	number_of_block = (fsize / 16)-9; /* a differenza della cifratura qua avrò sempre un numero divisibile per 16 e devo fare - 9 perchè
+									   * perchè 2 blocchi vanno all'header, 1 blocco va all'IV, 2 al SALT e 4 al MAC*/
+	bytes_before_mac = (number_of_block+5)*16; //vado all'inizio del MAC nel file (number_of_block+9-4)*16 (16 bytes per blocco)
+	fp = fopen(input_file_path, "r");
+	if(fp == NULL){
 		perror("Error on file opening\n");
-		exit(1); // migliorare l'uscita
+		return -1;
 	}
-
 	fseek(fp, 0, SEEK_SET);
 
 	retval = fread(&s_mdata, sizeof(struct metadata), 1, fp);
@@ -119,6 +118,63 @@ int decrypt_file(const char *input_file_path, const char *output_file_path){
 	memcpy(mac_key, derived_key + 32, 32); //gli ultimi 32 byte (256bit) vanno alla chiave usata per calcolare il MAC
 	gcry_cipher_setkey(hd, crypto_key, keyLength);
 	gcry_cipher_setiv(hd, s_mdata.iv, blkLength);
+
+	if((current_file_offset = ftell(fp)) == -1){
+		perror("ftell\n");
+		gcry_free(derived_key);
+		gcry_free(crypto_key);
+		gcry_free(mac_key);
+		gcry_free(input_key);
+		return -1;		
+	}
+	if(fseek(fp, bytes_before_mac, SEEK_SET) == -1){
+		perror("fseek before mac\n");
+		gcry_free(derived_key);
+		gcry_free(crypto_key);
+		gcry_free(mac_key);
+		gcry_free(input_key);
+		return -1;		
+	}
+	if(fread(mac_of_file, 1, 64, fp) != 64){
+		perror("fread mac\n");
+		gcry_free(derived_key);
+		gcry_free(crypto_key);
+		gcry_free(mac_key);
+		gcry_free(input_key);
+		return -1;
+	}
+	unsigned char *hmac = calculate_hmac(input_file_path, mac_key, keyLength);
+	if(hmac == (unsigned char *)-1){
+		printf("Error during HMAC calculation\n");
+		gcry_free(derived_key);
+		gcry_free(crypto_key);
+		gcry_free(mac_key);
+		gcry_free(input_key);
+		return -1;
+	}
+	if(memcmp(mac_of_file, hmac, 64) != 0){
+		printf("MAC ERROR: wrong password or corrupted file\n");
+		gcry_free(derived_key);
+		gcry_free(crypto_key);
+		gcry_free(mac_key);
+		gcry_free(input_key);
+		return -1;
+	}
+	free(hmac);
+	if(fseek(fp, current_file_offset, SEEK_SET) == -1){
+		perror("ftell\n");
+		gcry_free(derived_key);
+		gcry_free(crypto_key);
+		gcry_free(mac_key);
+		gcry_free(input_key);
+		return -1;		
+	}
+
+	fpout = fopen(output_file_path, "w");
+	if(fpout == NULL){
+		perror("Error on file opening\n");
+		return -1;
+	}
 
 	while(number_of_block > block_done){
 		memset(cipher_text, 0, sizeof(cipher_text));

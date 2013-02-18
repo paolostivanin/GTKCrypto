@@ -17,7 +17,13 @@
 
 #define GCRYPT_MIN_VER "1.5.0"
 
+/* DATABASE FILE BINARIO (VEDERE LIBRO C) */
+
 int main(int argc, char **argv){
+	if(getuid() == 0){
+		printf("You are root, please run this program as NORMAL USER!\n");
+		return 0;
+	}
 	if(!gcry_check_version(GCRYPT_MIN_VER)){
 		fputs("libgcrypt min version required: 1.5.0\n", stderr);
 		exit(2);
@@ -56,9 +62,11 @@ int main(int argc, char **argv){
 		retval = encrypt_file(path_to_input_file, path_to_output_file);
 		if(retval == -1){
 			printf("Error during file encryption\n");
+			remove(path_to_output_file);
 			free(output_file);
 			return -1;
 		}
+		free(output_file);
 	}
 
 	if(strcmp(argv[1], "-d") == 0){
@@ -76,12 +84,9 @@ int main(int argc, char **argv){
 		retval = decrypt_file(path_to_input_file, path_to_output_file);
 		if(retval == -1){
 			printf("Error during file decryption\n");
+			remove(path_to_output_file);
 			return -1;
 		}
-		goto end;
 	}
-
-	free(output_file);
-	end:
 	return 0;
 }

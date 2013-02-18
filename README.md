@@ -25,7 +25,7 @@ RoadMap
 ??/02/2013 - v1.0-alpha
 - [ ] ADDED: command line interface;
 - [X] ADDED: Encrypt/Decrypt with AES256-CBC;
-- [ ] ADDED: MAC (Encrypt-then-MAC, HMAC+SHA512);
+- [X] ADDED: MAC (Encrypt-then-MAC, HMAC+SHA512);
 
 Requirements
 ------------
@@ -34,6 +34,7 @@ Requirements
 * GTK+		: required version **>=3.6.0**
 * Glib
 * OpenSSL
+* libmudflap
 
 How it works
 ------------

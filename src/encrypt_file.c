@@ -19,7 +19,6 @@
 
 /********************************************
  * TODO:
- * - Calcolare il MAC e appenderlo alla fine;
  * - Errori e uscite;
  * - Migliorare il codice;
  * - I commenti!!!!!!!!!!!!!!!!!!
@@ -176,6 +175,14 @@ int encrypt_file(const char *input_file_path, const char *output_file_path){
 		fwrite(encBuffer, 1, 16, fpout);
 		block_done++;
 	}
+	
+	unsigned char *hmac = calculate_hmac(output_file_path, mac_key, keyLength);
+	if(hmac == (unsigned char *)-1){
+		printf("Error during HMAC calculation\n");
+		return -1;
+	}
+	fwrite(hmac, 1, 64, fpout);
+	free(hmac);
 
 	gcry_cipher_close(hd);
 	gcry_free(input_key);
