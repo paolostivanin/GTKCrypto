@@ -21,7 +21,6 @@ Mockup
 
 RoadMap
 -------
-**The code is in PREALPHA stage, no feature is currently working**
 ??/02/2013 - v1.0-alpha
 - [ ] ADDED: command line interface;
 - [X] ADDED: Encrypt/Decrypt with AES256-CBC;
