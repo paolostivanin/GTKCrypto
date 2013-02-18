@@ -17,6 +17,7 @@
 
 #define GCRYPT_MIN_VER "1.5.0"
 
+
 /* DATABASE FILE BINARIO (VEDERE LIBRO C) */
 
 int main(int argc, char **argv){

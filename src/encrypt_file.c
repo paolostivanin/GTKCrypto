@@ -4,6 +4,9 @@
  * Sito web: <https://github.com/polslinux/PolCrypt>
  */
 
+#define GLIB_VERSION_2_32 (G_ENCODE_VERSION (2, 32))
+#define GLIB_VERSION_MIN_REQUIRED (GLIB_VERSION_2_32)
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
