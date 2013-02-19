@@ -1,5 +1,5 @@
 /* Sviluppatore: Paolo Stivanin
- * Versione: 1.0-alpha
+ * Versione: 1.0.0
  * Copyright: 2013
  * Licenza: GNU GPL v3 <http://www.gnu.org/licenses/gpl-3.0.html>
  * Sito web: <https://github.com/polslinux/PolCrypt>
@@ -37,16 +37,16 @@ int main(int argc, char **argv){
 	size_t output_len;
 	const char *ext=".pcry";
 
-	if(argc != 4){
-		printf("Usage: %s [-e] | [-d] <path-to-input_file> <path_to_output_file>\n", argv[0]);
+	if(argc != 5){
+		printf("Usage: %s <[-e] | [-d]> <path-to-input_file> -o <path_to_output_file>\n", argv[0]);
 		return 0;
 	}
 
-	if(strcmp(argv[1], "-e") == 0){
+	if(strcmp(argv[1], "-e") == 0 && strcmp(argv[2], "-d") != 0 && strcmp(argv[3], "-o") == 0){
 		const char *path_to_input_file = argv[2];	
-		output_len = strlen(argv[3])+1;
+		output_len = strlen(argv[4])+1;
 		output_file = malloc(output_len);
-		strcpy(output_file, argv[3]);
+		strcpy(output_file, argv[4]);
 		output_file = (char *)realloc(output_file, output_len+6);
 		strcat(output_file, ext);
 		const char *path_to_output_file = (const char *)output_file;
@@ -70,9 +70,9 @@ int main(int argc, char **argv){
 		free(output_file);
 	}
 
-	if(strcmp(argv[1], "-d") == 0){
+	if(strcmp(argv[1], "-d") == 0 && strcmp(argv[2], "-e") != 0 && strcmp(argv[3], "-o") == 0){
 		const char *path_to_input_file = argv[2];
-		const char *path_to_output_file = argv[3];
+		const char *path_to_output_file = argv[4];
 
 		fd_input = open(path_to_input_file, O_RDONLY | O_NOFOLLOW);
 		fd_output = open(path_to_output_file, O_WRONLY | O_NOFOLLOW | O_CREAT, 0644);
