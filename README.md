@@ -31,7 +31,6 @@ Requirements
 * GCC or Clang	: required version of Clang **>= 3.1**
 * Gcrypt	: required version **>=1.5.0**
 * GTK+		: required version **>=3.6.0**
-* Glib
 * OpenSSL
 * libmudflap
 

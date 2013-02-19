@@ -11,6 +11,7 @@ int check_pkcs7(unsigned char *, unsigned char *);
 int encrypt_file(const char *, const char *);
 int decrypt_file(const char *, const char *);
 unsigned char *calculate_hmac(const char *, const unsigned char *, size_t, int);
+size_t strlen_utf8(const char *);
 
 struct metadata{
 	char header[32];

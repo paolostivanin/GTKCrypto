@@ -4,9 +4,6 @@
  * Sito web: <https://github.com/polslinux/PolCrypt>
  */
 
-#define GLIB_VERSION_2_32 (G_ENCODE_VERSION (2, 32))
-#define GLIB_VERSION_MIN_REQUIRED (GLIB_VERSION_2_32)
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -17,7 +14,6 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <termios.h>
-#include <glib.h>
 #include "polcrypt.h"
 
 /********************************************
@@ -88,13 +84,14 @@ int encrypt_file(const char *input_file_path, const char *output_file_path){
  		return -1;
  	}
  	printf("\n");
- 	pwd_len = g_utf8_strlen(compare_key, 256)-1; // -1 perchè devo togliere \n di fgets. Devo usare glib perchè con strlen i caratteri utf8 come àèç valgono più di 1
+ 	pwd_len = strlen(compare_key); // Non tolgo -1 (\n) perchè poi lo sostituisco con \0. Se ci sono caratteri strani come ²³¼ avrò maggior spazio occupato.
  	gcry_free(input_key); // libero input_key...
-    if(((input_key = gcry_malloc_secure(pwd_len)) == NULL)){ //...perchè voglio allocare la giusta quantità di spazio...
+    if(((input_key = gcry_malloc_secure(pwd_len)) == NULL)){
 		perror("Memory allocation error\n");
 		return -1;
 	}
-	g_utf8_strncpy(input_key, compare_key, pwd_len); //...per copiare la pwd SENZA \n\0 di fgets
+	strncpy(input_key, compare_key, pwd_len); /* strncpy copia BYTE e non caratteri quindi devo calcolare la lunghezza in BYTE con strlen */
+	input_key[pwd_len-1] = '\0'; //null terminiamo la pwd sostituendo \n con \0
 	gcry_free(compare_key);
 
 	fd = open(input_file_path, O_RDONLY | O_NOFOLLOW);
