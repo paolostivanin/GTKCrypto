@@ -20,7 +20,6 @@
  * TODO:
  * - Errori e uscite
  * - Migliorare codice
- * - COMMENTIII!!!
  ********************************************/
 
 int decrypt_file(const char *input_file_path, const char *output_file_path){
@@ -59,13 +58,13 @@ int decrypt_file(const char *input_file_path, const char *output_file_path){
  	}
  	tcsetattr( STDIN_FILENO, TCSANOW, &oldt);
  	printf("\n");
- 	pwd_len = strlen(tmp_key); //qui ho anche \n ma lo tengo perchè poi lo sostituisco con \0
+ 	pwd_len = strlen(tmp_key); 
  	if(((input_key = gcry_malloc_secure(pwd_len)) == NULL)){
 		perror("Memory allocation error\n");
 		return -1;
 	}
-	strncpy(input_key, tmp_key, strlen(tmp_key)); /* strncpy copia BYTE e non caratteri quindi devo calcolare la lunghezza in BYTE con strlen */
-	input_key[pwd_len-1] = '\0'; //null terminiamo la pwd sostituendo \n con \0
+	strncpy(input_key, tmp_key, strlen(tmp_key));
+	input_key[pwd_len-1] = '\0';
 	gcry_free(tmp_key);
 
 	fd = open(input_file_path, O_RDONLY | O_NOFOLLOW);
@@ -79,11 +78,10 @@ int decrypt_file(const char *input_file_path, const char *output_file_path){
     	gcry_free(input_key);
     	return -1;
   	}
-  	fsize = fileStat.st_size; // file size in bytes
+  	fsize = fileStat.st_size;
   	close(fd);
-	number_of_block = (fsize / 16)-9; /* a differenza della cifratura qua avrò sempre un numero divisibile per 16 e devo fare - 9 perchè
-									   * perchè 2 blocchi vanno all'header, 1 blocco va all'IV, 2 al SALT e 4 al MAC*/
-	bytes_before_mac = (number_of_block+5)*16; //vado all'inizio del MAC nel file (number_of_block+9-4)*16 (16 bytes per blocco)
+	number_of_block = (fsize / 16)-9;
+	bytes_before_mac = (number_of_block+5)*16;
 	fp = fopen(input_file_path, "r");
 	if(fp == NULL){
 		perror("Error on file opening\n");
@@ -105,7 +103,7 @@ int decrypt_file(const char *input_file_path, const char *output_file_path){
 		gcry_free(input_key);
 		return -1;
 	}
-	//chiave_input,grandezza chiave_input, algoritmo_derivazione, algoritmo_hash, salt, lunghezza salt, iterazioni, BYTES (64B=512bit), output_buffer
+
 	if(gcry_kdf_derive (input_key, pwd_len, GCRY_KDF_PBKDF2, GCRY_MD_SHA512, s_mdata.salt, 32, 150000, 64, derived_key) != 0){
 		perror("Key derivation error\n");
 		gcry_free(derived_key);
@@ -114,8 +112,8 @@ int decrypt_file(const char *input_file_path, const char *output_file_path){
 		gcry_free(input_key);
 		return -1;
 	}
-	memcpy(crypto_key, derived_key, 32); //i primi 32 byte (256bit) vanno alla chiave usata per cifrare il file
-	memcpy(mac_key, derived_key + 32, 32); //gli ultimi 32 byte (256bit) vanno alla chiave usata per calcolare il MAC
+	memcpy(crypto_key, derived_key, 32);
+	memcpy(mac_key, derived_key + 32, 32);
 	gcry_cipher_setkey(hd, crypto_key, keyLength);
 	gcry_cipher_setiv(hd, s_mdata.iv, blkLength);
 
@@ -153,7 +151,7 @@ int decrypt_file(const char *input_file_path, const char *output_file_path){
 		return -1;
 	}
 	if(memcmp(mac_of_file, hmac, 64) != 0){
-		printf("MAC ERROR: wrong password or corrupted file\n");
+		printf("--> CRITICAL ERROR: hmac doesn't match. This is caused by\n                    1) wrong password\n                    or\n                    2) corrupted file\n");
 		gcry_free(derived_key);
 		gcry_free(crypto_key);
 		gcry_free(mac_key);
@@ -181,15 +179,14 @@ int decrypt_file(const char *input_file_path, const char *output_file_path){
 		retval = fread(cipher_text, 1, 16, fp);
 		if(!retval) break;
 		gcry_cipher_decrypt(hd, decBuffer, txtLenght, cipher_text, txtLenght);
-		if(block_done == (number_of_block-1)){ // se i blocchi fatti (che iniziano da 0) sono equivalenti ai blocchi totali-1 (ovvero all'ultimo blocco)..
-			// ..allora cerco su decBuffer il padding...
+		if(block_done == (number_of_block-1)){
 			if((number_of_pkcs7_byte = check_pkcs7(decBuffer, hex)) == -1){
 				printf("Error on checking pkcs#7 padding\n");
 				// qua devo liberare le risorse quando esco
 				return -1;
 			}
-			fwrite(decBuffer, 1, number_of_pkcs7_byte, fpout); //..e quando lo trovo scrivo solo i byte necessari..
-			goto end; //..e vado alla fine
+			fwrite(decBuffer, 1, number_of_pkcs7_byte, fpout);
+			goto end;
 		}
 		fwrite(decBuffer, 1, 16, fpout);
 		block_done++;

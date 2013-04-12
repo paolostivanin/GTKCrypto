@@ -3,17 +3,16 @@
 	* ADDED: Encrypt/Decrypt with AES256-CBC + MAC (Encrypt-then-MAC, HMAC+SHA512);
 	* ADDED: secure file deletion after encryption;
 
-??/02/2013 - v1.0-beta
+??/??/2013 - v1.0-beta
 	* ADDED: documentation;
 	* IMPROVED: better errors detection and resolution;
 	* IMPROVED: general code improvement;
 	* FIXED: bugs [if any];
 
-??/02/2013 - v1.0.0
+??/??/2013 - v1.0.0
 	* NEWSTABLE RELEASE :)
 
 ??/??/2013 - v1.1.0-alpha
-	* ADDED: GTK+3 interface
 	* ADDED: SHA-1, RMD160, MD2, MD4, MD5, TIGER, TIGER1, TIGER2, SHA224, SHA256, SHA384, SHA512, CRC32, WHIRLPOOL
 	* ADDED: pthread (for multiple hashing computation the program will run faster)
 
@@ -25,6 +24,7 @@
 	* NEWSTABLE RELEASE :)
 
 ??/??/2013 - v1.2.0-alpha
+	* ADDED: GTK+3 interface
 	* ADDED: database where to store file's checksums;
 
 ??/??/2013 - v1.2.0-beta

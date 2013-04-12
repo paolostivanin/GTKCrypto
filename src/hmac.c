@@ -20,14 +20,14 @@ unsigned char *calculate_hmac(const char *filename, const unsigned char *key, si
     	return (unsigned char *)-1;
   	}
   	fsize = fileStat.st_size;
-  	if(mode == 1) fsize -= 64; //se siamo in decrypt togliamo 64 bytes (hmac)
+  	if(mode == 1) fsize -= 64;
   	close(fd);  	
 	FILE *fp;
 	fp = fopen(filename, "r");
 	gcry_md_hd_t hd;
 	gcry_md_open(&hd, GCRY_MD_SHA512, GCRY_MD_FLAG_HMAC);
 	gcry_md_setkey(hd, key, keylen);
-	if(fsize < 16){ //se il file è più piccolo di 16 allora in una chiamata ho finito;
+	if(fsize < 16){
 		buffer = malloc(fsize);
   		if(buffer == NULL){
   			printf("malloc error\n");
@@ -40,25 +40,25 @@ unsigned char *calculate_hmac(const char *filename, const unsigned char *key, si
 		gcry_md_write(hd, buffer, fsize);
 		goto nowhile;
 	}
-	buffer = malloc(16); // altrimenti alloco 16 byte al buffer...
+	buffer = malloc(16);
   	if(buffer == NULL){
   		printf("malloc error\n");
   		return (unsigned char *)-1;
   	}
-	while(fsize > donesize){ //...e finchè la grandezza del file è maggiore di quello letto...
-		if(fread(buffer, 1, 16, fp) != 16){ //leggo 16 byte alla volta...
+	while(fsize > donesize){
+		if(fread(buffer, 1, 16, fp) != 16){
 			perror("fread error hmac\n");
 			return (unsigned char *)-1;
 		}
-		gcry_md_write(hd, buffer, 16); //...scrivo 16 byte....
-		donesize+=16; //...aumento i byte letti di 16...
-		diff=fsize-donesize; //...calcolo la differenza...
-		if(diff > 0 && diff < 16){ //...e se la differenza è minore di 16 allora termino con l'ultima chiamata...
-			if(fread(buffer, 1, diff, fp) != diff){  //...che legge soltanto i byte necessari...
+		gcry_md_write(hd, buffer, 16);
+		donesize+=16;
+		diff=fsize-donesize
+		if(diff > 0 && diff < 16){
+			if(fread(buffer, 1, diff, fp) != diff){
 				perror("fread error hmac\n");
 				return (unsigned char *)-1;
 			}
-			gcry_md_write(hd, buffer, diff); //...e li scrive!
+			gcry_md_write(hd, buffer, diff);
 			break;
 		}
 	}
@@ -68,7 +68,7 @@ unsigned char *calculate_hmac(const char *filename, const unsigned char *key, si
 	free(buffer);
  	fclose(fp);
  	unsigned char *hmac = malloc(64);
- 	memcpy(hmac, tmp_hmac, 64); //se non copio il risultato quando faccio gcry_md_close tutto svanisce!
+ 	memcpy(hmac, tmp_hmac, 64);
 	gcry_md_close(hd);
 	return hmac;
 }

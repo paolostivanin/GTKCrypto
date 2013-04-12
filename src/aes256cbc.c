@@ -17,9 +17,6 @@
 
 #define GCRYPT_MIN_VER "1.5.0"
 
-
-/* DATABASE FILE BINARIO (VEDERE LIBRO C) */
-
 int main(int argc, char **argv){
 	if(getuid() == 0){
 		printf("You are root, please run this program as NORMAL USER!\n");

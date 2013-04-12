@@ -21,10 +21,11 @@ Mockup
 
 RoadMap
 -------
-??/02/2013 - v1.0-alpha
-- [ ] ADDED: command line interface;
-- [X] ADDED: Encrypt/Decrypt with AES256-CBC;
-- [X] ADDED: MAC (Encrypt-then-MAC, HMAC+SHA512);
+??/??/2013 - v1.0-beta
+- [ ] ADDED: documentation;
+- [ ] IMPROVED: better errors detection and resolution;
+- [ ] IMPROVED: general code improvement;
+- [X] FIXED: bugs [if any];
 
 Requirements
 ------------

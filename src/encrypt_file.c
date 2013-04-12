@@ -20,12 +20,10 @@
  * TODO:
  * - Errori e uscite;
  * - Migliorare il codice;
- * - I commenti!!!!!!!!!!!!!!!!!!
- * - secure file deletion (vedere fsync, fclear)
  ********************************************/
 
 int encrypt_file(const char *input_file_path, const char *output_file_path){
-	int algo = -1, fd, number_of_block, block_done = 0;
+	int algo = -1, fd, number_of_block, block_done = 0, retcode;
 	struct metadata s_mdata;
 	struct termios oldt, newt;
 	struct stat fileStat;
@@ -84,14 +82,14 @@ int encrypt_file(const char *input_file_path, const char *output_file_path){
  		return -1;
  	}
  	printf("\n");
- 	pwd_len = strlen(compare_key); // Non tolgo -1 (\n) perchè poi lo sostituisco con \0. Se ci sono caratteri strani come ²³¼ avrò maggior spazio occupato.
- 	gcry_free(input_key); // libero input_key...
+ 	pwd_len = strlen(compare_key);
+ 	gcry_free(input_key);
     if(((input_key = gcry_malloc_secure(pwd_len)) == NULL)){
 		perror("Memory allocation error\n");
 		return -1;
 	}
-	strncpy(input_key, compare_key, pwd_len); /* strncpy copia BYTE e non caratteri quindi devo calcolare la lunghezza in BYTE con strlen */
-	input_key[pwd_len-1] = '\0'; //null terminiamo la pwd sostituendo \n con \0
+	strncpy(input_key, compare_key, pwd_len);
+	input_key[pwd_len-1] = '\0';
 	gcry_free(compare_key);
 
 	fd = open(input_file_path, O_RDONLY | O_NOFOLLOW);
@@ -105,13 +103,13 @@ int encrypt_file(const char *input_file_path, const char *output_file_path){
     	close(fd);
     	return -1;
   	}
-  	fsize = fileStat.st_size; // file size in bytes
+  	fsize = fileStat.st_size;
   	close(fd);
 
-	fsize_float = (float)fsize; // file size in float
-	result_of_division_by_16 = fsize_float / 16; // divisione per 16 bytes della grandezza in bytes
-	number_of_block = (int)result_of_division_by_16; // numbero di blocchi in cui viene diviso
-	if(result_of_division_by_16 > number_of_block) number_of_block += 1; // se il numero con virgola > del numero intero allora necessito di 1 blocco in più
+	fsize_float = (float)fsize;
+	result_of_division_by_16 = fsize_float / 16;
+	number_of_block = (int)result_of_division_by_16;
+	if(result_of_division_by_16 > number_of_block) number_of_block += 1;
 	
 	FILE *fp = fopen(input_file_path, "r");
 	FILE *fpout = fopen(output_file_path, "w");
@@ -128,7 +126,7 @@ int encrypt_file(const char *input_file_path, const char *output_file_path){
 		gcry_free(input_key);
 		return -1;
 	}
-	//chiave_input,grandezza chiave_input, algoritmo_derivazione, algoritmo_hash, salt, lunghezza salt, iterazioni, BYTES (64B=512bit), output_buffer
+
 	if(gcry_kdf_derive (input_key, pwd_len, GCRY_KDF_PBKDF2, GCRY_MD_SHA512, s_mdata.salt, 32, 150000, 64, derived_key) != 0){
 		perror("Key derivation error\n");
 		gcry_free(derived_key);
@@ -137,22 +135,21 @@ int encrypt_file(const char *input_file_path, const char *output_file_path){
 		free(input_key);
 		return -1;
 	}
-	memcpy(crypto_key, derived_key, 32); //i primi 32 byte (256bit) vanno alla chiave usata per cifrare il file
-	memcpy(mac_key, derived_key + 32, 32); //gli ultimi 32 byte (256bit) vanno alla chiave usata per calcolare il MAC
+	memcpy(crypto_key, derived_key, 32);
+	memcpy(mac_key, derived_key + 32, 32);
 
 	gcry_cipher_setkey(hd, crypto_key, keyLength);
 	gcry_cipher_setiv(hd, s_mdata.iv, blkLength);
 
 	fseek(fp, 0, SEEK_SET);
 	
-	fwrite(&s_mdata, sizeof(struct metadata), 1, fpout); // Ho scritto HEADER (2 blocchi) + IV (1 blocco) + SALT (2 blocchi)
+	fwrite(&s_mdata, sizeof(struct metadata), 1, fpout);
 	
 	while(number_of_block > block_done){
 		memset(plain_text, 0, sizeof(plain_text));
 		retval = fread(plain_text, 1, 16, fp);
 		if(!retval) break;
 		if(retval < 16){
-			//pkcs#7 se ho 5 blocchi liberi scrivo 0x05 nei blocchi rimanenti
 			for(i=retval; i<16; i++){
 				if(retval == 1) plain_text[i] = hex[14];
 				if(retval == 2) plain_text[i] = hex[13];
@@ -176,15 +173,22 @@ int encrypt_file(const char *input_file_path, const char *output_file_path){
 		block_done++;
 	}
 	fclose(fpout); //chiudere il file prima di calcolare il MAC altrimenti bug
+	fclose(fp);
 
 	unsigned char *hmac = calculate_hmac(output_file_path, mac_key, keyLength, 0);
 	if(hmac == (unsigned char *)-1){
 		printf("Error during HMAC calculation\n");
 		return -1;
 	}
-	fpout = fopen(output_file_path, "a"); //aprire file modalità append per aggiungere il MAC
+	fpout = fopen(output_file_path, "a");
 	fwrite(hmac, 1, 64, fpout);
 	free(hmac);
+	
+	retcode = delete_input_file(input_file_path, fsize);
+	if(retcode == -1)
+		printf("Secure file deletion failed\n");
+	if(retcode == -2)
+		printf("File unlink failed\n");
 
 	gcry_cipher_close(hd);
 	gcry_free(input_key);
@@ -192,7 +196,6 @@ int encrypt_file(const char *input_file_path, const char *output_file_path){
 	gcry_free(crypto_key);
 	gcry_free(mac_key);
 	gcry_free(encBuffer);
-	fclose(fp);
 	fclose(fpout);
 
 	return 0;
