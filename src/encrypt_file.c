@@ -40,8 +40,8 @@ int encrypt_file(const char *input_file_path, const char *output_file_path){
 	algo = gcry_cipher_map_name(name);
 	encBuffer = gcry_malloc(txtLenght);
 
-	gcry_randomize(s_mdata.iv, 16, GCRY_VERY_STRONG_RANDOM);
-	gcry_randomize(s_mdata.salt, 32, GCRY_VERY_STRONG_RANDOM);
+	gcry_create_nonce(s_mdata.iv, 16);
+	gcry_create_nonce(s_mdata.salt, 32);
 
 	strncpy(s_mdata.header, "CREATED_BY_PolCrypt", sizeof(s_mdata.header));
 
