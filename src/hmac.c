@@ -52,7 +52,7 @@ unsigned char *calculate_hmac(const char *filename, const unsigned char *key, si
 		}
 		gcry_md_write(hd, buffer, 16);
 		donesize+=16;
-		diff=fsize-donesize
+		diff=fsize-donesize;
 		if(diff > 0 && diff < 16){
 			if(fread(buffer, 1, diff, fp) != diff){
 				perror("fread error hmac\n");
