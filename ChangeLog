@@ -7,6 +7,7 @@
 	* ADDED: documentation;
 	* IMPROVED: better errors detection and resolution;
 	* IMPROVED: general code improvement;
+	* IMPROVED: using gcrypt for random bytes generation; openssl dropped as dep
 	* FIXED: bugs [if any];
 
 ??/??/2013 - v1.0.0

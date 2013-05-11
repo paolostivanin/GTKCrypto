@@ -8,7 +8,6 @@
 #include <stdlib.h>
 #include <string.h>
 #include <gcrypt.h>
-#include <openssl/rand.h>
 #include <fcntl.h>
 #include <unistd.h>
 #include <sys/types.h>
@@ -41,14 +40,9 @@ int encrypt_file(const char *input_file_path, const char *output_file_path){
 	algo = gcry_cipher_map_name(name);
 	encBuffer = gcry_malloc(txtLenght);
 
-	if(RAND_bytes(s_mdata.iv, 16) == 0){
-		printf("Error on IV generation\n");
-		return -1; // migliorare l'uscita
-	}
-	if(RAND_bytes(s_mdata.salt, 32) == 0){
-		printf("Error on salt generation\n");
-		return -1; // migliorare l'uscita
-	}
+	gcry_randomize(s_mdata.iv, 16, GCRY_VERY_STRONG_RANDOM);
+	gcry_randomize(s_mdata.salt, 32, GCRY_VERY_STRONG_RANDOM);
+
 	strncpy(s_mdata.header, "CREATED_BY_PolCrypt", sizeof(s_mdata.header));
 
  	if(((input_key = gcry_malloc_secure(256)) == NULL) || ((compare_key = gcry_malloc_secure(256)) == NULL)){
