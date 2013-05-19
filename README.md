@@ -24,7 +24,7 @@ RoadMap
 ??/??/2013 - v1.0-beta
 - [ ] ADDED: documentation;
 - [ ] IMPROVED: better errors detection and resolution;
-- [ ] IMPROVED: general code improvement;
+- [X] IMPROVED: general code improvement;
 - [X] FIXED: bugs [if any];
 
 Requirements
