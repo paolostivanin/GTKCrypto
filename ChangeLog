@@ -6,8 +6,8 @@
 ??/05/2013 - v1.0-beta
 	* IMPROVED: general code improvement;
 	* IMPROVED: using gcrypt for random bytes generation; openssl dropped
-	* IMPROVED: removed header from encrypted file
 	* FIXED: bugs [if any];
+	* FIXED: compilation warning on Gentoo
 
 ??/??/2013 - v1.0.0
 	* NEWSTABLE RELEASE :)
