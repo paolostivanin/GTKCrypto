@@ -1,4 +1,4 @@
-/* Sviluppatore: Paolo Stivanin
+	/* Sviluppatore: Paolo Stivanin
  * Copyright: 2013
  * Licenza: GNU GPL v3 <http://www.gnu.org/licenses/gpl-3.0.html>
  * Sito web: <https://github.com/polslinux/PolCrypt>
@@ -79,8 +79,8 @@ int decrypt_file(const char *input_file_path, const char *output_file_path){
   	}
   	fsize = fileStat.st_size;
   	close(fd);
-	number_of_block = (fsize / 16)-9;
-	bytes_before_mac = (number_of_block+5)*16;
+	number_of_block = (fsize / 16)-7;
+	bytes_before_mac = (number_of_block+3)*16;
 	fp = fopen(input_file_path, "r");
 	if(fp == NULL){
 		perror("Error on file opening\n");
@@ -181,7 +181,10 @@ int decrypt_file(const char *input_file_path, const char *output_file_path){
 		if(block_done == (number_of_block-1)){
 			if((number_of_pkcs7_byte = check_pkcs7(decBuffer, hex)) == -1){
 				printf("Error on checking pkcs#7 padding\n");
-				// qua devo liberare le risorse quando esco
+				gcry_free(derived_key);
+				gcry_free(crypto_key);
+				gcry_free(mac_key);
+				gcry_free(input_key);
 				return -1;
 			}
 			fwrite(decBuffer, 1, number_of_pkcs7_byte, fpout);

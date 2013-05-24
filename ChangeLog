@@ -3,19 +3,22 @@
 	* ADDED: Encrypt/Decrypt with AES256-CBC + MAC (Encrypt-then-MAC, HMAC+SHA512);
 	* ADDED: secure file deletion after encryption;
 
-??/05/2013 - v1.0-beta
+23/05/2013 - v1.0-beta
 	* IMPROVED: general code improvement;
 	* IMPROVED: using gcrypt for random bytes generation; openssl dropped
 	* FIXED: bugs [if any];
 	* FIXED: compilation warning on Gentoo
 
-??/??/2013 - v1.0.0
+24/05/2013 - v1.0-rc
+	* removed custom header;
+	* minor fixes;
+
+??/05/2013 - v1.0.0
 	* NEWSTABLE RELEASE :)
 
 ??/??/2013 - v1.1.0-alpha
-	* ADDED: documentation;
-	* ADDED: SHA-1, RMD160, MD5, TIGER, TIGER1, TIGER2, SHA224, SHA256, SHA384, SHA512, WHIRLPOOL
-	* ADDED: pthread support (multiple hash computation at same time)
+	* ADDED: RMD160, MD5, TIGER, TIGER1, TIGER2, SHA-1, SHA224, SHA256, SHA384, SHA512, WHIRLPOOL
+	* ADDED: double encryption;
 	* IMPROVED: better errors detection and resolution;
 	
 ??/??/2013 - v1.1.0-beta
@@ -26,12 +29,22 @@
 	* NEWSTABLE RELEASE :)
 
 ??/??/2013 - v1.2.0-alpha
+	* ADDED: pthread support (multiple hash computation at same time)
+
+??/??/2013 - v1.2.0-beta
+	* TEST: all software functions have been heavly "stress-tested";
+	* TEST: security test to ensure that the software "will always do the right thing";
+
+??/??/2013 - v1.2.0
+	* NEWSTABLE RELEASE :)
+
+??/??/2013 - v2.0-alpha
 	* ADDED: GTK+3 interface
 	* ADDED: database where to store file checksums;
 
-??/??/2013 - v1.2.0-beta
+??/??/2013 - v2.0-beta
 	* IMPROVED: documentation;
 	* FIXED: bugs [if any];
 
-??/??/2013 - v1.2.0
+??/??/2013 - v2.0.0
 	* NEWSTABLE RELEASE :)

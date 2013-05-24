@@ -7,6 +7,8 @@
 #ifndef POLCRYPT_H_INCLUDED
 #define POLCRYPT_H_INCLUDED
 
+#define VERS "1.0-beta"
+
 int check_pkcs7(unsigned char *, unsigned char *);
 int encrypt_file(const char *, const char *);
 int decrypt_file(const char *, const char *);
@@ -16,7 +18,6 @@ int random_write(int, int, size_t, int);
 int zero_write(int, size_t, int);
 
 struct metadata{
-	char header[32];
 	unsigned char salt[32];
 	unsigned char iv[16];
 };

@@ -17,5 +17,5 @@ is_crypto2=$(find /lib/ -name libcrypto.so &>/dev/null && echo $?)
 [[ $is_gcry != 0 && $is_gcry2 != 0 ]] && echo "libgcrypt is missing (libgcrypt11-dev under Ubuntu >= 11.10, Linux Mint >= 12 and Debian >= testing; libgcrypt under Archlinux)" || echo "libgcrypt OK"
 [[ $is_crypto != 0 && $is_crypto2 != 0 ]] && echo "libcrypto is missing (libssl-dev under Ubuntu/Mint/Debian; openssl under Archlinux)" || echo "libcrypto OK"
 
-[[ $is_clang == 0 ]] && export CC=gcc || export CC=gcc
+[[ $is_clang == 0 ]] && export CC=clang || export CC=gcc
 make

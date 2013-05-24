@@ -22,11 +22,13 @@ Mockup
 
 RoadMap
 -------
-??/05/2013 - v1.0-beta
-- [X] IMPROVED: general code improvement; 
-- [X] IMPROVED: using gcrypt for random bytes generation; openssl dropped
-- [] IMPROVED: removed header from encrypted file
-- [X] FIXED: bugs [if any];
+??/05/2013 - v1.0.0
+	* NEWSTABLE RELEASE :)
+
+??/??/2013 - v1.1.0-alpha
+	* ADDED: RMD160, MD5, TIGER, TIGER1, TIGER2, SHA-1, SHA224, SHA256, SHA384, SHA512, WHIRLPOOL
+	* ADDED: double encryption;
+	* IMPROVED: better errors detection and resolution;
 
 Requirements
 ------------
