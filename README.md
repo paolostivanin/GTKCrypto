@@ -20,12 +20,13 @@ Mockup
 ------
 ![Image Alt](https://raw.github.com/polslinux/PolCrypt/master/docs/polcrypt.png)
 
+Latest release
+--------------
+The latest (v1.0.0) **stable** release can be found in the 'master' branch, just clone it :)
+
 RoadMap
 -------
-??/05/2013 - v1.0.0
-	* NEWSTABLE RELEASE :)
-
-??/??/2013 - v1.1.0-alpha
+??/06/2013 - v1.1.0-alpha
 	* ADDED: RMD160, MD5, TIGER, TIGER1, TIGER2, SHA-1, SHA224, SHA256, SHA384, SHA512, WHIRLPOOL
 	* ADDED: double encryption;
 	* IMPROVED: better errors detection and resolution;
