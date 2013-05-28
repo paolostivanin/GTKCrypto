@@ -43,8 +43,6 @@ int encrypt_file(const char *input_file_path, const char *output_file_path){
 	gcry_create_nonce(s_mdata.iv, 16);
 	gcry_create_nonce(s_mdata.salt, 32);
 
-	strncpy(s_mdata.header, "CREATED_BY_PolCrypt", sizeof(s_mdata.header));
-
  	if(((input_key = gcry_malloc_secure(256)) == NULL) || ((compare_key = gcry_malloc_secure(256)) == NULL)){
 		perror("Memory allocation error\n");
 		return -1;
@@ -166,7 +164,7 @@ int encrypt_file(const char *input_file_path, const char *output_file_path){
 		fwrite(encBuffer, 1, 16, fpout);
 		block_done++;
 	}
-	fclose(fpout); //chiudere il file prima di calcolare il MAC altrimenti bug
+	fclose(fpout);
 	fclose(fp);
 
 	unsigned char *hmac = calculate_hmac(output_file_path, mac_key, keyLength, 0);
@@ -181,7 +179,7 @@ int encrypt_file(const char *input_file_path, const char *output_file_path){
 	retcode = delete_input_file(input_file_path, fsize);
 	if(retcode == -1)
 		printf("Secure file deletion failed\n");
-	if(retcode == -2)
+	if(retcode == -1)
 		printf("File unlink failed\n");
 
 	gcry_cipher_close(hd);

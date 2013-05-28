@@ -34,8 +34,19 @@ int main(int argc, char **argv){
 	size_t output_len;
 	const char *ext=".pcry";
 
+	if(argc == 2){
+		if(strcmp(argv[1], "--version") == 0){
+			printf("PolCrypt v%s\n", VERS);
+			return 0;
+		}
+		if(strcmp(argv[1], "--help") == 0){
+			printf("Usage: %s <[-e] | [-d]> <path-to-input_file> -o <path_to_output_file>\n", argv[0]);
+			return 0;
+		}
+	}
+
 	if(argc != 5){
-		printf("Usage: %s <[-e] | [-d]> <path-to-input_file> -o <path_to_output_file>\n", argv[0]);
+		printf("Too few arguments; use '%s --help' to know how to use polcrypt\n", argv[0]);
 		return 0;
 	}
 
