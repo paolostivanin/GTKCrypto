@@ -7,7 +7,7 @@
 #ifndef POLCRYPT_H_INCLUDED
 #define POLCRYPT_H_INCLUDED
 
-#define VERS "1.0-beta"
+#define VERS "1.0.0"
 
 int check_pkcs7(unsigned char *, unsigned char *);
 int encrypt_file(const char *, const char *);
