@@ -27,10 +27,9 @@ The latest (v1.0.0) **stable** release can be found in the 'master' branch, just
 RoadMap
 -------
 ??/06/2013 - v1.1.0-alpha
-
-	* ADDED: RMD160, MD5, TIGER, TIGER1, TIGER2, SHA-1, SHA224, SHA256, SHA384, SHA512, WHIRLPOOL
-	* ADDED: double encryption;
-	* IMPROVED: better errors detection and resolution;
+[X] RMD160, MD5, TIGER, TIGER1, TIGER2, SHA-1, SHA224, SHA256, SHA384, SHA512, WHIRLPOOL
+[ ] double encryption;
+[ ] better errors detection and resolution;
 
 Requirements
 ------------
