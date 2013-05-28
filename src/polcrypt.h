@@ -7,11 +7,8 @@
 #ifndef POLCRYPT_H_INCLUDED
 #define POLCRYPT_H_INCLUDED
 
-<<<<<<< HEAD
 #define BUF_FILE 1048576 /* 1 MiB di memoria per il file come buffer massimo, poi spezzo */
-=======
 #define VERS "1.0.0"
->>>>>>> master
 
 int check_pkcs7(unsigned char *, unsigned char *);
 int encrypt_file(const char *, const char *);

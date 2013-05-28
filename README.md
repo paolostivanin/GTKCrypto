@@ -28,7 +28,7 @@ RoadMap
 -------
 ??/06/2013 - v1.1.0-alpha
 - [X] ADDED: RMD160, MD5, TIGER, TIGER1, TIGER2, SHA-1, SHA224, SHA256, SHA384, SHA512, WHIRLPOOL
-- [ ] ADDED: double encryption;
+- [ ] ADDED: cascade encryption (AES+Twofish+Serpent);
 - [ ] ADDED: better errors detection and resolution;
 
 Requirements

@@ -16,15 +16,10 @@
 28/05/2013 - v1.0.0
 	* NEWSTABLE RELEASE :)
 
-??/??/2013 - v1.1.0-alpha
-<<<<<<< HEAD
-	* ADDED: SHA-1, RMD160, MD5, TIGER, TIGER1, TIGER2, SHA224, SHA256, SHA384, SHA512, WHIRLPOOL
-	* ADDED: pthread support (multiple hash computation at same time)
-=======
+??/06/2013 - v1.1.0-alpha
 	* ADDED: RMD160, MD5, TIGER, TIGER1, TIGER2, SHA-1, SHA224, SHA256, SHA384, SHA512, WHIRLPOOL
-	* ADDED: double encryption;
+	* ADDED: cascade encryption (AES+Twofish+Serpent);
 	* IMPROVED: better errors detection and resolution;
->>>>>>> master
 	
 ??/??/2013 - v1.1.0-beta
 	* ADDED: documentation;
@@ -34,7 +29,8 @@
 	* NEWSTABLE RELEASE :)
 
 ??/??/2013 - v1.2.0-alpha
-	* ADDED: pthread support (multiple hash computation at same time)
+	* ADDED: pthread support (multiple hash computation at same time);
+	* ADDED: double encryption with 2 different keys;
 
 ??/??/2013 - v1.2.0-beta
 	* TEST: all software functions have been heavly "stress-tested";
