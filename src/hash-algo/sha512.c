@@ -67,7 +67,7 @@ int compute_sha512(const char *filename){
  		sprintf(sha512hash+(i*2), "%02x", sha512[i]);
  	}
  	sha512hash[128] = '\0';
- 	printf("%s\n", sha512hash);
+ 	printf("sha512: %s\n", sha512hash);
  	free(buffer);
  	fclose(fp);
 	gcry_md_close(hd);

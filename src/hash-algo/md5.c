@@ -67,7 +67,7 @@ int compute_md5(const char *filename){
  		sprintf(md5hash+(i*2), "%02x", md5[i]);
  	}
  	md5hash[32] = '\0';
- 	printf("%s\n", md5hash);
+ 	printf("md5: %s\n", md5hash);
  	free(buffer);
  	fclose(fp);
 	gcry_md_close(hd);

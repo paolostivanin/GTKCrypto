@@ -67,7 +67,7 @@ int compute_rmd160(const char *filename){
  		sprintf(rmd160hash+(i*2), "%02x", rmd160[i]);
  	}
  	rmd160hash[40] = '\0';
- 	printf("%s\n", rmd160hash);
+ 	printf("rmd160: %s\n", rmd160hash);
  	free(buffer);
  	fclose(fp);
 	gcry_md_close(hd);

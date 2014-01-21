@@ -67,7 +67,7 @@ int compute_whirlpool(const char *filename){
  		sprintf(whirlpoolhash+(i*2), "%02x", whirlpool[i]);
  	}
  	whirlpoolhash[128] = '\0';
- 	printf("%s\n", whirlpoolhash);
+ 	printf("whirlpool: %s\n", whirlpoolhash);
  	free(buffer);
  	fclose(fp);
 	gcry_md_close(hd);

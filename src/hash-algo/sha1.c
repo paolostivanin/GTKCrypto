@@ -67,7 +67,7 @@ int compute_sha1(const char *filename){
  		sprintf(sha1hash+(i*2), "%02x", sha[i]);
  	}
  	sha1hash[40] = '\0';
- 	printf("%s\n", sha1hash);
+ 	printf("sha1: %s\n", sha1hash);
  	free(buffer);
  	fclose(fp);
 	gcry_md_close(hd);
