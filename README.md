@@ -22,7 +22,7 @@ Mockup
 
 Latest release
 --------------
-The latest (v1.0.0) **stable** release can be found in the 'master' branch, just clone it :)
+The latest (v1.1.0-dev) release can be found in the 'master' branch, just clone it :)
 
 RoadMap
 -------
