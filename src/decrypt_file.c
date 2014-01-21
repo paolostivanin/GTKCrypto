@@ -1,9 +1,3 @@
-	/* Sviluppatore: Paolo Stivanin
- * Copyright: 2013
- * Licenza: GNU GPL v3 <http://www.gnu.org/licenses/gpl-3.0.html>
- * Sito web: <https://github.com/polslinux/PolCrypt>
- */
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -14,12 +8,6 @@
 #include <sys/stat.h>
 #include <termios.h>
 #include "polcrypt.h"
-
-/********************************************
- * TODO:
- * - Errori e uscite
- * - Migliorare codice
- ********************************************/
 
 int decrypt_file(const char *input_file_path, const char *output_file_path){
 	int algo = -1, fd, number_of_block, block_done = 0, number_of_pkcs7_byte;	

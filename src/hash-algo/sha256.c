@@ -67,7 +67,7 @@ int compute_sha256(const char *filename){
  		sprintf(sha256hash+(i*2), "%02x", sha[i]);
  	}
  	sha256hash[64] = '\0';
- 	printf("%s\n", sha256hash);
+ 	printf("sha256: %s\n", sha256hash);
  	free(buffer);
  	fclose(fp);
 	gcry_md_close(hd);

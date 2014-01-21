@@ -16,36 +16,35 @@
 28/05/2013 - v1.0.0
 	* NEWSTABLE RELEASE :)
 
-??/06/2013 - v1.1.0-alpha
+??/02/2014 - v1.1.0-alpha
 	* ADDED: RMD160, MD5, TIGER, TIGER1, TIGER2, SHA-1, SHA224, SHA256, SHA384, SHA512, WHIRLPOOL
-	* ADDED: cascade encryption (AES+Twofish+Serpent);
 	* IMPROVED: better errors detection and resolution;
 	
-??/??/2013 - v1.1.0-beta
+??/??/2014 - v1.1.0-beta
 	* ADDED: documentation;
 	* FIXED: bugs [if any];
 
-??/??/2013 - v1.1.0
+??/??/2014 - v1.1.0
 	* NEWSTABLE RELEASE :)
 
-??/??/2013 - v1.2.0-alpha
+??/??/2014 - v1.2.0-alpha
 	* ADDED: pthread support (multiple hash computation at same time);
 	* ADDED: double encryption with 2 different keys;
 
-??/??/2013 - v1.2.0-beta
+??/??/2014 - v1.2.0-beta
 	* TEST: all software functions have been heavly "stress-tested";
 	* TEST: security test to ensure that the software "will always do the right thing";
 
-??/??/2013 - v1.2.0
+??/??/2014 - v1.2.0
 	* NEWSTABLE RELEASE :)
 
-??/??/2013 - v2.0-alpha
+??/??/2014 - v2.0-alpha
 	* ADDED: GTK+3 interface
 	* ADDED: database where to store file checksums;
 
-??/??/2013 - v2.0-beta
+??/??/2014 - v2.0-beta
 	* IMPROVED: documentation;
 	* FIXED: bugs [if any];
 
-??/??/2013 - v2.0.0
+??/??/2014 - v2.0.0
 	* NEWSTABLE RELEASE :)
