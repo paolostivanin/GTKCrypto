@@ -37,8 +37,8 @@ int compute_whirlpool(const char *filename){
 	if(fsize < BUF_FILE){
 		buffer = malloc(fsize);
   		if(buffer == NULL){
-  			printf("malloc error\n");
-  			exit(1);
+			printf("Memory allocation error\n");
+			return -1;
   		}
 		fread(buffer, 1, fsize, fp);
 		gcry_md_write(hd, buffer, fsize);
@@ -46,8 +46,8 @@ int compute_whirlpool(const char *filename){
 	}
 	buffer = malloc(BUF_FILE);
   	if(buffer == NULL){
-  		printf("malloc error\n");
-  		exit(1);
+  		printf("Memory allocation error\n");
+  		return -1;
   	}
 	while(fsize > donesize){
 		fread(buffer, 1, BUF_FILE, fp);

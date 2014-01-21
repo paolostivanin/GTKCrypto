@@ -59,7 +59,10 @@ int main(int argc, char **argv){
 			case 'e':
 				nameLen = strlen(optarg)+1;
 				args.inputFilePath = malloc(nameLen);
-				if(args.inputFilePath == NULL) abort(); //migliorare
+				if(args.inputFilePath == NULL){
+					printf("Error during memory allocation\n");
+					return -1;
+				}
 				strcpy(args.inputFilePath, optarg);
 				args.check = 1;
 				break;
@@ -67,7 +70,10 @@ int main(int argc, char **argv){
 			case 'd':
 				nameLen = strlen(optarg)+1;
 				args.inputFilePath = malloc(nameLen);
-				if(args.inputFilePath == NULL) abort(); //migliorare
+				if(args.inputFilePath == NULL){
+					printf("Error during memory allocation\n");
+					return -1;
+				}
 				strcpy(args.inputFilePath, optarg);
 				args.check = 2;
 				break;
@@ -76,7 +82,7 @@ int main(int argc, char **argv){
 				nameLen = strlen(optarg)+1;
 				args.inputFilePath = malloc(nameLen);
 				if(args.inputFilePath == NULL){
-					printf("Allocazione non riuscita\n");
+					printf("Error during memory allocation\n");
 					return -1;
 				}
 				strcpy(args.inputFilePath, optarg);
@@ -85,12 +91,15 @@ int main(int argc, char **argv){
 			
 			case 'a':
 				if(args.check != 3){
-					printf("Hash non è selezionato\n");
+					printf("You must use --hash to use the option --algo\n");
 					return -1;
 				}
 				nameLen = strlen(optarg)+1;
 				args.algo = malloc(nameLen);
-				if(args.algo == NULL) abort(); //migliorare
+				if(args.algo == NULL){
+					printf("Error during memory allocation\n");
+					return -1;
+				}
 				strcpy(args.algo, optarg);
 				do_action();
 				free(args.inputFilePath);
@@ -98,10 +107,16 @@ int main(int argc, char **argv){
 				return 0;
 				
 			case 'o':
-				if(args.check != 1 || args.check != 2) abort(); //migliorare
+				if(args.check != 1 || args.check != 2){
+					printf("You must use --encrypt || --decrypt to use the option --output\n");
+					return -1;
+				}
 				nameLen = strlen(optarg)+1;
 				args.outputFilePath = malloc(nameLen);
-				if(args.outputFilePath == NULL) abort(); //migliorare
+				if(args.outputFilePath == NULL){
+					printf("Error during memory allocation\n");
+					return -1;
+				}
 				strcpy(args.outputFilePath, optarg);
 				do_action();
 				free(args.inputFilePath);
