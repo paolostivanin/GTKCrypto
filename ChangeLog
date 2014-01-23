@@ -16,9 +16,9 @@
 28/05/2013 - v1.0.0
 	* NEWSTABLE RELEASE :)
 
-??/02/2014 - v1.1.0-alpha
+23/01/2014 - v1.1.0-alpha
 	* ADDED: RMD160, MD5, TIGER, TIGER1, TIGER2, SHA-1, SHA224, SHA256, SHA384, SHA512, WHIRLPOOL
-	* IMPROVED: better errors detection and resolution;
+	* IMPROVED: better error reporting;
 	
 ??/??/2014 - v1.1.0-beta
 	* ADDED: documentation;

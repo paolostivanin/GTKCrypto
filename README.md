@@ -22,13 +22,13 @@ Mockup
 
 Latest release
 --------------
-The latest (v1.1.0-dev) release can be found in the 'master' branch, just clone it :)
+The latest (v1.1.0-alpha) release can be found in the 'master' branch, just clone it :)
 
 RoadMap
 -------
-??/02/2014 - v1.1.0-alpha
+23/01/2014 - v1.1.0-alpha
 - [X] ADDED: RMD160, MD5, SHA-1, SHA256, SHA512, WHIRLPOOL
-- [ ] ADDED: better errors detection and resolution;
+- [X] ADDED: better error reporting;
 
 Requirements
 ------------

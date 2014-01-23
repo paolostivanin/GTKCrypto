@@ -3,6 +3,7 @@
 #include <string.h>
 #include <fcntl.h>
 #include <unistd.h>
+#include <errno.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include "polcrypt.h"
@@ -15,7 +16,7 @@ int zero_write(int file, size_t fSize, int isBigger){
 		memset(zBuf, 0, sizeof(zBuf));
 		write(file, zBuf, sizeof(zBuf));
 		if(fsync(file) == -1){
-			printf("fsync error\n");
+			fprintf(stderr, "zero_write fsync: %s\n", strerror(errno));
 			return -1;
 		}
 		return 0;
@@ -30,7 +31,7 @@ int zero_write(int file, size_t fSize, int isBigger){
 			if((fSize-doneSize) > 0 && (fSize-doneSize) < BUFSIZE){
 				write(file, zBuf, (fSize-doneSize));
 				if(fsync(file) == -1){
-					printf("fsync error\n");
+					fprintf(stderr, "zero_write fsync: %s\n", strerror(errno));
 					return -1;
 				}
 				break;

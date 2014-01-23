@@ -3,6 +3,7 @@
 #include <string.h>
 #include <gcrypt.h>
 #include <fcntl.h>
+#include <errno.h>
 #include <unistd.h>
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -19,25 +20,30 @@ int compute_md5(const char *filename){
 
 	fd = open(filename, O_RDONLY | O_NOFOLLOW);
 	if(fd == -1){
-		printf("--> compute_md5: failed to open file\n");
-		return 1;
+		fprintf(stderr, "compute_md5: %s\n", strerror(errno));
+		return -1;
 	}
   	if(fstat(fd, &fileStat) < 0){
-  		perror("Fstat error");
+  		fprintf(stderr, "compute_md5: %s\n", strerror(errno));
     	close(fd);
-    	return 1;
+    	return -1;
   	}
   	fsize = fileStat.st_size;
   	close(fd);
   	
 	FILE *fp;
 	fp = fopen(filename, "r");
+	if(fp == NULL){
+		fprintf(stderr, "compute_md5: %s\n", strerror(errno));
+		return -1;
+	}
 	gcry_md_hd_t hd;
 	gcry_md_open(&hd, algo, 0);
 	if(fsize < BUF_FILE){
 		buffer = malloc(fsize);
   		if(buffer == NULL){
-			printf("Memory allocation error\n");
+			fprintf(stderr, "compute_md5: memory allocation error\n");
+			fclose(fp);
 			return -1;
   		}
 		fread(buffer, 1, fsize, fp);
@@ -46,7 +52,8 @@ int compute_md5(const char *filename){
 	}
 	buffer = malloc(BUF_FILE);
   	if(buffer == NULL){
-  		printf("Memory allocation error\n");
+  		fprintf(stderr, "compute_md5: memory allocation error\n");
+  		fclose(fp);
   		return -1;
   	}
 	while(fsize > donesize){

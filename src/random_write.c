@@ -3,6 +3,7 @@
 #include <string.h>
 #include <fcntl.h>
 #include <unistd.h>
+#include <errno.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include "polcrypt.h"
@@ -15,7 +16,7 @@ int random_write(int file, int fileRand, size_t fSize, int isBigger){
 		read(fileRand, bRand, sizeof(bRand));
 		write(file, bRand, sizeof(bRand));
 		if(fsync(file) == -1){
-			printf("fsync error\n");
+			fprintf(stderr, "fsync: %s\n", strerror(errno));
 			return -1;
 		}
 		return 0;
@@ -31,7 +32,7 @@ int random_write(int file, int fileRand, size_t fSize, int isBigger){
 				read(fileRand, bytesRandom, sizeof(bytesRandom));
 				write(file, bytesRandom, (fSize-doneSize));
 				if(fsync(file) == -1){
-					printf("fsync error\n");
+					fprintf(stderr, "fsync: %s\n", strerror(errno));
 					return -1;
 				}
 				break;

@@ -3,7 +3,7 @@
 
 #define GCRYPT_MIN_VER "1.5.0"
 #define BUF_FILE 1048576 /* 1 MiB di memoria per il file come buffer massimo, poi spezzo */
-#define VERS "1.1.0-dev"
+#define VERS "1.1.0-alpha"
 
 int check_pkcs7(unsigned char *, unsigned char *);
 int encrypt_file(const char *, const char *);

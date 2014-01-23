@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <gcrypt.h>
+#include <errno.h>
 #include <fcntl.h>
 #include <unistd.h>
 #include <sys/types.h>
@@ -30,7 +31,7 @@ int decrypt_file(const char *input_file_path, const char *output_file_path){
 	decBuffer = gcry_malloc(txtLenght);
 
  	if(((tmp_key = gcry_malloc_secure(256)) == NULL)){
-		perror("Memory allocation error\n");
+		fprintf(stderr, "decrypt_file: memory allocation error\n");
 		return -1;
 	}
  	tcgetattr( STDIN_FILENO, &oldt);
@@ -39,7 +40,7 @@ int decrypt_file(const char *input_file_path, const char *output_file_path){
 	newt.c_lflag &= ~(ECHO);
 	tcsetattr( STDIN_FILENO, TCSANOW, &newt);
  	if(fgets(tmp_key, 254, stdin) == NULL){
- 		perror("fgets input error\n");
+ 		fprintf(stderr, "decrypt_file: fgets error\n");
  		tcsetattr( STDIN_FILENO, TCSANOW, &oldt);
  		return -1;
  	}
@@ -47,7 +48,7 @@ int decrypt_file(const char *input_file_path, const char *output_file_path){
  	printf("\n");
  	pwd_len = strlen(tmp_key); 
  	if(((input_key = gcry_malloc_secure(pwd_len)) == NULL)){
-		perror("Memory allocation error\n");
+		fprintf(stderr, "decrypt_file: memory allocation error\n");
 		return -1;
 	}
 	strncpy(input_key, tmp_key, strlen(tmp_key));
@@ -56,11 +57,11 @@ int decrypt_file(const char *input_file_path, const char *output_file_path){
 
 	fd = open(input_file_path, O_RDONLY | O_NOFOLLOW);
 	if(fd == -1){
-		perror("open failed\n");
+		fprintf(stderr, "decrypt_file: %s\n", strerror(errno));
 		return -1;
 	}
   	if(fstat(fd, &fileStat) < 0){
-  		perror("Fstat error");
+  		fprintf(stderr, "decrypt_file: %s\n", strerror(errno));
     	close(fd);
     	gcry_free(input_key);
     	return -1;
@@ -71,14 +72,19 @@ int decrypt_file(const char *input_file_path, const char *output_file_path){
 	bytes_before_mac = (number_of_block+3)*16;
 	fp = fopen(input_file_path, "r");
 	if(fp == NULL){
-		perror("Error on file opening\n");
+		fprintf(stderr, "decrypt_file: %s\n", strerror(errno));
+		gcry_free(input_key);
 		return -1;
 	}
-	fseek(fp, 0, SEEK_SET);
+	if(fseek(fp, 0, SEEK_SET) == -1){
+		fprintf(stderr, "decrypt_file: %s\n", strerror(errno));
+		gcry_free(input_key);
+		return -1;
+	}
 
 	retval = fread(&s_mdata, sizeof(struct metadata), 1, fp);
 	if(retval != 1){
-		printf("Cannot read file metadata\n");
+		fprintf(stderr, "decrypt_file: cannot read file metadata\n");
 		gcry_free(input_key);
 		return -1;
 	}
@@ -86,13 +92,13 @@ int decrypt_file(const char *input_file_path, const char *output_file_path){
 	gcry_cipher_hd_t hd;
 	gcry_cipher_open(&hd, algo, GCRY_CIPHER_MODE_CBC, 0);
 	if(((derived_key = gcry_malloc_secure(64)) == NULL) || ((crypto_key = gcry_malloc_secure(32)) == NULL) || ((mac_key = gcry_malloc_secure(32)) == NULL)){
-		perror("Memory allocation error\n");
+		fprintf(stderr, "decrypt_file: memory allocation error\n");
 		gcry_free(input_key);
 		return -1;
 	}
 
 	if(gcry_kdf_derive (input_key, pwd_len, GCRY_KDF_PBKDF2, GCRY_MD_SHA512, s_mdata.salt, 32, 150000, 64, derived_key) != 0){
-		perror("Key derivation error\n");
+		fprintf(stderr, "decrypt_file: key derivation error\n");
 		gcry_free(derived_key);
 		gcry_free(crypto_key);
 		gcry_free(mac_key);
@@ -105,7 +111,7 @@ int decrypt_file(const char *input_file_path, const char *output_file_path){
 	gcry_cipher_setiv(hd, s_mdata.iv, blkLength);
 
 	if((current_file_offset = ftell(fp)) == -1){
-		perror("ftell\n");
+		fprintf(stderr, "decrypt_file: %s\n", strerror(errno));
 		gcry_free(derived_key);
 		gcry_free(crypto_key);
 		gcry_free(mac_key);
@@ -113,7 +119,7 @@ int decrypt_file(const char *input_file_path, const char *output_file_path){
 		return -1;		
 	}
 	if(fseek(fp, bytes_before_mac, SEEK_SET) == -1){
-		perror("fseek before mac\n");
+		fprintf(stderr, "decrypt_file: %s\n", strerror(errno));
 		gcry_free(derived_key);
 		gcry_free(crypto_key);
 		gcry_free(mac_key);
@@ -121,7 +127,7 @@ int decrypt_file(const char *input_file_path, const char *output_file_path){
 		return -1;		
 	}
 	if(fread(mac_of_file, 1, 64, fp) != 64){
-		perror("fread mac\n");
+		fprintf(stderr, "decrypt_file: fread mac error\n");;
 		gcry_free(derived_key);
 		gcry_free(crypto_key);
 		gcry_free(mac_key);
@@ -129,8 +135,8 @@ int decrypt_file(const char *input_file_path, const char *output_file_path){
 		return -1;
 	}
 	unsigned char *hmac = calculate_hmac(input_file_path, mac_key, keyLength, 1);
-	if(hmac == (unsigned char *)-1){
-		printf("Error during HMAC calculation\n");
+	if(hmac == (unsigned char *)1){
+		fprintf(stderr, "decrypt_file: error during HMAC calculation\n");
 		gcry_free(derived_key);
 		gcry_free(crypto_key);
 		gcry_free(mac_key);
@@ -138,7 +144,7 @@ int decrypt_file(const char *input_file_path, const char *output_file_path){
 		return -1;
 	}
 	if(memcmp(mac_of_file, hmac, 64) != 0){
-		printf("--> CRITICAL ERROR: hmac doesn't match. This is caused by\n                    1) wrong password\n                    or\n                    2) corrupted file\n");
+		fprintf(stderr, "--> CRITICAL ERROR: hmac doesn't match. This is caused by\n                    1) wrong password\n                    or\n                    2) corrupted file\n");
 		gcry_free(derived_key);
 		gcry_free(crypto_key);
 		gcry_free(mac_key);
@@ -147,7 +153,7 @@ int decrypt_file(const char *input_file_path, const char *output_file_path){
 	}
 	free(hmac);
 	if(fseek(fp, current_file_offset, SEEK_SET) == -1){
-		perror("ftell\n");
+		fprintf(stderr, "decrypt_file: %s\n", strerror(errno));
 		gcry_free(derived_key);
 		gcry_free(crypto_key);
 		gcry_free(mac_key);
@@ -157,7 +163,11 @@ int decrypt_file(const char *input_file_path, const char *output_file_path){
 
 	fpout = fopen(output_file_path, "w");
 	if(fpout == NULL){
-		perror("Error on file opening\n");
+		fprintf(stderr, "decrypt_file: %s\n", strerror(errno));
+		gcry_free(derived_key);
+		gcry_free(crypto_key);
+		gcry_free(mac_key);
+		gcry_free(input_key);
 		return -1;
 	}
 
@@ -168,7 +178,7 @@ int decrypt_file(const char *input_file_path, const char *output_file_path){
 		gcry_cipher_decrypt(hd, decBuffer, txtLenght, cipher_text, txtLenght);
 		if(block_done == (number_of_block-1)){
 			if((number_of_pkcs7_byte = check_pkcs7(decBuffer, hex)) == -1){
-				printf("Error on checking pkcs#7 padding\n");
+				fprintf(stderr, "decrypt_file: error on checking pkcs#7 padding\n");
 				gcry_free(derived_key);
 				gcry_free(crypto_key);
 				gcry_free(mac_key);
