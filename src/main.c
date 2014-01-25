@@ -112,7 +112,7 @@ int main(int argc, char **argv){
 				return 0;
 				
 			case 'o':
-				if(args.check != 1 || args.check != 2){
+				if(args.check != 1 && args.check != 2){
 					printf("You must use the optiopn --encrypt || --decrypt to use the option --output\n");
 					return -1;
 				}

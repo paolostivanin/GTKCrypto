@@ -11,7 +11,7 @@
 #include <sys/stat.h>
 
 //mode = 0 encrypt, mode = 1 decrypt
-unsigned char *calculate_hmac(const gchar *filename, const guchar *key, gsize keylen, gint mode){
+unsigned char *calculate_hmac(const char *filename, const unsigned char *key, size_t keylen, int mode){
 	int fd;
 	struct stat fileStat;
 	char *buffer;

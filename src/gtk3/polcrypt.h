@@ -2,9 +2,8 @@
 #define POLCRYPT_H_INCLUDED
 
 struct metadata{
-	gchar header[32];
-	guchar salt[32];
-	guchar iv[16];
+	unsigned char salt[32];
+	unsigned char iv[16];
 };
 extern struct metadata s_mdata;
 
@@ -17,9 +16,9 @@ extern struct info s_Info;
 
 int encrypt_file_gui(struct info *);
 int secure_file_delete();
-unsigned char *calculate_hmac(const gchar *, const guchar *key, gsize, gint);
-int random_write(gint, gint, gsize);
-int zero_write(gint, gsize);
+unsigned char *calculate_hmac(const char *, const unsigned char *key, size_t, int);
+int random_write(int, int, size_t);
+int zero_write(int, size_t);
 int check_pkcs7(guchar *, guchar *);
 
 #endif

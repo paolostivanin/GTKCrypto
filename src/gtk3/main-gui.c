@@ -158,8 +158,8 @@ static int do_enc(struct info *s_InfoCheckPwd){
 		g_print("pwd diverse\n");
 		return -1;
 	}
-	if(s_InfoCheckPwd->isSignalActivate == 0) gtk_widget_destroy (GTK_WIDGET(s_InfoCheckPwd->dialog));
 	encrypt_file_gui(s_InfoCheckPwd);
+	if(s_InfoCheckPwd->isSignalActivate == 0) gtk_widget_destroy (GTK_WIDGET(s_InfoCheckPwd->dialog));
 	return 0;
 }
 

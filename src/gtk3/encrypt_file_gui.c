@@ -11,23 +11,30 @@
 #include "polcrypt.h"
 
 int encrypt_file_gui(struct info *s_InfoEnc){
-	gint algo = -1, fd, number_of_block, block_done = 0, retcode;
+	int algo = -1, fd, number_of_block, block_done = 0, retcode;
 	struct metadata s_mdata;
 	struct stat fileStat;
 	memset(&s_mdata, 0, sizeof(struct metadata));
-	guchar hex[15] = { 0x01,0x02,0x03,0x04,0x05,0x06,0x07,0x08,0x09,0x0A,0x0B,0x0C,0x0D,0x0E,0x0F}, plain_text[16];
-	guchar *derived_key = NULL, *crypto_key = NULL, *mac_key = NULL, *encBuffer = NULL;
-	gchar *input_key = NULL;
-	gfloat result_of_division_by_16, fsize_float;
+	unsigned char hex[15] = { 0x01,0x02,0x03,0x04,0x05,0x06,0x07,0x08,0x09,0x0A,0x0B,0x0C,0x0D,0x0E,0x0F}, plain_text[16];
+	unsigned char *derived_key = NULL, *crypto_key = NULL, *mac_key = NULL, *encBuffer = NULL;
+	char *inputKey = NULL;
+	float result_of_division_by_16, fsize_float;
 	off_t fsize = 0;
-	const gchar *name = "aes256";
-	const gchar *inputKey = gtk_entry_get_text(GTK_ENTRY(s_InfoEnc->pwdEntry));
-	gsize blkLength, keyLength, txtLenght = 16, retval = 0, i, pwd_len;
+	const char *name = "aes256";
+	const char *inputWidKey = gtk_entry_get_text(GTK_ENTRY(s_InfoEnc->pwdEntry));
+	size_t blkLength, keyLength, txtLenght = 16, retval = 0, i;
 	
-	gchar *outFilename;
-	outFilename = malloc(strlen(s_InfoEnc->filename)+5); // ".enc\0" sono 5 chars
-	strncpy(outFilename, s_InfoEnc->filename, strlen(s_InfoEnc->filename));
-	strcat(outFilename, ".enc");
+	size_t len = strlen(inputWidKey);
+	inputKey = gcry_malloc_secure(len+1);
+	strncpy(inputKey, inputWidKey, len);
+	inputKey[len] = '\0';
+
+	char *outFilename;
+	size_t lenFilename = strlen(s_InfoEnc->filename);
+	outFilename = malloc(lenFilename+5); // ".enc\0" sono 5 chars
+	strncpy(outFilename, s_InfoEnc->filename, lenFilename);
+	memcpy(outFilename+lenFilename, ".enc", 4);
+	outFilename[lenFilename+4] = '\0';
 
 	blkLength = gcry_cipher_get_algo_blklen(GCRY_CIPHER_AES256);
 	keyLength = gcry_cipher_get_algo_keylen(GCRY_CIPHER_AES256);
@@ -40,28 +47,28 @@ int encrypt_file_gui(struct info *s_InfoEnc){
 	fd = open(s_InfoEnc->filename, O_RDONLY | O_NOFOLLOW);
 	if(fd == -1){
 		fprintf(stderr, "encrypt_file: %s\n", strerror(errno));
-		gcry_free(input_key);
+		gcry_free(inputKey);
 		return -1;
 	}
   	if(fstat(fd, &fileStat) < 0){
   		fprintf(stderr, "encrypt_file: %s\n", strerror(errno));
-  		gcry_free(input_key);
+  		gcry_free(inputKey);
     	close(fd);
     	return -1;
   	}
   	fsize = fileStat.st_size;
   	close(fd);
 
-	fsize_float = (gfloat)fsize;
+	fsize_float = (float)fsize;
 	result_of_division_by_16 = fsize_float / 16;
-	number_of_block = (gint)result_of_division_by_16;
+	number_of_block = (int)result_of_division_by_16;
 	if(result_of_division_by_16 > number_of_block) number_of_block += 1;
 	
 	FILE *fp = fopen(s_InfoEnc->filename, "r");
 	FILE *fpout = fopen(outFilename, "w");
 	if(fp == NULL || fpout == NULL){
 		fprintf(stderr, "encrypt_file: file opening error\n");
-		gcry_free(input_key);
+		gcry_free(inputKey);
 		return -1;
 	}
 
@@ -69,15 +76,16 @@ int encrypt_file_gui(struct info *s_InfoEnc){
 	gcry_cipher_open(&hd, algo, GCRY_CIPHER_MODE_CBC, 0);
 	if(((derived_key = gcry_malloc_secure(64)) == NULL) || ((crypto_key = gcry_malloc_secure(32)) == NULL) || ((mac_key = gcry_malloc_secure(32)) == NULL)){
 		fprintf(stderr, "encrypt_file: memory allocation error\n");
+		gcry_free(inputKey);
 		return -1;
 	}
 
-	pwd_len = strlen(inputKey)+1;
-	if(gcry_kdf_derive (inputKey, pwd_len, GCRY_KDF_PBKDF2, GCRY_MD_SHA512, s_mdata.salt, 32, 150000, 64, derived_key) != 0){
+	if(gcry_kdf_derive (inputKey, len+1, GCRY_KDF_PBKDF2, GCRY_MD_SHA512, s_mdata.salt, 32, 150000, 64, derived_key) != 0){
 		fprintf(stderr, "encrypt_file: key derivation error\n");
 		gcry_free(derived_key);
 		gcry_free(crypto_key);
 		gcry_free(mac_key);
+		gcry_free(inputKey);
 		return -1;
 	}
 	memcpy(crypto_key, derived_key, 32);
@@ -123,6 +131,7 @@ int encrypt_file_gui(struct info *s_InfoEnc){
 	unsigned char *hmac = calculate_hmac(outFilename, mac_key, keyLength, 0);
 	if(hmac == (unsigned char *)1){
 		fprintf(stderr, "encrypt_file: error during HMAC calculation\n");
+		gcry_free(inputKey);
 		return -1;
 	}
 	fpout = fopen(outFilename, "a");
@@ -140,6 +149,7 @@ int encrypt_file_gui(struct info *s_InfoEnc){
 	gcry_free(crypto_key);
 	gcry_free(mac_key);
 	gcry_free(encBuffer);
+	gcry_free(inputKey);
 	free(outFilename);
 	fclose(fpout);
 
