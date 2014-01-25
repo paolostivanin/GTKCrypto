@@ -42,7 +42,7 @@ int delete_input_file(struct info *s_InfoDel, size_t fileSize){
 	close(fd);
 	close(fdRandom);
 
-	if(remove(inputFilePath) == -1){
+	if(remove(s_InfoDel->filename) == -1){
 		fprintf(stderr, "Input file remove: %s\n", strerror(errno));
 		return -1;
 	}

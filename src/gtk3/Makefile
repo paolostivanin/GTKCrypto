@@ -1,0 +1,7 @@
+CFLAGS = -Wall -Wextra -O2 -Wformat -Wformat-security -fstack-protector-all -fPIE -Wno-unused-result
+LDFLAGS = -Wl,-z,now -Wl,-z,relro -lgcrypt
+SOURCES = main-gui.c check_pkcs7.c encrypt_file_gui.c decrypt_file_gui.c hmac-gui.c delete_input_file.c random_write.c zero_write.c
+all: polcrypt
+polcrypt: $(SOURCES)
+	$(CC) $(CFLAGS) $(SOURCES) $(HASH_SOURCES) -o polcrypt `pkg-config --cflags --libs gtk+-3.0` $(LDFLAGS)
+

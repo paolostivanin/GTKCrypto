@@ -21,9 +21,9 @@ int encrypt_file_gui(struct info *s_InfoEnc){
 	float result_of_division_by_16, fsize_float;
 	off_t fsize = 0;
 	const char *name = "aes256";
-	const char *inputWidKey = gtk_entry_get_text(GTK_ENTRY(s_InfoEnc->pwdEntry));
 	size_t blkLength, keyLength, txtLenght = 16, retval = 0, i;
 	
+	const char *inputWidKey = gtk_entry_get_text(GTK_ENTRY(s_InfoEnc->pwdEntry));
 	size_t len = strlen(inputWidKey);
 	inputKey = gcry_malloc_secure(len+1);
 	strncpy(inputKey, inputWidKey, len);
@@ -138,11 +138,11 @@ int encrypt_file_gui(struct info *s_InfoEnc){
 	fwrite(hmac, 1, 64, fpout);
 	free(hmac);
 	
-	/*retcode = delete_input_file(s_InfoEnc, fsize);
+	retcode = delete_input_file(s_InfoEnc, fsize);
 	if(retcode == -1)
 		fprintf(stderr, "encrypt_file: secure file deletion failed\n");
 	if(retcode == -1)
-		fprintf(stderr, "encrypt_file: file unlink failed\n");*/
+		fprintf(stderr, "encrypt_file: file unlink failed\n");
 
 	gcry_cipher_close(hd);
 	gcry_free(derived_key);

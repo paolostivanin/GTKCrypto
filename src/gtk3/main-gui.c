@@ -13,7 +13,9 @@ static void is_enc(GtkWidget *, struct info *);
 static void is_dec(GtkWidget *, struct info *);
 static void is_hash(GtkWidget *, struct info *);
 static void type_pwd_enc(struct info *);
+static void type_pwd_dec(struct info *);
 static int do_enc(struct info *);
+static int do_dec(struct info *);
 
 int main(int argc, char **argv){
 	if(!gcry_check_version(GCRYPT_MIN_VER)){
@@ -96,10 +98,10 @@ static void file_dialog(struct info *s_Info){
 		if(s_Info->mode == 1){
 			type_pwd_enc(s_Info);
 		}
-		/*else if(s_Info->mode == 2){
-			decrypt_file_gui(filename, mainwin);
+		else if(s_Info->mode == 2){
+			type_pwd_dec(s_Info);
 		}
-		else if(s_Info->mode == 3){
+		/*else if(s_Info->mode == 3){
 			hash_file_gui(filename, mainwin);
 		}*/
     	g_free (s_Info->filename);
@@ -151,6 +153,45 @@ static void type_pwd_enc(struct info *s_TypePwd){
 	}
 }
 
+static void type_pwd_dec(struct info *s_TypePwdDec){
+	GtkWidget *content_area, *grid2, *label;
+   	s_TypePwdDec->dialog = gtk_dialog_new_with_buttons ("Password", NULL, GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT, "_Quit", GTK_RESPONSE_CLOSE, "_Ok", GTK_RESPONSE_OK, NULL);
+   	content_area = gtk_dialog_get_content_area (GTK_DIALOG (s_TypePwdDec->dialog));
+   	
+   	label = gtk_label_new("Type password");
+   	s_TypePwdDec->pwdEntry = gtk_entry_new();
+   	gtk_entry_set_visibility(GTK_ENTRY(s_TypePwdDec->pwdEntry), FALSE); //input nascosto
+
+   	gtk_widget_set_size_request(s_TypePwdDec->dialog, 150, 100); // richiedo una grandezza minima
+   	
+   	grid2 = gtk_grid_new();
+	gtk_grid_set_row_homogeneous(GTK_GRID(grid2), TRUE); // righe stessa altezza
+	gtk_grid_set_column_homogeneous(GTK_GRID(grid2), TRUE); // colonne stessa larghezza
+	gtk_grid_set_row_spacing(GTK_GRID(grid2), 5); // spazio fra le righe
+	
+	gtk_grid_attach(GTK_GRID(grid2), label, 0, 0, 3, 1);
+	gtk_grid_attach(GTK_GRID(grid2), s_TypePwdDec->pwdEntry, 0, 1, 3, 1);
+
+   	/* Add the grid, and show everything we've added to the dialog */
+   	gtk_container_add (GTK_CONTAINER (content_area), grid2);
+   	gtk_widget_show_all (s_TypePwdDec->dialog);
+   	
+   	s_TypePwdDec->isSignalActivate = 0;
+   	g_signal_connect_swapped(G_OBJECT(s_TypePwdDec->pwdEntry), "activate", G_CALLBACK(do_dec), s_TypePwdDec);
+   	gint result = gtk_dialog_run(GTK_DIALOG(s_TypePwdDec->dialog));
+	switch(result){
+		case GTK_RESPONSE_OK:
+			s_TypePwdDec->isSignalActivate = -1;
+			do_dec(s_TypePwdDec);
+			gtk_widget_destroy(s_TypePwdDec->dialog);
+			break;
+		case GTK_RESPONSE_CLOSE:
+			g_signal_connect_swapped (s_TypePwdDec->dialog, "response", G_CALLBACK(gtk_widget_destroy), s_TypePwdDec->dialog);
+			gtk_widget_destroy (s_TypePwdDec->dialog);	
+			break;
+	}
+}
+
 static int do_enc(struct info *s_InfoCheckPwd){
 	const gchar *pw1 = gtk_entry_get_text(GTK_ENTRY(s_InfoCheckPwd->pwdEntry));
 	const gchar *pw2 = gtk_entry_get_text(GTK_ENTRY(s_InfoCheckPwd->pwdReEntry));
@@ -160,6 +201,12 @@ static int do_enc(struct info *s_InfoCheckPwd){
 	}
 	encrypt_file_gui(s_InfoCheckPwd);
 	if(s_InfoCheckPwd->isSignalActivate == 0) gtk_widget_destroy (GTK_WIDGET(s_InfoCheckPwd->dialog));
+	return 0;
+}
+
+static int do_dec(struct info *s_InfoDecPwd){
+	decrypt_file_gui(s_InfoDecPwd);
+	if(s_InfoDecPwd->isSignalActivate == 0) gtk_widget_destroy (GTK_WIDGET(s_InfoDecPwd->dialog));
 	return 0;
 }
 
