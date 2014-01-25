@@ -15,8 +15,9 @@ struct info{
 };
 extern struct info s_Info;
 
+int encrypt_file_gui(struct info *);
 int secure_file_delete();
-unsigned char *calculate_hmac(const guchar *, gsize, gint);
+unsigned char *calculate_hmac(const gchar *, const guchar *key, gsize, gint);
 int random_write(gint, gint, gsize);
 int zero_write(gint, gsize);
 int check_pkcs7(guchar *, guchar *);

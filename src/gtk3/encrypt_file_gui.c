@@ -3,23 +3,31 @@
 #include <gcrypt.h>
 #include <errno.h>
 #include <fcntl.h>
+#include <stdio.h>
+#include <stdlib.h>
 #include <unistd.h>
 #include <sys/types.h>
 #include <sys/stat.h>
+#include "polcrypt.h"
 
-int encrypt_file_gui(const char *input_file_path, const char *output_file_path){
-	int algo = -1, fd, number_of_block, block_done = 0, retcode;
+int encrypt_file_gui(struct info *s_InfoEnc){
+	gint algo = -1, fd, number_of_block, block_done = 0, retcode;
 	struct metadata s_mdata;
-	struct termios oldt, newt;
 	struct stat fileStat;
 	memset(&s_mdata, 0, sizeof(struct metadata));
-	unsigned char hex[15] = { 0x01,0x02,0x03,0x04,0x05,0x06,0x07,0x08,0x09,0x0A,0x0B,0x0C,0x0D,0x0E,0x0F}, plain_text[16];
-	unsigned char *derived_key = NULL, *crypto_key = NULL, *mac_key = NULL, *encBuffer = NULL;
-	char *input_key = NULL, *compare_key = NULL;
-	float result_of_division_by_16, fsize_float;
+	guchar hex[15] = { 0x01,0x02,0x03,0x04,0x05,0x06,0x07,0x08,0x09,0x0A,0x0B,0x0C,0x0D,0x0E,0x0F}, plain_text[16];
+	guchar *derived_key = NULL, *crypto_key = NULL, *mac_key = NULL, *encBuffer = NULL;
+	gchar *input_key = NULL;
+	gfloat result_of_division_by_16, fsize_float;
 	off_t fsize = 0;
-	const char *name = "aes256";
-	size_t blkLength, keyLength, txtLenght = 16, retval = 0, i, pwd_len;
+	const gchar *name = "aes256";
+	const gchar *inputKey = gtk_entry_get_text(GTK_ENTRY(s_InfoEnc->pwdEntry));
+	gsize blkLength, keyLength, txtLenght = 16, retval = 0, i, pwd_len;
+	
+	gchar *outFilename;
+	outFilename = malloc(strlen(s_InfoEnc->filename)+5); // ".enc\0" sono 5 chars
+	strncpy(outFilename, s_InfoEnc->filename, strlen(s_InfoEnc->filename));
+	strcat(outFilename, ".enc");
 
 	blkLength = gcry_cipher_get_algo_blklen(GCRY_CIPHER_AES256);
 	keyLength = gcry_cipher_get_algo_keylen(GCRY_CIPHER_AES256);
@@ -29,48 +37,7 @@ int encrypt_file_gui(const char *input_file_path, const char *output_file_path){
 	gcry_create_nonce(s_mdata.iv, 16);
 	gcry_create_nonce(s_mdata.salt, 32);
 
- 	if(((input_key = gcry_malloc_secure(256)) == NULL) || ((compare_key = gcry_malloc_secure(256)) == NULL)){
-		fprintf(stderr, "encrypt_file: memory allocation error\n");
-		return -1;
-	}
- 	tcgetattr( STDIN_FILENO, &oldt);
-  	newt = oldt;
-	printf("Type password: ");
-	newt.c_lflag &= ~(ECHO);
-	tcsetattr( STDIN_FILENO, TCSANOW, &newt);
- 	if(fgets(input_key, 254, stdin) == NULL){
- 		fprintf(stderr, "encrypt_file: fgets error\n");
- 		tcsetattr( STDIN_FILENO, TCSANOW, &oldt);
- 		return -1;
- 	}
- 	tcsetattr( STDIN_FILENO, TCSANOW, &oldt);
- 	printf("\nRetype password: ");
- 	newt.c_lflag &= ~(ECHO);
- 	tcsetattr( STDIN_FILENO, TCSANOW, &newt);
- 	if(fgets(compare_key, 254, stdin) == NULL){
- 		fprintf(stderr, "encrypt_file: fgets error\n");
- 		tcsetattr( STDIN_FILENO, TCSANOW, &oldt);
- 		return -1;
- 	}
- 	tcsetattr( STDIN_FILENO, TCSANOW, &oldt);
- 	if(strcmp((const char *)input_key, (const char *)compare_key) != 0){
- 		fprintf(stderr, "encrypt_file: password doesn't match\n");
- 		free(input_key);
- 		free(compare_key);
- 		return -1;
- 	}
- 	printf("\n");
- 	pwd_len = strlen(compare_key);
- 	gcry_free(input_key);
-    if(((input_key = gcry_malloc_secure(pwd_len)) == NULL)){
-		fprintf(stderr, "encrypt_file: memory allocation error\n");
-		return -1;
-	}
-	strncpy(input_key, compare_key, pwd_len);
-	input_key[pwd_len-1] = '\0';
-	gcry_free(compare_key);
-
-	fd = open(input_file_path, O_RDONLY | O_NOFOLLOW);
+	fd = open(s_InfoEnc->filename, O_RDONLY | O_NOFOLLOW);
 	if(fd == -1){
 		fprintf(stderr, "encrypt_file: %s\n", strerror(errno));
 		gcry_free(input_key);
@@ -85,13 +52,13 @@ int encrypt_file_gui(const char *input_file_path, const char *output_file_path){
   	fsize = fileStat.st_size;
   	close(fd);
 
-	fsize_float = (float)fsize;
+	fsize_float = (gfloat)fsize;
 	result_of_division_by_16 = fsize_float / 16;
-	number_of_block = (int)result_of_division_by_16;
+	number_of_block = (gint)result_of_division_by_16;
 	if(result_of_division_by_16 > number_of_block) number_of_block += 1;
 	
-	FILE *fp = fopen(input_file_path, "r");
-	FILE *fpout = fopen(output_file_path, "w");
+	FILE *fp = fopen(s_InfoEnc->filename, "r");
+	FILE *fpout = fopen(outFilename, "w");
 	if(fp == NULL || fpout == NULL){
 		fprintf(stderr, "encrypt_file: file opening error\n");
 		gcry_free(input_key);
@@ -102,16 +69,15 @@ int encrypt_file_gui(const char *input_file_path, const char *output_file_path){
 	gcry_cipher_open(&hd, algo, GCRY_CIPHER_MODE_CBC, 0);
 	if(((derived_key = gcry_malloc_secure(64)) == NULL) || ((crypto_key = gcry_malloc_secure(32)) == NULL) || ((mac_key = gcry_malloc_secure(32)) == NULL)){
 		fprintf(stderr, "encrypt_file: memory allocation error\n");
-		gcry_free(input_key);
 		return -1;
 	}
 
-	if(gcry_kdf_derive (input_key, pwd_len, GCRY_KDF_PBKDF2, GCRY_MD_SHA512, s_mdata.salt, 32, 150000, 64, derived_key) != 0){
+	pwd_len = strlen(inputKey)+1;
+	if(gcry_kdf_derive (inputKey, pwd_len, GCRY_KDF_PBKDF2, GCRY_MD_SHA512, s_mdata.salt, 32, 150000, 64, derived_key) != 0){
 		fprintf(stderr, "encrypt_file: key derivation error\n");
 		gcry_free(derived_key);
 		gcry_free(crypto_key);
 		gcry_free(mac_key);
-		gcry_free(input_key);
 		return -1;
 	}
 	memcpy(crypto_key, derived_key, 32);
@@ -154,27 +120,27 @@ int encrypt_file_gui(const char *input_file_path, const char *output_file_path){
 	fclose(fpout);
 	fclose(fp);
 
-	unsigned char *hmac = calculate_hmac(output_file_path, mac_key, keyLength, 0);
+	unsigned char *hmac = calculate_hmac(outFilename, mac_key, keyLength, 0);
 	if(hmac == (unsigned char *)1){
 		fprintf(stderr, "encrypt_file: error during HMAC calculation\n");
 		return -1;
 	}
-	fpout = fopen(output_file_path, "a");
+	fpout = fopen(outFilename, "a");
 	fwrite(hmac, 1, 64, fpout);
 	free(hmac);
 	
-	retcode = delete_input_file(input_file_path, fsize);
+	/*retcode = delete_input_file(s_InfoEnc, fsize);
 	if(retcode == -1)
 		fprintf(stderr, "encrypt_file: secure file deletion failed\n");
 	if(retcode == -1)
-		fprintf(stderr, "encrypt_file: file unlink failed\n");
+		fprintf(stderr, "encrypt_file: file unlink failed\n");*/
 
 	gcry_cipher_close(hd);
-	gcry_free(input_key);
 	gcry_free(derived_key);
 	gcry_free(crypto_key);
 	gcry_free(mac_key);
 	gcry_free(encBuffer);
+	free(outFilename);
 	fclose(fpout);
 
 	return 0;

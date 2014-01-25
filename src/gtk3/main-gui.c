@@ -1,6 +1,9 @@
 #include <gtk/gtk.h>
 #include <glib.h>
+#include <gcrypt.h>
 #include "polcrypt.h"
+
+#define GCRYPT_MIN_VER "1.5.0"
 
 //cc -Wall -Wextra -Wformat-security -O2 `pkg-config --cflags --libs gtk+-3.0`
 
@@ -9,10 +12,17 @@ static void file_dialog(struct info *);
 static void is_enc(GtkWidget *, struct info *);
 static void is_dec(GtkWidget *, struct info *);
 static void is_hash(GtkWidget *, struct info *);
-static void encrypt_file_gui(struct info *);
+static void type_pwd_enc(struct info *);
 static int do_enc(struct info *);
 
 int main(int argc, char **argv){
+	if(!gcry_check_version(GCRYPT_MIN_VER)){
+		fputs("libgcrypt min version required: 1.5.0\n", stderr);
+		return -1;
+	}
+	gcry_control(GCRYCTL_INIT_SECMEM, 16384, 0);
+	gcry_control(GCRYCTL_INITIALIZATION_FINISHED, 0);
+	
 	GtkWidget *butEn, *butDe, *butHa, *butAb, *grid;
 	GtkWidget *label;
 	struct info s_Info;
@@ -84,7 +94,7 @@ static void file_dialog(struct info *s_Info){
 	if (gtk_dialog_run (GTK_DIALOG (file_dialog)) == GTK_RESPONSE_ACCEPT){
 		s_Info->filename = gtk_file_chooser_get_filename (GTK_FILE_CHOOSER (file_dialog));
 		if(s_Info->mode == 1){
-			encrypt_file_gui(s_Info);
+			type_pwd_enc(s_Info);
 		}
 		/*else if(s_Info->mode == 2){
 			decrypt_file_gui(filename, mainwin);
@@ -97,19 +107,19 @@ static void file_dialog(struct info *s_Info){
 	gtk_widget_destroy (file_dialog);
 }
 
-static void encrypt_file_gui(struct info *s_InfoEnc){
+static void type_pwd_enc(struct info *s_TypePwd){
 	GtkWidget *content_area, *grid2, *label, *labelAgain;
-   	s_InfoEnc->dialog = gtk_dialog_new_with_buttons ("Password", NULL, GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT, "_Quit", GTK_RESPONSE_CLOSE, "_Ok", GTK_RESPONSE_OK, NULL);
-   	content_area = gtk_dialog_get_content_area (GTK_DIALOG (s_InfoEnc->dialog));
+   	s_TypePwd->dialog = gtk_dialog_new_with_buttons ("Password", NULL, GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT, "_Quit", GTK_RESPONSE_CLOSE, "_Ok", GTK_RESPONSE_OK, NULL);
+   	content_area = gtk_dialog_get_content_area (GTK_DIALOG (s_TypePwd->dialog));
    	
    	label = gtk_label_new("Type password");
    	labelAgain = gtk_label_new("Retype password");
-   	s_InfoEnc->pwdEntry = gtk_entry_new();
-   	s_InfoEnc->pwdReEntry = gtk_entry_new();
-   	gtk_entry_set_visibility(GTK_ENTRY(s_InfoEnc->pwdEntry), FALSE); //input nascosto
-   	gtk_entry_set_visibility(GTK_ENTRY(s_InfoEnc->pwdReEntry), FALSE);
+   	s_TypePwd->pwdEntry = gtk_entry_new();
+   	s_TypePwd->pwdReEntry = gtk_entry_new();
+   	gtk_entry_set_visibility(GTK_ENTRY(s_TypePwd->pwdEntry), FALSE); //input nascosto
+   	gtk_entry_set_visibility(GTK_ENTRY(s_TypePwd->pwdReEntry), FALSE);
 
-   	gtk_widget_set_size_request(s_InfoEnc->dialog, 150, 100); // richiedo una grandezza minima
+   	gtk_widget_set_size_request(s_TypePwd->dialog, 150, 100); // richiedo una grandezza minima
    	
    	grid2 = gtk_grid_new();
 	gtk_grid_set_row_homogeneous(GTK_GRID(grid2), TRUE); // righe stessa altezza
@@ -117,26 +127,26 @@ static void encrypt_file_gui(struct info *s_InfoEnc){
 	gtk_grid_set_row_spacing(GTK_GRID(grid2), 5); // spazio fra le righe
 	
 	gtk_grid_attach(GTK_GRID(grid2), label, 0, 0, 3, 1);
-	gtk_grid_attach(GTK_GRID(grid2), s_InfoEnc->pwdEntry, 0, 1, 3, 1);
+	gtk_grid_attach(GTK_GRID(grid2), s_TypePwd->pwdEntry, 0, 1, 3, 1);
 	gtk_grid_attach(GTK_GRID(grid2), labelAgain, 0, 2, 3, 1);
-	gtk_grid_attach(GTK_GRID(grid2), s_InfoEnc->pwdReEntry, 0, 3, 3, 1);		
+	gtk_grid_attach(GTK_GRID(grid2), s_TypePwd->pwdReEntry, 0, 3, 3, 1);		
 
    	/* Add the grid, and show everything we've added to the dialog */
    	gtk_container_add (GTK_CONTAINER (content_area), grid2);
-   	gtk_widget_show_all (s_InfoEnc->dialog);
+   	gtk_widget_show_all (s_TypePwd->dialog);
    	
-   	s_InfoEnc->isSignalActivate = 0;
-   	g_signal_connect_swapped(G_OBJECT(s_InfoEnc->pwdReEntry), "activate", G_CALLBACK(do_enc), s_InfoEnc);
-   	gint result = gtk_dialog_run(GTK_DIALOG(s_InfoEnc->dialog));
+   	s_TypePwd->isSignalActivate = 0;
+   	g_signal_connect_swapped(G_OBJECT(s_TypePwd->pwdReEntry), "activate", G_CALLBACK(do_enc), s_TypePwd);
+   	gint result = gtk_dialog_run(GTK_DIALOG(s_TypePwd->dialog));
 	switch(result){
 		case GTK_RESPONSE_OK:
-			s_InfoEnc->isSignalActivate = -1;
-			do_enc(s_InfoEnc);
-			gtk_widget_destroy(s_InfoEnc->dialog);
+			s_TypePwd->isSignalActivate = -1;
+			do_enc(s_TypePwd);
+			gtk_widget_destroy(s_TypePwd->dialog);
 			break;
 		case GTK_RESPONSE_CLOSE:
-			g_signal_connect_swapped (s_InfoEnc->dialog, "response", G_CALLBACK(gtk_widget_destroy), s_InfoEnc->dialog);
-			gtk_widget_destroy (s_InfoEnc->dialog);	
+			g_signal_connect_swapped (s_TypePwd->dialog, "response", G_CALLBACK(gtk_widget_destroy), s_TypePwd->dialog);
+			gtk_widget_destroy (s_TypePwd->dialog);	
 			break;
 	}
 }
@@ -149,8 +159,7 @@ static int do_enc(struct info *s_InfoCheckPwd){
 		return -1;
 	}
 	if(s_InfoCheckPwd->isSignalActivate == 0) gtk_widget_destroy (GTK_WIDGET(s_InfoCheckPwd->dialog));
-	//QUA CIFRO IL FILE
-	g_print("ok\n");
+	encrypt_file_gui(s_InfoCheckPwd);
 	return 0;
 }
 
