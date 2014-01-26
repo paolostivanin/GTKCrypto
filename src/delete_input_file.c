@@ -3,8 +3,6 @@
 #include <string.h>
 #include <fcntl.h>
 #include <unistd.h>
-#include <gtk/gtk.h>
-#include <glib.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <errno.h>
@@ -12,9 +10,9 @@
 
 #define BUFSIZE 24576 
 
-int delete_input_file(struct info *s_InfoDel, size_t fileSize){
+int delete_input_file(const char *inputFilePath, size_t fileSize){
 	int fd, fdRandom;
-	fd = open(s_InfoDel->filename, O_WRONLY | O_NOFOLLOW);
+	fd = open(inputFilePath, O_WRONLY | O_NOFOLLOW);
 	fdRandom = open("/dev/random", O_RDONLY);
 	if(fd == -1){
 		fprintf(stderr, "Input file: %s\n", strerror(errno));

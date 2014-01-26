@@ -15,20 +15,13 @@ Security
 * High security because your key is temporarly stored into a secure memory that will be destroyed when the program exit;
 * The input file will be overwritten prior its removing (secure file deletion);
 
-
-Mockup
-------
-![Image Alt](https://raw.github.com/polslinux/PolCrypt/master/docs/polcrypt.png)
-
 Latest release
 --------------
-The latest (v1.1.0-alpha) release can be found in the 'master' branch, just clone it :)
+The latest (v2.0.0-alpha) release can be found in the '2.0.0-dev' branch, just clone it :)
 
 RoadMap
 -------
-23/01/2014 - v1.1.0-alpha
-- [X] ADDED: RMD160, MD5, SHA-1, SHA256, SHA512, WHIRLPOOL
-- [X] ADDED: better error reporting;
+<empty>
 
 Requirements
 ------------
@@ -43,13 +36,25 @@ How it works
 
 How to use
 ----------
-...
+`./polcrypt-cli --version` to see the current software version<br>
+`./polcrypt-cli --help` to display a small help<br>
+`./polcrypt-cli --encrypt <path-to-input-file> --output <path-to-output-file>` to encrypt a file<br>
+`./polcrypt-cli --decrypt <path-to-input-file> --output <path-to-output-file>` to decrypt a file<br>
+`./polcrypt-cli --hash <path-to-input-file> --algo <md5|sha1|sha256|sha512|rmd160|whirlpool|all>` to compute one or more file hash<br>
 
 
 
-How to install
+How to compile
 --------------
-...
+* Clone the repo<br>
+`git clone https://github.com/polslinux/PolCrypt.git`<br>
+* move inside the directory you've just downloaded:<br>
+`cd /path/to/PolCrypt`<br>
+* run:<br>
+`make all` to build the cli and gui version<br>
+`make cli` to build only the cli version<br>
+`make gui` to build only the gui version<br>
+After you have successfully compiled the software, you will find the `polcrypt-{cli,gui}` binary into the project root directory.
 
 
 Extra options

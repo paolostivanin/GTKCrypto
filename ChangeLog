@@ -28,7 +28,6 @@
 	* NEWSTABLE RELEASE :)
 
 ??/??/2014 - v1.2.0-alpha
-	* ADDED: pthread support (multiple hash computation at same time);
 	* ADDED: double encryption with 2 different keys;
 
 ??/??/2014 - v1.2.0-beta
@@ -40,7 +39,6 @@
 
 ??/??/2014 - v2.0-alpha
 	* ADDED: GTK+3 interface
-	* ADDED: database where to store file checksums;
 
 ??/??/2014 - v2.0-beta
 	* IMPROVED: documentation;
