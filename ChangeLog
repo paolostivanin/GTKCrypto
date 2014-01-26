@@ -20,25 +20,17 @@
 	* ADDED: RMD160, MD5, TIGER, TIGER1, TIGER2, SHA-1, SHA224, SHA256, SHA384, SHA512, WHIRLPOOL
 	* IMPROVED: better error reporting;
 	
-??/??/2014 - v1.1.0-beta
+26/01/2014 - v1.1.0-beta
 	* ADDED: documentation;
 	* FIXED: bugs [if any];
 
 ??/??/2014 - v1.1.0
 	* NEWSTABLE RELEASE :)
 
-??/??/2014 - v1.2.0-alpha
-	* ADDED: double encryption with 2 different keys;
-
-??/??/2014 - v1.2.0-beta
-	* TEST: all software functions have been heavly "stress-tested";
-	* TEST: security test to ensure that the software "will always do the right thing";
-
-??/??/2014 - v1.2.0
-	* NEWSTABLE RELEASE :)
-
 ??/??/2014 - v2.0-alpha
-	* ADDED: GTK+3 interface
+	* ADDED: GTK+3 interface;
+	* ADDED: double encryption with 2 different keys;
+	* IMPROVED: code base rework;
 
 ??/??/2014 - v2.0-beta
 	* IMPROVED: documentation;
