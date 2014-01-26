@@ -5,8 +5,6 @@
 
 #define GCRYPT_MIN_VER "1.5.0"
 
-//cc -Wall -Wextra -Wformat-security -O2 `pkg-config --cflags --libs gtk+-3.0`
-
 static void about_clicked(GtkWidget *, gpointer);
 static void file_dialog(struct info *);
 static void is_enc(GtkWidget *, struct info *);
@@ -16,6 +14,7 @@ static void type_pwd_enc(struct info *);
 static void type_pwd_dec(struct info *);
 static int do_enc(struct info *);
 static int do_dec(struct info *);
+static void select_hash_type(struct info *);
 
 int main(int argc, char **argv){
 	if(!gcry_check_version(GCRYPT_MIN_VER)){
@@ -101,9 +100,9 @@ static void file_dialog(struct info *s_Info){
 		else if(s_Info->mode == 2){
 			type_pwd_dec(s_Info);
 		}
-		/*else if(s_Info->mode == 3){
-			hash_file_gui(filename, mainwin);
-		}*/
+		else if(s_Info->mode == 3){
+			select_hash_type(s_Info);
+		}
     	g_free (s_Info->filename);
 	}
 	gtk_widget_destroy (file_dialog);
@@ -208,6 +207,89 @@ static int do_dec(struct info *s_InfoDecPwd){
 	decrypt_file_gui(s_InfoDecPwd);
 	if(s_InfoDecPwd->isSignalActivate == 0) gtk_widget_destroy (GTK_WIDGET(s_InfoDecPwd->dialog));
 	return 0;
+}
+
+static void select_hash_type(struct info *s_InfoHash){
+	struct hashes s_HashType;
+	GtkWidget *content_area, *grid2;
+   	s_InfoHash->dialog = gtk_dialog_new_with_buttons ("Select Hash", NULL, GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT, "_Quit", GTK_RESPONSE_CLOSE, "_Ok", GTK_RESPONSE_OK, NULL);
+   	content_area = gtk_dialog_get_content_area (GTK_DIALOG (s_InfoHash->dialog));
+   	
+   	s_HashType.checkMD5 = gtk_check_button_new_with_label("MD5");
+   	s_HashType.checkS1 = gtk_check_button_new_with_label("SHA-1");
+   	s_HashType.checkS256 = gtk_check_button_new_with_label("SHA-256");
+   	s_HashType.checkS512 = gtk_check_button_new_with_label("SHA-512");
+   	s_HashType.checkWhir = gtk_check_button_new_with_label("Whirlpool");
+   	s_HashType.checkRMD = gtk_check_button_new_with_label("RMD160");
+   	
+   	s_HashType.entryMD5 = gtk_entry_new();
+   	s_HashType.entryS1 = gtk_entry_new();
+   	s_HashType.entryS256 = gtk_entry_new();
+   	s_HashType.entryS512 = gtk_entry_new();
+   	s_HashType.entryWhir = gtk_entry_new();
+   	s_HashType.entryRMD = gtk_entry_new();
+   	
+   	gtk_editable_set_editable(GTK_EDITABLE(s_HashType.entryMD5), FALSE);
+   	gtk_editable_set_editable(GTK_EDITABLE(s_HashType.entryS1), FALSE);
+   	gtk_editable_set_editable(GTK_EDITABLE(s_HashType.entryS256), FALSE);
+   	gtk_editable_set_editable(GTK_EDITABLE(s_HashType.entryS512), FALSE);
+   	gtk_editable_set_editable(GTK_EDITABLE(s_HashType.entryWhir), FALSE);
+   	gtk_editable_set_editable(GTK_EDITABLE(s_HashType.entryRMD), FALSE);
+
+   	gtk_widget_set_size_request(s_InfoHash->dialog, 250, 150); // richiedo una grandezza minima
+   	
+   	grid2 = gtk_grid_new();
+	gtk_grid_set_row_homogeneous(GTK_GRID(grid2), TRUE); // righe stessa altezza
+	gtk_grid_set_column_homogeneous(GTK_GRID(grid2), TRUE); // colonne stessa larghezza
+	gtk_grid_set_row_spacing(GTK_GRID(grid2), 5); // spazio fra le righe
+	
+	// numero colonna, numero riga, colonne da occupare, righe da occupare
+	gtk_grid_attach(GTK_GRID(grid2), s_HashType.checkMD5, 0, 0, 1, 1);
+	gtk_grid_attach(GTK_GRID(grid2), s_HashType.entryMD5, 2, 0, 6, 1);
+	
+	gtk_grid_attach(GTK_GRID(grid2), s_HashType.checkS1, 0, 1, 1, 1);
+	gtk_grid_attach(GTK_GRID(grid2), s_HashType.entryS1, 2, 1, 6, 1);
+	
+	gtk_grid_attach(GTK_GRID(grid2), s_HashType.checkS256, 0, 2, 1, 1);
+	gtk_grid_attach(GTK_GRID(grid2), s_HashType.entryS256, 2, 2, 6, 1);
+	
+	gtk_grid_attach(GTK_GRID(grid2), s_HashType.checkS512, 0, 3, 1, 1);
+	gtk_grid_attach(GTK_GRID(grid2), s_HashType.entryS512, 2, 3, 6, 1);
+	
+	gtk_grid_attach(GTK_GRID(grid2), s_HashType.checkWhir, 0, 4, 1, 1);
+	gtk_grid_attach(GTK_GRID(grid2), s_HashType.entryWhir, 2, 4, 6, 1);
+	
+	gtk_grid_attach(GTK_GRID(grid2), s_HashType.checkRMD, 0, 5, 1, 1);
+	gtk_grid_attach(GTK_GRID(grid2), s_HashType.entryRMD, 2, 5, 6, 1);
+
+   	/* Add the grid, and show everything we've added to the dialog */
+   	gtk_container_add (GTK_CONTAINER (content_area), grid2);
+   	gtk_widget_show_all (s_InfoHash->dialog);
+   	
+   	/*s_TypePwd->isSignalActivate = 0;
+   	g_signal_connect_swapped(G_OBJECT(s_TypePwd->pwdReEntry), "activate", G_CALLBACK(do_enc), s_TypePwd);*/
+   	s_HashType.filename = malloc(strlen(s_InfoHash->filename)+1);
+   	strcpy(s_HashType.filename, s_InfoHash->filename);
+   	
+   	g_signal_connect_swapped(s_HashType.checkMD5, "clicked", G_CALLBACK(compute_md5), &s_HashType);
+   	g_signal_connect_swapped(s_HashType.checkS1, "clicked", G_CALLBACK(compute_sha1), &s_HashType);
+   	g_signal_connect_swapped(s_HashType.checkS256, "clicked", G_CALLBACK(compute_sha256), &s_HashType);
+   	g_signal_connect_swapped(s_HashType.checkS512, "clicked", G_CALLBACK(compute_sha512), &s_HashType);
+   	g_signal_connect_swapped(s_HashType.checkWhir, "clicked", G_CALLBACK(compute_whirlpool), &s_HashType);
+   	g_signal_connect_swapped(s_HashType.checkRMD, "clicked", G_CALLBACK(compute_rmd160), &s_HashType);
+
+   	gint result = gtk_dialog_run(GTK_DIALOG(s_InfoHash->dialog));
+	switch(result){
+		case GTK_RESPONSE_OK:
+			g_signal_connect_swapped (s_InfoHash->dialog, "response", G_CALLBACK(gtk_widget_destroy), s_InfoHash->dialog);
+			gtk_widget_destroy(s_InfoHash->dialog);
+			break;
+		case GTK_RESPONSE_CLOSE:
+			g_signal_connect_swapped (s_InfoHash->dialog, "response", G_CALLBACK(gtk_widget_destroy), s_InfoHash->dialog);
+			gtk_widget_destroy(s_InfoHash->dialog);	
+			break;
+	}
+	free(s_HashType.filename);
 }
 
 static void about_clicked(GtkWidget *a_dialog, gpointer data __attribute__ ((unused))){
