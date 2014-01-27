@@ -177,14 +177,7 @@ int decrypt_file(const char *input_file_path, const char *output_file_path){
 		if(!retval) break;
 		gcry_cipher_decrypt(hd, decBuffer, txtLenght, cipher_text, txtLenght);
 		if(block_done == (number_of_block-1)){
-			if((number_of_pkcs7_byte = check_pkcs7(decBuffer, hex)) == -1){
-				fprintf(stderr, "decrypt_file: error on checking pkcs#7 padding\n");
-				gcry_free(derived_key);
-				gcry_free(crypto_key);
-				gcry_free(mac_key);
-				gcry_free(input_key);
-				return -1;
-			}
+			number_of_pkcs7_byte = check_pkcs7(decBuffer, hex);
 			fwrite(decBuffer, 1, number_of_pkcs7_byte, fpout);
 			goto end;
 		}

@@ -73,8 +73,8 @@ int decrypt_file_gui(struct info *s_InfoDec){
   	}
   	fsize = fileStat.st_size;
   	close(fd);
-	number_of_block = (fsize / 16)-7;
-	bytes_before_mac = (number_of_block+3)*16;
+	number_of_block = (fsize / 16)-7; //7=salt+iv+hmac
+	bytes_before_mac = (number_of_block+3)*16; //3=salt*iv
 	fp = fopen(s_InfoDec->filename, "r");
 	if(fp == NULL){
 		fprintf(stderr, "decrypt_file: %s\n", strerror(errno));
@@ -175,28 +175,51 @@ int decrypt_file_gui(struct info *s_InfoDec){
 		gcry_free(inputKey);
 		return -1;
 	}
+	
+	/* FROM HERE... */
+	int nLastPct = -1, pct;
+	gfloat pvalue;
+	GtkWidget *content_area, *progressbar;
+	GtkWidget *dd = gtk_dialog_new();
+	gtk_window_set_title(GTK_WINDOW(dd), "Progress...");
+	progressbar = gtk_progress_bar_new();
+	content_area = gtk_dialog_get_content_area (GTK_DIALOG (dd));
+	gtk_widget_set_size_request(dd, 200, 50);
+   	gtk_container_add (GTK_CONTAINER (content_area), progressbar);
+   	gtk_widget_show_all (dd);
+	/* ...TO HERE IS FOR THE PROGRESS BAR */
+	
+	gtk_widget_hide(GTK_WIDGET(s_InfoDec->dialog));
 
 	while(number_of_block > block_done){
+		
+		/* FROM HERE... */
+		pvalue = (gfloat) block_done / (gfloat) number_of_block;
+		pct = pvalue * 100;
+		if (nLastPct != pct){
+			gtk_progress_bar_set_fraction (GTK_PROGRESS_BAR (progressbar), pvalue);
+			while(gtk_events_pending ()){
+				gtk_main_iteration ();
+			}
+            nLastPct = pct;
+        }
+        /* ...TO HERE IS FOR THE PROGRESS BAR */
+        
 		memset(cipher_text, 0, sizeof(cipher_text));
 		retval = fread(cipher_text, 1, 16, fp);
 		if(!retval) break;
 		gcry_cipher_decrypt(hd, decBuffer, txtLenght, cipher_text, txtLenght);
 		if(block_done == (number_of_block-1)){
-			if((number_of_pkcs7_byte = check_pkcs7(decBuffer, hex)) == -1){
-				fprintf(stderr, "decrypt_file: error on checking pkcs#7 padding\n");
-				gcry_free(derived_key);
-				gcry_free(crypto_key);
-				gcry_free(mac_key);
-				gcry_free(inputKey);
-				return -1;
-			}
-			fwrite(decBuffer, 1, number_of_pkcs7_byte, fpout);
+			number_of_pkcs7_byte = check_pkcs7(decBuffer, hex);
+			fwrite(decBuffer, 1, number_of_pkcs7_byte, fpout);	
 			goto end;
 		}
 		fwrite(decBuffer, 1, 16, fpout);
 		block_done++;
 	}
 	end:
+	//AND ALSO THIS IS FOR THE PROGRESS BAR
+	gtk_widget_destroy (dd);
 	gcry_cipher_close(hd);
 	gcry_free(inputKey);
 	gcry_free(derived_key);

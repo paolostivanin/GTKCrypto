@@ -18,5 +18,4 @@ int check_pkcs7(unsigned char *deBuf, unsigned char *hexBuf){
 			}
 		}
 	}
-	return -1;
 }

@@ -10,6 +10,7 @@
 #include <sys/stat.h>
 #include "polcrypt.h"
 
+
 int encrypt_file_gui(struct info *s_InfoEnc){
 	int algo = -1, fd, number_of_block, block_done = 0, retcode;
 	struct metadata s_mdata;
@@ -98,6 +99,20 @@ int encrypt_file_gui(struct info *s_InfoEnc){
 	
 	fwrite(&s_mdata, sizeof(struct metadata), 1, fpout);
 	
+	/* FROM HERE... */
+	int nLastPct = -1, pct;
+	gfloat pvalue;
+	GtkWidget *content_area, *progressbar;
+	GtkWidget *dd = gtk_dialog_new();
+	gtk_window_set_title(GTK_WINDOW(dd), "Progress...");
+	progressbar = gtk_progress_bar_new();
+	content_area = gtk_dialog_get_content_area (GTK_DIALOG (dd));
+	gtk_widget_set_size_request(dd, 200, 50);
+   	gtk_container_add (GTK_CONTAINER (content_area), progressbar);
+   	gtk_widget_show_all (dd);
+	/* ...TO HERE IS FOR THE PROGRESS BAR */
+	
+	gtk_widget_hide(GTK_WIDGET(s_InfoEnc->dialog));
 	while(number_of_block > block_done){
 		memset(plain_text, 0, sizeof(plain_text));
 		retval = fread(plain_text, 1, 16, fp);
@@ -122,11 +137,27 @@ int encrypt_file_gui(struct info *s_InfoEnc){
 			}
 		}
 		gcry_cipher_encrypt(hd, encBuffer, txtLenght, plain_text, txtLenght);
+		
+		/* FROM HERE... */
+		pvalue = (gfloat) block_done / (gfloat) number_of_block;
+		pct = pvalue * 100;
+		if (nLastPct != pct){
+			gtk_progress_bar_set_fraction (GTK_PROGRESS_BAR (progressbar), pvalue);
+			while(gtk_events_pending ()){
+				gtk_main_iteration ();
+			}
+            nLastPct = pct;
+        }
+        /* ...TO HERE IS FOR THE PROGRESS BAR */
+        
 		fwrite(encBuffer, 1, 16, fpout);
 		block_done++;
 	}
 	fclose(fpout);
 	fclose(fp);
+	
+	//AND ALSO THIS IS FOR THE PROGRESS BAR
+	gtk_widget_destroy (dd);	
 
 	unsigned char *hmac = calculate_hmac(outFilename, mac_key, keyLength, 0);
 	if(hmac == (unsigned char *)1){

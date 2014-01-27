@@ -3,8 +3,6 @@
 #include <gcrypt.h>
 #include "polcrypt.h"
 
-#define GCRYPT_MIN_VER "1.5.0"
-
 static void about_clicked(GtkWidget *, gpointer);
 static void file_dialog(struct info *);
 static void is_enc(GtkWidget *, struct info *);

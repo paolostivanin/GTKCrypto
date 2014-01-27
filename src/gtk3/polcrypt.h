@@ -4,6 +4,7 @@
 #include <glib.h>
 #include <gtk/gtk.h>
 #define BUF_FILE 1048576 /* 1 MiB di memoria per il file come buffer massimo, poi spezzo */
+#define GCRYPT_MIN_VER "1.5.0"
 
 struct metadata{
 	unsigned char salt[32];

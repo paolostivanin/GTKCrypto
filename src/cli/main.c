@@ -140,13 +140,13 @@ int do_action(){
 	int retval, fd_input, fd_output;
 	char *output_file;
 	size_t output_len;
-	const char *ext=".pcry";
+	const char *ext=".enc";
 	
 	if(args.check == 1){
 		output_len = strlen(args.outputFilePath)+1;
 		output_file = malloc(output_len);
 		strcpy(output_file, args.outputFilePath);
-		output_file = (char *)realloc(output_file, output_len+6);
+		output_file = (char *)realloc(output_file, output_len+5);
 		strcat(output_file, ext);
 		const char *path_to_output_file = (const char *)output_file;
 
