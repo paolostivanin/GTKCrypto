@@ -15,5 +15,5 @@ polcrypt-cli: $(CLI_SOURCES)
 	$(CC) $(CFLAGS) $(CLI_SOURCES) $(CLI_HASH_SOURCES) -o polcrypt-cli $(LDFLAGS)
 
 polcrypt-gui: $(GUI_SOURCES)
-	$(CC) $(CFLAGS) $(GUI_SOURCES) $(GUI_HASH_SOURCES) -o polcrypt-gui $(LDFLAGS) `pkg-config --cflags --libs gtk+-3.0` $(LDFLAGS)
+	$(CC) $(CFLAGS) $(GUI_SOURCES) $(GUI_HASH_SOURCES) -o polcrypt-gui $(LDFLAGS) `pkg-config --cflags --libs gtk+-3.0`
 	

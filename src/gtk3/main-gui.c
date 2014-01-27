@@ -90,25 +90,27 @@ static void is_hash(GtkWidget *ignored __attribute__ ((unused)), struct info *s_
 }
 
 static void file_dialog(struct info *s_Info){
-	GtkWidget *file_dialog;
-	file_dialog =  gtk_file_chooser_dialog_new("prova", GTK_WINDOW(s_Info->mainwin), GTK_FILE_CHOOSER_ACTION_OPEN, ("_Cancel"), GTK_RESPONSE_CANCEL, ("_Ok"), GTK_RESPONSE_ACCEPT, NULL);
-	if (gtk_dialog_run (GTK_DIALOG (file_dialog)) == GTK_RESPONSE_ACCEPT){
-		s_Info->filename = gtk_file_chooser_get_filename (GTK_FILE_CHOOSER (file_dialog));
+	s_Info->file_dialog =  gtk_file_chooser_dialog_new("prova", GTK_WINDOW(s_Info->mainwin), GTK_FILE_CHOOSER_ACTION_OPEN, ("_Cancel"), GTK_RESPONSE_CANCEL, ("_Ok"), GTK_RESPONSE_ACCEPT, NULL);
+	if (gtk_dialog_run (GTK_DIALOG (s_Info->file_dialog)) == GTK_RESPONSE_ACCEPT){
+		s_Info->filename = gtk_file_chooser_get_filename (GTK_FILE_CHOOSER (s_Info->file_dialog));
 		if(s_Info->mode == 1){
 			type_pwd_enc(s_Info);
+			g_free (s_Info->filename);
 		}
 		else if(s_Info->mode == 2){
 			type_pwd_dec(s_Info);
+			g_free (s_Info->filename);
 		}
 		else if(s_Info->mode == 3){
 			select_hash_type(s_Info);
+			g_free (s_Info->filename);
 		}
-    	g_free (s_Info->filename);
 	}
-	gtk_widget_destroy (file_dialog);
+	gtk_widget_destroy (s_Info->file_dialog);
 }
 
 static void type_pwd_enc(struct info *s_TypePwd){
+	gtk_widget_hide(GTK_WIDGET(s_TypePwd->file_dialog));
 	GtkWidget *content_area, *grid2, *label, *labelAgain;
    	s_TypePwd->dialog = gtk_dialog_new_with_buttons ("Password", NULL, GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT, "_Quit", GTK_RESPONSE_CLOSE, "_Ok", GTK_RESPONSE_OK, NULL);
    	content_area = gtk_dialog_get_content_area (GTK_DIALOG (s_TypePwd->dialog));
@@ -153,6 +155,7 @@ static void type_pwd_enc(struct info *s_TypePwd){
 }
 
 static void type_pwd_dec(struct info *s_TypePwdDec){
+	gtk_widget_hide(GTK_WIDGET(s_TypePwdDec->file_dialog));
 	GtkWidget *content_area, *grid2, *label;
    	s_TypePwdDec->dialog = gtk_dialog_new_with_buttons ("Password", NULL, GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT, "_Quit", GTK_RESPONSE_CLOSE, "_Ok", GTK_RESPONSE_OK, NULL);
    	content_area = gtk_dialog_get_content_area (GTK_DIALOG (s_TypePwdDec->dialog));
@@ -210,6 +213,7 @@ static int do_dec(struct info *s_InfoDecPwd){
 }
 
 static void select_hash_type(struct info *s_InfoHash){
+	gtk_widget_hide(GTK_WIDGET(s_InfoHash->file_dialog));
 	struct hashes s_HashType;
 	GtkWidget *content_area, *grid2;
    	s_InfoHash->dialog = gtk_dialog_new_with_buttons ("Select Hash", NULL, GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT, "_Quit", GTK_RESPONSE_CLOSE, "_Ok", GTK_RESPONSE_OK, NULL);

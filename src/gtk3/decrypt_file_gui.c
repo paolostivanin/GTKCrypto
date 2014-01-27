@@ -30,7 +30,7 @@ int decrypt_file_gui(struct info *s_InfoDec){
 	algo = gcry_cipher_map_name(name);
 	decBuffer = gcry_malloc(txtLenght);
 	
-	char *outFilename, *extBuf;
+	char *outFilename = NULL, *extBuf = NULL;
 	size_t lenFilename = strlen(s_InfoDec->filename);
 	extBuf = malloc(5);
 	if(extBuf == NULL){
@@ -38,6 +38,7 @@ int decrypt_file_gui(struct info *s_InfoDec){
 		return -1;
 	}
 	memcpy(extBuf, (s_InfoDec->filename)+lenFilename-4, 4);
+	extBuf[5] = '\0';
 	if(strcmp(extBuf, ".enc") == 0){
 		outFilename = malloc(lenFilename-3);
 		strncpy(outFilename, s_InfoDec->filename, lenFilename-4);
