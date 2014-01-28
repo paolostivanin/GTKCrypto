@@ -156,7 +156,7 @@ int encrypt_file_gui(struct info *s_InfoEnc){
 	fclose(fpout);
 	fclose(fp);
 	
-	//AND ALSO THIS IS FOR THE PROGRESS BAR
+	//AND ALSO THIS, IS FOR THE PROGRESS BAR
 	gtk_widget_destroy (dd);	
 
 	unsigned char *hmac = calculate_hmac(outFilename, mac_key, keyLength, 0);

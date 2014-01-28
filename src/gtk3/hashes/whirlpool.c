@@ -13,6 +13,7 @@
 
 int compute_whirlpool(struct hashes *s_Whir){
    	if(!gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(s_Whir->checkWhir))){
+		gtk_entry_set_text(GTK_ENTRY(s_Whir->entryWhir), "");
 		goto fine;
 	}
 	else if(strlen(gtk_entry_get_text(GTK_ENTRY(s_Whir->entryWhir))) == 128){

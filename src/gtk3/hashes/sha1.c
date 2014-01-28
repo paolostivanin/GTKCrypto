@@ -13,6 +13,7 @@
 
 int compute_sha1(struct hashes *s_SHA1){
    	if(!gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(s_SHA1->checkS1))){
+		gtk_entry_set_text(GTK_ENTRY(s_SHA1->entryS1), "");
 		goto fine;
 	}
 	else if(strlen(gtk_entry_get_text(GTK_ENTRY(s_SHA1->entryS1))) == 40){

@@ -64,7 +64,6 @@ int encrypt_file(const char *input_file_path, const char *output_file_path){
  	}
  	printf("\n");
  	pwd_len = strlen(compare_key); //è gia 4 perchè con fgets ho \0\n quindi non serve fare +1
- 	printf("%zu\n", pwd_len);
  	gcry_free(input_key);
     if(((input_key = gcry_malloc_secure(pwd_len)) == NULL)){
 		fprintf(stderr, "encrypt_file: memory allocation error\n");

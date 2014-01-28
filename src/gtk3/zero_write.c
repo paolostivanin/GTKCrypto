@@ -8,8 +8,6 @@
 #include <sys/stat.h>
 #include "polcrypt.h"
 
-#define BUFSIZE 24576
-
 int zero_write(int file, size_t fSize, int isBigger){
 	if(isBigger  == 0){
 		unsigned char zBuf[fSize];

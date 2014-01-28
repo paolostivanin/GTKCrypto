@@ -3,6 +3,7 @@
 
 #define GCRYPT_MIN_VER "1.5.0"
 #define BUF_FILE 1048576 /* 1 MiB di memoria per il file come buffer massimo, poi spezzo */
+#define BUFSIZE 24576 /* per delete_input_file */ 
 #define VERS "2.0.0-alpha"
 
 int check_pkcs7(unsigned char *, unsigned char *);

@@ -8,8 +8,6 @@
 #include <errno.h>
 #include "polcrypt.h"
 
-#define BUFSIZE 24576 
-
 int delete_input_file(const char *inputFilePath, size_t fileSize){
 	int fd, fdRandom;
 	fd = open(inputFilePath, O_WRONLY | O_NOFOLLOW);
@@ -23,14 +21,15 @@ int delete_input_file(const char *inputFilePath, size_t fileSize){
 		return -1;
 	}
 	if(fileSize < BUFSIZE){
-		zero_write(fd, fileSize, 0);
-		lseek(fd, 0, SEEK_SET);
 		random_write(fd, fdRandom, fileSize, 0);
+		lseek(fd, 0, SEEK_SET);
+		zero_write(fd, fileSize, 0);		
 	}
 	else{
-		zero_write(fd, fileSize, 1);
-		lseek(fd, 0, SEEK_SET);
 		random_write(fd, fdRandom, fileSize, 1);
+		lseek(fd, 0, SEEK_SET);
+		zero_write(fd, fileSize, 1);
+		
 	}
 	ftruncate(fd, 0);
 	if(fsync(fd) == -1){

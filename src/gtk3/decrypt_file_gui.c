@@ -218,8 +218,9 @@ int decrypt_file_gui(struct info *s_InfoDec){
 		block_done++;
 	}
 	end:
-	//AND ALSO THIS IS FOR THE PROGRESS BAR
+	//AND ALSO THIS, IS FOR THE PROGRESS BAR
 	gtk_widget_destroy (dd);
+	
 	gcry_cipher_close(hd);
 	gcry_free(inputKey);
 	gcry_free(derived_key);

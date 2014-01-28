@@ -214,7 +214,7 @@ static void select_hash_type(struct info *s_InfoHash){
 	gtk_widget_hide(GTK_WIDGET(s_InfoHash->file_dialog));
 	struct hashes s_HashType;
 	GtkWidget *content_area, *grid2;
-   	s_InfoHash->dialog = gtk_dialog_new_with_buttons ("Select Hash", NULL, GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT, "_Quit", GTK_RESPONSE_CLOSE, "_Ok", GTK_RESPONSE_OK, NULL);
+   	s_InfoHash->dialog = gtk_dialog_new_with_buttons ("Select Hash", NULL, GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT, "_Quit", GTK_RESPONSE_CLOSE, NULL);
    	content_area = gtk_dialog_get_content_area (GTK_DIALOG (s_InfoHash->dialog));
    	
    	s_HashType.checkMD5 = gtk_check_button_new_with_label("MD5");
@@ -282,10 +282,6 @@ static void select_hash_type(struct info *s_InfoHash){
 
    	gint result = gtk_dialog_run(GTK_DIALOG(s_InfoHash->dialog));
 	switch(result){
-		case GTK_RESPONSE_OK:
-			g_signal_connect_swapped (s_InfoHash->dialog, "response", G_CALLBACK(gtk_widget_destroy), s_InfoHash->dialog);
-			gtk_widget_destroy(s_InfoHash->dialog);
-			break;
 		case GTK_RESPONSE_CLOSE:
 			g_signal_connect_swapped (s_InfoHash->dialog, "response", G_CALLBACK(gtk_widget_destroy), s_InfoHash->dialog);
 			gtk_widget_destroy(s_InfoHash->dialog);	
@@ -306,7 +302,7 @@ static void about_clicked(GtkWidget *a_dialog, gpointer data __attribute__ ((unu
         gtk_about_dialog_set_program_name (GTK_ABOUT_DIALOG (a_dialog), "PolCrypt");
         gtk_about_dialog_set_version (GTK_ABOUT_DIALOG (a_dialog), "2.0-alpha1");
         gtk_about_dialog_set_copyright (GTK_ABOUT_DIALOG (a_dialog), "Copyright (C) 2014");
-        gtk_about_dialog_set_comments (GTK_ABOUT_DIALOG (a_dialog), "You can choose both to encrypt and decrypt file using AES-256 CBC with HMAC-SHA512 for message authentication or to compute file hashes");
+        gtk_about_dialog_set_comments (GTK_ABOUT_DIALOG (a_dialog), "With this software you can encrypt and decrypt file with AES-256 CBC using HMAC-SHA512 for message authentication or you can compute various type of hashes");
         gtk_about_dialog_set_license(GTK_ABOUT_DIALOG(a_dialog),
 "This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.\n"
 "\n"

@@ -13,6 +13,7 @@
 
 int compute_sha256(struct hashes *s_SHA256){
    	if(!gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(s_SHA256->checkS256))){
+		gtk_entry_set_text(GTK_ENTRY(s_SHA256->entryS256), "");
 		goto fine;
 	}
 	else if(strlen(gtk_entry_get_text(GTK_ENTRY(s_SHA256->entryS256))) == 64){
