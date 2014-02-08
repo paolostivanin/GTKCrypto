@@ -3,7 +3,7 @@ PolCrypt
 
 This software let you to:
 * Encrypt and decrypt files using AES256-CBC;
-* Compute the hash of a given file (supported hash are MD5, RMD160, SHA1, SHA256, SHA512 and WHIRLPOOL);
+* Compute the hash of a given file (supported hashes are MD5, RMD160, SHA1, SHA256, SHA512 and WHIRLPOOL);
 
 This software is developed by Paolo Stivanin (a.k.a Polslinux)
 
@@ -25,7 +25,7 @@ The latest (v2.0.0-alpha) release can be found in the '2.0.0-dev' branch, just c
 RoadMap
 -------
 ??/02/2014 - v2.1.0
-* single, double or triple encryption (aes, twofish, serpent, aes+twofish, aes+serpent, aes+twofish+serpent)
+* possibility to choose single, double or triple encryption (aes, twofish, serpent, aes+twofish, aes+serpent, aes+twofish+serpent)
 
 Requirements
 ------------
