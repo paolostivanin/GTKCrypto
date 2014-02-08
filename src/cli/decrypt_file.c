@@ -68,8 +68,8 @@ int decrypt_file(const char *input_file_path, const char *output_file_path){
   	}
   	fsize = fileStat.st_size;
   	close(fd);
-	number_of_block = (fsize / 16)-7;
-	bytes_before_mac = (number_of_block+3)*16;
+	number_of_block = (fsize / 16)-8; //8=algo_type+salt+iv+hmac (1 blocco = 128bit)
+	bytes_before_mac = (number_of_block+4)*16; //4=algo_type+salt+iv
 	fp = fopen(input_file_path, "r");
 	if(fp == NULL){
 		fprintf(stderr, "decrypt_file: %s\n", strerror(errno));

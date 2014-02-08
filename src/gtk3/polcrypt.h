@@ -3,7 +3,6 @@
 
 #include <glib.h>
 #include <gtk/gtk.h>
-#include <stdint.h>
 
 #define BUF_FILE 1048576 /* 1 MiB di memoria per il file come buffer massimo, poi spezzo (hash) */
 #define BUFSIZE 24576  /* delete_input_file */

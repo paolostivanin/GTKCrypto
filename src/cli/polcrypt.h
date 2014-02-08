@@ -23,6 +23,7 @@ int compute_all(const char *);
 int do_action();
 
 struct metadata{
+	unsigned char algo_type[16]; //aes,twofish,serpent,aes-two,aes-ser,aes-two-ser
 	unsigned char salt[32];
 	unsigned char iv[16];
 };
