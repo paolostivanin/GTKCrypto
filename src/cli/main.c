@@ -8,21 +8,31 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <getopt.h>
+#include <glib/gi18n.h>
+#include <locale.h>
+#include <libintl.h>
 #include "polcrypt.h"
+
+#define LOCALE_DIR "/usr/share/locale" // or your specification
+#define PACKAGE    "polcrypt-cli"              // mo file name in LOCALE
 
 struct argvArgs args;
 
 int main(int argc, char **argv){
 	if(getuid() == 0){
-		printf("You are root, please run this program as NORMAL USER!\n");
+		printf(_("You are root, please run this program as NORMAL USER!\n"));
 		return 0;
 	}
 	if(!gcry_check_version(GCRYPT_MIN_VER)){
-		fputs("libgcrypt min version required: 1.5.0\n", stderr);
+		printf(_("libgcrypt min version required: 1.5.0\n"));
 		return -1;
 	}
 	gcry_control(GCRYCTL_INIT_SECMEM, 16384, 0);
 	gcry_control(GCRYCTL_INITIALIZATION_FINISHED, 0);
+
+	setlocale(LC_ALL, "");
+	bindtextdomain(PACKAGE, LOCALE_DIR);
+	textdomain(PACKAGE);
 
 	int ch;
 	size_t nameLen;
@@ -42,12 +52,12 @@ int main(int argc, char **argv){
 	while ((ch = getopt_long(argc, argv, "v", long_options, NULL)) != -1){
 			switch(ch){
 			case 'v':
-				printf("PolCrypt v%s developed by Paolo Stivanin <info@paolostivanin.com>\n", VERS);
+				printf(_("PolCrypt v%s developed by Paolo Stivanin <info@paolostivanin.com>\n"), VERS);
 				return 0;
 			
 			case 'h':
-				printf("To encrypt|decrypt a file: %s [--encrypt] | [--decrypt] <path-to-input_file> --output <path_to_output_file>\n", argv[0]);
-				printf("To calculate one or more file hash: %s --hash <path-to-input_file> --algo [md5|rmd160|sha1|sha256|sha512|whirlpool|all]\n", argv[0]);
+				printf(_("To encrypt|decrypt a file: %s [--encrypt] | [--decrypt] <path-to-input_file> --output <path_to_output_file>\n"), argv[0]);
+				printf(_("To calculate one or more file hash: %s --hash <path-to-input_file> --algo [md5|rmd160|sha1|sha256|sha512|whirlpool|all]\n"), argv[0]);
 				return 0;
 			
 			case '?':
@@ -61,7 +71,7 @@ int main(int argc, char **argv){
 				nameLen = strlen(optarg)+1;
 				args.inputFilePath = malloc(nameLen);
 				if(args.inputFilePath == NULL){
-					fprintf(stderr, "main (case e): error during memory allocation\n");
+					fprintf(stderr, _("main (case e): error during memory allocation\n"));
 					return -1;
 				}
 				strcpy(args.inputFilePath, optarg);
@@ -72,7 +82,7 @@ int main(int argc, char **argv){
 				nameLen = strlen(optarg)+1;
 				args.inputFilePath = malloc(nameLen);
 				if(args.inputFilePath == NULL){
-					fprintf(stderr, "main (case d): error during memory allocation\n");;
+					fprintf(stderr, _("main (case d): error during memory allocation\n"));;
 					return -1;
 				}
 				strcpy(args.inputFilePath, optarg);
@@ -83,26 +93,26 @@ int main(int argc, char **argv){
 				nameLen = strlen(optarg)+1;
 				args.inputFilePath = malloc(nameLen);
 				if(args.inputFilePath == NULL){
-					fprintf(stderr, "main (case s): error during memory allocation\n");
+					fprintf(stderr, _("main (case s): error during memory allocation\n"));
 					return -1;
 				}
 				strcpy(args.inputFilePath, optarg);
 				args.check = 3;
 				if(optind == argc){
-					fprintf(stderr, "You must select an hash algo. Use --help for more information\n");
+					fprintf(stderr, _("You must select an hash algo. Use --help for more information\n"));
 					return -1;
 				}
 				break;
 			
 			case 'a':
 				if(args.check != 3){
-					printf("You must use the option --hash to use the option --algo\n");
+					printf(_("You must use the option --hash to use the option --algo\n"));
 					return -1;
 				}
 				nameLen = strlen(optarg)+1;
 				args.algo = malloc(nameLen);
 				if(args.algo == NULL){
-					fprintf(stderr, "main (case a): error during memory allocation\n");
+					fprintf(stderr, _("main (case a): error during memory allocation\n"));
 					return -1;
 				}
 				strcpy(args.algo, optarg);
@@ -113,13 +123,13 @@ int main(int argc, char **argv){
 				
 			case 'o':
 				if(args.check != 1 && args.check != 2){
-					printf("You must use the optiopn --encrypt || --decrypt to use the option --output\n");
+					printf(_("You must use the option --encrypt || --decrypt to use the option --output\n"));
 					return -1;
 				}
 				nameLen = strlen(optarg)+1;
 				args.outputFilePath = malloc(nameLen);
 				if(args.outputFilePath == NULL){
-					fprintf(stderr, "main (case o): error during memory allocation\n");
+					fprintf(stderr, _("main (case o): error during memory allocation\n"));
 					return -1;
 				}
 				strcpy(args.outputFilePath, optarg);
@@ -129,7 +139,7 @@ int main(int argc, char **argv){
 				return 0;
 			
 			case '?':
-				fprintf(stderr, "Unknown option\n");
+				fprintf(stderr, _("Unknown option\n"));
 				return -1;
 		}
 	}
@@ -153,7 +163,7 @@ int do_action(){
 		fd_input = open(args.inputFilePath, O_RDONLY | O_NOFOLLOW);
 		fd_output = open(path_to_output_file, O_WRONLY | O_NOFOLLOW | O_CREAT, 0644);
 		if(fd_input == -1 || fd_output == -1){
-			fprintf(stderr, "main (encrypt): %s\n", strerror(errno));
+			fprintf(stderr, _("main (encrypt): %s\n"), strerror(errno));
 			free(output_file);
 			return -1;
 		}
@@ -161,7 +171,7 @@ int do_action(){
 		close(fd_output);
 		retval = encrypt_file(args.inputFilePath, path_to_output_file);
 		if(retval == -1){
-			fprintf(stderr, "main: error during file encryption\n");
+			fprintf(stderr, _("main: error during file encryption\n"));
 			remove(path_to_output_file);
 			free(output_file);
 			return -1;
@@ -172,14 +182,14 @@ int do_action(){
 		fd_input = open(args.inputFilePath, O_RDONLY | O_NOFOLLOW);
 		fd_output = open(args.outputFilePath, O_WRONLY | O_NOFOLLOW | O_CREAT, 0644);
 		if(fd_input == -1 || fd_output == -1){
-			fprintf(stderr, "main (decrypt): %s\n", strerror(errno));
+			fprintf(stderr, _("main (decrypt): %s\n"), strerror(errno));
 			return -1;
 		}
 		close(fd_input);
 		close(fd_output);
 		retval = decrypt_file(args.inputFilePath, args.outputFilePath);
 		if(retval == -1){
-			printf("main: error during file decryption\n");
+			printf(_("main: error during file decryption\n"));
 			remove(args.outputFilePath);
 			return -1;
 		}
@@ -218,7 +228,7 @@ int do_action(){
 			compute_whirlpool(args.inputFilePath);
 			return 0;
 		}
-		else printf("--> Available hash algo are: md5, rmd160, sha1, sha256, sha512 and whirlpool\n");
+		else printf(_("--> Available hash algo are: md5, rmd160, sha1, sha256, sha512 and whirlpool\n"));
 	}
 	return 0;
 }

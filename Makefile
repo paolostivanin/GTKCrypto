@@ -14,10 +14,11 @@ install:
 	test -s polcrypt-cli && cp -v polcrypt-cli /usr/bin/ || echo "--> CLI not built"
 	test -s polcrypt-gui && cp -v polcrypt-gui /usr/bin/ || echo "--> GUI not built"
 	test -s po/it.mo && cp -v po/it.mo /usr/share/locale/it/LC_MESSAGES/polcrypt.mo || echo "--> Italian language not copied"
+	test -s po/it-cli.mo && cp -v po/it-cli.mo /usr/share/locale/it/LC_MESSAGES/polcrypt-cli.mo || echo "--> Italian language not copied"
 	cp -v polcrypt.png /usr/share/icons/hicolor/128x128/apps/
 	
 polcrypt-cli: $(CLI_SOURCES)
-	$(CC) $(CFLAGS) $(CLI_SOURCES) $(CLI_HASH_SOURCES) -o polcrypt-cli $(LDFLAGS)
+	$(CC) $(CFLAGS) $(CLI_SOURCES) $(CLI_HASH_SOURCES) -o polcrypt-cli $(LDFLAGS) `pkg-config --cflags --libs glib-2.0`
 
 polcrypt-gui: $(GUI_SOURCES)
 	$(CC) $(CFLAGS) $(GUI_SOURCES) $(GUI_HASH_SOURCES) -o polcrypt-gui $(LDFLAGS) `pkg-config --cflags --libs gtk+-3.0`

@@ -1,0 +1,94 @@
+#: src/cli/main.c:23
+#, c-format
+msgid "You are root, please run this program as NORMAL USER!\n"
+msgstr "Per favore avviare questo programma da utente normale e *non* da utente root.\n"
+
+#: src/cli/main.c:27
+#, c-format
+msgid "libgcrypt min version required: 1.5.0\n"
+msgstr "libgcrypt versione minima richiesta 1.5.0\n"
+
+#: src/cli/main.c:51
+#, c-format
+msgid "PolCrypt v%s developed by Paolo Stivanin <info@paolostivanin.com>\n"
+msgstr "PolCrypt v%s sviluppato da Paolo Stivanin <info@paolostivanin.com>\n"
+
+#: src/cli/main.c:55
+#, c-format
+msgid "To encrypt|decrypt a file: %s [--encrypt] | [--decrypt] <path-to-input_file> --output <path_to_output_file>\n"
+msgstr "Per cifrare|decifrare un file: %s [--encrypt] | [--decrypt] <percorso-file-input> --output <percorso-file-output>\n"
+
+#: src/cli/main.c:56
+#, c-format
+msgid "To calculate one or more file hash: %s --hash <path-to-input_file> --algo [md5|rmd160|sha1|sha256|sha512|whirlpool|all]\n"
+msgstr "Per calcolare uno o più tipi di hash: %s --hash <percorso-file-input> --algo [md5|rmd160|sha1|sha256|sha512|whirlpool|all]\n"
+
+#: src/cli/main.c:70
+#, c-format
+msgid "main (case e): error during memory allocation\n"
+msgstr "main (case e): errore durante allocazione memoria\n"
+
+#: src/cli/main.c:81
+#, c-format
+msgid "main (case d): error during memory allocation\n"
+msgstr "main (case d): errore durante allocazione memoria\n"
+
+#: src/cli/main.c:92
+#, c-format
+msgid "main (case s): error during memory allocation\n"
+msgstr "main (case s): errore durante allocazione memoria\n"
+
+#: src/cli/main.c:98
+#, c-format
+msgid "You must select an hash algo. Use --help for more information\n"
+msgstr "Devi selezionare un algortimo di hash. Usa --help per maggiori informazioni\n"
+
+#: src/cli/main.c:105
+#, c-format
+msgid "You must use the option --hash to use the option --algo\n"
+msgstr "Con l'opzione --algo devi specifiare anche l'opzione --hash. Usa --help per maggiori informazioni\n"
+
+#: src/cli/main.c:111
+#, c-format
+msgid "main (case a): error during memory allocation\n"
+msgstr "main (case a): errore durante allocazione memoria\n"
+
+#: src/cli/main.c:122
+#, c-format
+msgid "You must use the option --encrypt || --decrypt to use the option --output\n"
+msgstr "Con l'opzione --output devi specifiare anche l'opzione --encrypt || --decrypt\n"
+
+#: src/cli/main.c:128
+#, c-format
+msgid "main (case o): error during memory allocation\n"
+msgstr "main (case o): errore durante allocazione memoria\n"
+
+#: src/cli/main.c:138
+#, c-format
+msgid "Unknown option\n"
+msgstr "Opzione sconosciuta\n"
+
+#: src/cli/main.c:162
+#, c-format
+msgid "main (encrypt): %s\n"
+msgstr "main (encrypt): %s\n"
+
+#: src/cli/main.c:170
+#, c-format
+msgid "main: error during file encryption\n"
+msgstr "main: errore durante la cifratura del file\n"
+
+#: src/cli/main.c:181
+#, c-format
+msgid "main (decrypt): %s\n"
+msgstr "main (decrypt): %s\n"
+
+#: src/cli/main.c:188
+#, c-format
+msgid "main: error during file decryption\n"
+msgstr "main: errore durante la decifratura del file\n"
+
+#: src/cli/main.c:227
+#, c-format
+msgid "--> Available hash algo are: md5, rmd160, sha1, sha256, sha512 and whirlpool\n"
+msgstr "--> Algoritmi di hash disponibili: md5, rmd160, sha1, sha256, sha512 e whirlpool\n"
