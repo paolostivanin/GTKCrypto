@@ -3,9 +3,11 @@
 
 #include <glib.h>
 #include <gtk/gtk.h>
+
 #define BUF_FILE 1048576 /* 1 MiB di memoria per il file come buffer massimo, poi spezzo (hash) */
 #define BUFSIZE 24576  /* delete_input_file */
 #define GCRYPT_MIN_VER "1.5.0"
+#define VERSION "2.0.0-alpha"
 
 struct metadata{
 	unsigned char salt[32];

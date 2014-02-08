@@ -2,7 +2,13 @@
 #include <glib.h>
 #include <gdk-pixbuf/gdk-pixbuf.h>
 #include <gcrypt.h>
+#include <glib/gi18n.h>
+#include <locale.h>
+#include <libintl.h>
 #include "polcrypt.h"
+
+#define LOCALE_DIR "/usr/share/locale" // or your specification
+#define PACKAGE    "polcrypt"              // mo file name in LOCALE
 
 static void file_dialog(struct info *);
 static void is_enc(GtkWidget *, struct info *);
@@ -28,6 +34,10 @@ int main(int argc, char **argv){
 	}
 	gcry_control(GCRYCTL_INIT_SECMEM, 16384, 0);
 	gcry_control(GCRYCTL_INITIALIZATION_FINISHED, 0);
+	
+	setlocale(LC_ALL, "");
+	bindtextdomain(PACKAGE, LOCALE_DIR);
+	textdomain(PACKAGE);
 	
 	GtkApplication *app;
 	int status;
@@ -55,8 +65,8 @@ static void startup (GtkApplication *application, gpointer user_data __attribute
   g_action_map_add_action_entries (G_ACTION_MAP (application), actions, G_N_ELEMENTS (actions), application);
 
   menu = g_menu_new ();
-  g_menu_append (menu, "About", "app.about");
-  g_menu_append (menu, "Quit",  "app.quit");
+  g_menu_append (menu, _("About"), "app.about");
+  g_menu_append (menu, _("Quit"),  "app.quit");
   gtk_application_set_app_menu (application, G_MENU_MODEL (menu));
   g_object_unref (menu);
 }
@@ -75,15 +85,17 @@ static void activate (GtkApplication *app, gpointer user_data __attribute__ ((un
 	gtk_window_set_icon_from_file(GTK_WINDOW(s_Info.mainwin), icon, &err);
 	gtk_container_set_border_width(GTK_CONTAINER(s_Info.mainwin), 10);
 	
-	const gchar *str = "Welcome to PolCrypt (v2.0-alpha)";
-	label = gtk_label_new(str);
+	gchar welcomeBuf[40];
+	sprintf(welcomeBuf, _("Welcome to PolCrypt %s"), VERSION);
+	//const gchar *str = _("Welcome to PolCrypt (v2.0-alpha)");
+	label = gtk_label_new(welcomeBuf);
 	char *markup;
-	markup = g_markup_printf_escaped ("<span foreground=\"black\" size=\"x-large\"><b>%s</b></span>", str); // font grassetto e large
+	markup = g_markup_printf_escaped ("<span foreground=\"black\" size=\"x-large\"><b>%s</b></span>", welcomeBuf); // font grassetto e large
 	gtk_label_set_markup (GTK_LABEL (label), markup);
 	
-	butEn = gtk_button_new_with_label("Encrypt File");
-	butDe = gtk_button_new_with_label("Decrypt File");
-	butHa = gtk_button_new_with_label("Compute Hash");
+	butEn = gtk_button_new_with_label(_("Encrypt File"));
+	butDe = gtk_button_new_with_label(_("Decrypt File"));
+	butHa = gtk_button_new_with_label(_("Compute Hash"));
 	g_signal_connect(butEn, "clicked", G_CALLBACK (is_enc), &s_Info);
 	g_signal_connect(butDe, "clicked", G_CALLBACK (is_dec), &s_Info);
 	g_signal_connect(butHa, "clicked", G_CALLBACK (is_hash), &s_Info);
@@ -121,7 +133,7 @@ static void is_hash(GtkWidget *ignored __attribute__ ((unused)), struct info *s_
 }
 
 static void file_dialog(struct info *s_Info){
-	s_Info->file_dialog =  gtk_file_chooser_dialog_new("Choose File", NULL, GTK_FILE_CHOOSER_ACTION_OPEN, ("_Cancel"), GTK_RESPONSE_CANCEL, ("_Ok"), GTK_RESPONSE_ACCEPT, NULL);
+	s_Info->file_dialog =  gtk_file_chooser_dialog_new(_("Choose File"), NULL, GTK_FILE_CHOOSER_ACTION_OPEN, (_("_Cancel")), GTK_RESPONSE_CANCEL, (_("_Ok")), GTK_RESPONSE_ACCEPT, NULL);
 	if (gtk_dialog_run (GTK_DIALOG (s_Info->file_dialog)) == GTK_RESPONSE_ACCEPT){
 		s_Info->filename = gtk_file_chooser_get_filename (GTK_FILE_CHOOSER (s_Info->file_dialog));
 		if(s_Info->mode == 1){
@@ -143,11 +155,11 @@ static void file_dialog(struct info *s_Info){
 static void type_pwd_enc(struct info *s_TypePwd){
 	gtk_widget_hide(GTK_WIDGET(s_TypePwd->file_dialog));
 	GtkWidget *content_area, *grid2, *label, *labelAgain;
-   	s_TypePwd->dialog = gtk_dialog_new_with_buttons ("Password", NULL, GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT, "_Quit", GTK_RESPONSE_CLOSE, "_Ok", GTK_RESPONSE_OK, NULL);
+   	s_TypePwd->dialog = gtk_dialog_new_with_buttons ("Password", NULL, GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT, _("_Quit"), GTK_RESPONSE_CLOSE, _("_Ok"), GTK_RESPONSE_OK, NULL);
    	content_area = gtk_dialog_get_content_area (GTK_DIALOG (s_TypePwd->dialog));
    	
-   	label = gtk_label_new("Type password");
-   	labelAgain = gtk_label_new("Retype password");
+   	label = gtk_label_new(_("Type password"));
+   	labelAgain = gtk_label_new(_("Retype password"));
    	s_TypePwd->pwdEntry = gtk_entry_new();
    	s_TypePwd->pwdReEntry = gtk_entry_new();
    	gtk_entry_set_visibility(GTK_ENTRY(s_TypePwd->pwdEntry), FALSE); //input nascosto
@@ -188,10 +200,10 @@ static void type_pwd_enc(struct info *s_TypePwd){
 static void type_pwd_dec(struct info *s_TypePwdDec){
 	gtk_widget_hide(GTK_WIDGET(s_TypePwdDec->file_dialog));
 	GtkWidget *content_area, *grid2, *label;
-   	s_TypePwdDec->dialog = gtk_dialog_new_with_buttons ("Password", NULL, GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT, "_Quit", GTK_RESPONSE_CLOSE, "_Ok", GTK_RESPONSE_OK, NULL);
+   	s_TypePwdDec->dialog = gtk_dialog_new_with_buttons ("Password", NULL, GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT, _("_Quit"), GTK_RESPONSE_CLOSE, _("_Ok"), GTK_RESPONSE_OK, NULL);
    	content_area = gtk_dialog_get_content_area (GTK_DIALOG (s_TypePwdDec->dialog));
    	
-   	label = gtk_label_new("Type password");
+   	label = gtk_label_new(_("Type password"));
    	s_TypePwdDec->pwdEntry = gtk_entry_new();
    	gtk_entry_set_visibility(GTK_ENTRY(s_TypePwdDec->pwdEntry), FALSE); //input nascosto
 
@@ -247,7 +259,7 @@ static void select_hash_type(struct info *s_InfoHash){
 	gtk_widget_hide(GTK_WIDGET(s_InfoHash->file_dialog));
 	struct hashes s_HashType;
 	GtkWidget *content_area, *grid2;
-   	s_InfoHash->dialog = gtk_dialog_new_with_buttons ("Select Hash", NULL, GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT, "_Quit", GTK_RESPONSE_CLOSE, NULL);
+   	s_InfoHash->dialog = gtk_dialog_new_with_buttons (_("Select Hash"), NULL, GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT, _("_Quit"), GTK_RESPONSE_CLOSE, NULL);
    	content_area = gtk_dialog_get_content_area (GTK_DIALOG (s_InfoHash->dialog));
    	
    	s_HashType.checkMD5 = gtk_check_button_new_with_label("MD5");
@@ -351,8 +363,8 @@ static void about (GSimpleAction *action __attribute__ ((unused)), GVariant *par
         gtk_about_dialog_set_website (GTK_ABOUT_DIALOG (a_dialog), "https://github.com/polslinux/PolCrypt");
         gtk_about_dialog_set_authors (GTK_ABOUT_DIALOG (a_dialog), authors);
 
-        gtk_dialog_run(GTK_DIALOG (a_dialog)); /* Avvio il dialog a_dialog */
-        gtk_widget_destroy(a_dialog); /* Alla pressione del pulsante chiudi il widget viene chiuso */
+        gtk_dialog_run(GTK_DIALOG (a_dialog));
+        gtk_widget_destroy(a_dialog);
 }
 
 static void quit (GSimpleAction *action __attribute__ ((unused)), GVariant *parameter __attribute__ ((unused)), gpointer user_data __attribute__ ((unused)))

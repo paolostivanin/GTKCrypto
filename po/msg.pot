@@ -1,0 +1,52 @@
+#: src/gtk3/main-gui.c:68
+msgid "About"
+msgstr ""
+
+#: src/gtk3/main-gui.c:69
+msgid "Quit"
+msgstr ""
+
+#: src/gtk3/main-gui.c:89
+#, c-format
+msgid "Welcome to PolCrypt %s"
+msgstr ""
+
+#: src/gtk3/main-gui.c:96
+msgid "Encrypt File"
+msgstr ""
+
+#: src/gtk3/main-gui.c:97
+msgid "Decrypt File"
+msgstr ""
+
+#: src/gtk3/main-gui.c:98
+msgid "Compute Hash"
+msgstr ""
+
+#: src/gtk3/main-gui.c:136
+msgid "Choose File"
+msgstr ""
+
+#: src/gtk3/main-gui.c:136
+msgid "_Cancel"
+msgstr ""
+
+#: src/gtk3/main-gui.c:136 src/gtk3/main-gui.c:158 src/gtk3/main-gui.c:203
+msgid "_Ok"
+msgstr ""
+
+#: src/gtk3/main-gui.c:158 src/gtk3/main-gui.c:203 src/gtk3/main-gui.c:262
+msgid "_Quit"
+msgstr ""
+
+#: src/gtk3/main-gui.c:161 src/gtk3/main-gui.c:206
+msgid "Type password"
+msgstr ""
+
+#: src/gtk3/main-gui.c:162
+msgid "Retype password"
+msgstr ""
+
+#: src/gtk3/main-gui.c:262
+msgid "Select Hash"
+msgstr ""

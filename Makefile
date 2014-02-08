@@ -1,4 +1,4 @@
-CFLAGS = -Wall -Wextra -U_FORTIFY_SOURCE -D_FORTIFY_SOURCE=2 -O2 -Wformat -Wformat-security -fstack-protector-all -fPIE -Wno-unused-result -Wno-return-type -Wno-missing-field-initializers -g -ggdb
+CFLAGS = -Wall -Wextra -U_FORTIFY_SOURCE -D_FORTIFY_SOURCE=2 -O2 -Wformat -Wformat-security -fstack-protector-all -fPIE -Wno-unused-result -Wno-return-type -Wno-missing-field-initializers
 LDFLAGS = -Wl,-z,now -Wl,-z,relro -lgcrypt
 
 CLI_HASH_SOURCES = src/cli/hashes/md5.c src/cli/hashes/sha256.c src/cli/hashes/sha512.c src/cli/hashes/whirlpool.c src/cli/hashes/rmd160.c src/cli/hashes/sha1.c 
@@ -13,6 +13,7 @@ gui: polcrypt-gui
 install:
 	test -s polcrypt-cli && cp -v polcrypt-cli /usr/bin/ || echo "--> CLI not built"
 	test -s polcrypt-gui && cp -v polcrypt-gui /usr/bin/ || echo "--> GUI not built"
+	test -s po/it.mo && cp -v po/it.mo /usr/share/locale/it/LC_MESSAGES/polcrypt.mo || echo "--> Italian language not copied"
 	cp -v polcrypt.png /usr/share/icons/hicolor/128x128/apps/
 	
 polcrypt-cli: $(CLI_SOURCES)
