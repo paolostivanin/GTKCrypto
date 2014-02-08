@@ -24,7 +24,8 @@ The latest (v2.0.0-alpha) release can be found in the '2.0.0-dev' branch, just c
 
 RoadMap
 -------
-<empty>
+??/02/2014 - v2.1.0
+* single, double or triple encryption (aes, twofish, serpent, aes+twofish, aes+serpent, aes+twofish+serpent)
 
 Requirements
 ------------

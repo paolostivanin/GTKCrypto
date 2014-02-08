@@ -87,11 +87,11 @@ static void activate (GtkApplication *app, gpointer user_data __attribute__ ((un
 	
 	gchar welcomeBuf[40];
 	sprintf(welcomeBuf, _("Welcome to PolCrypt %s"), VERSION);
-	//const gchar *str = _("Welcome to PolCrypt (v2.0-alpha)");
 	label = gtk_label_new(welcomeBuf);
 	char *markup;
 	markup = g_markup_printf_escaped ("<span foreground=\"black\" size=\"x-large\"><b>%s</b></span>", welcomeBuf); // font grassetto e large
 	gtk_label_set_markup (GTK_LABEL (label), markup);
+	g_free(markup);
 	
 	butEn = gtk_button_new_with_label(_("Encrypt File"));
 	butDe = gtk_button_new_with_label(_("Decrypt File"));

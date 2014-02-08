@@ -3,6 +3,7 @@
 
 #include <glib.h>
 #include <gtk/gtk.h>
+#include <stdint.h>
 
 #define BUF_FILE 1048576 /* 1 MiB di memoria per il file come buffer massimo, poi spezzo (hash) */
 #define BUFSIZE 24576  /* delete_input_file */
@@ -10,6 +11,7 @@
 #define VERSION "2.0.0-alpha"
 
 struct metadata{
+	unsigned char algo_type[16]; //aes,twofish,serpent,aes-two,aes-ser,aes-two-ser
 	unsigned char salt[32];
 	unsigned char iv[16];
 };

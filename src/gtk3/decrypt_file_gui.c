@@ -75,8 +75,8 @@ int decrypt_file_gui(struct info *s_InfoDec){
   	}
   	fsize = fileStat.st_size;
   	close(fd);
-	number_of_block = (fsize / 16)-7; //7=salt+iv+hmac
-	bytes_before_mac = (number_of_block+3)*16; //3=salt*iv
+	number_of_block = (fsize / 16)-8; //8=algo_type+salt+iv+hmac (1 blocco = 128bit)
+	bytes_before_mac = (number_of_block+4)*16; //4=algo_type+salt+iv
 	fp = fopen(s_InfoDec->filename, "r");
 	if(fp == NULL){
 		fprintf(stderr, "decrypt_file: %s\n", strerror(errno));
