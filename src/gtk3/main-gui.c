@@ -1,9 +1,9 @@
 #include <gtk/gtk.h>
 #include <glib.h>
+#include <gdk-pixbuf/gdk-pixbuf.h>
 #include <gcrypt.h>
 #include "polcrypt.h"
 
-static void about_clicked(GtkWidget *, gpointer);
 static void file_dialog(struct info *);
 static void is_enc(GtkWidget *, struct info *);
 static void is_dec(GtkWidget *, struct info *);
@@ -13,6 +13,13 @@ static void type_pwd_dec(struct info *);
 static int do_enc(struct info *);
 static int do_dec(struct info *);
 static void select_hash_type(struct info *);
+static void activate (GtkApplication *, gpointer);
+static void startup (GtkApplication *, gpointer);
+static void quit (GSimpleAction *, GVariant *, gpointer);
+static void about (GSimpleAction *, GVariant *, gpointer);
+
+struct info s_Info;
+const gchar *icon = "/usr/share/icons/hicolor/128x128/apps/polcrypt.png";
 
 int main(int argc, char **argv){
 	if(!gcry_check_version(GCRYPT_MIN_VER)){
@@ -22,20 +29,53 @@ int main(int argc, char **argv){
 	gcry_control(GCRYCTL_INIT_SECMEM, 16384, 0);
 	gcry_control(GCRYCTL_INITIALIZATION_FINISHED, 0);
 	
-	GtkWidget *butEn, *butDe, *butHa, *butAb, *grid;
+	GtkApplication *app;
+	int status;
+	GError *err = NULL;
+	GdkPixbuf *logo = gdk_pixbuf_new_from_file(icon, &err);
+	gtk_window_set_default_icon(logo);
+
+	app = gtk_application_new ("org.gtk.polcrypt",G_APPLICATION_FLAGS_NONE);
+	g_signal_connect (app, "startup", G_CALLBACK (startup), NULL);
+	g_signal_connect (app, "activate", G_CALLBACK (activate), NULL);
+	status = g_application_run (G_APPLICATION (app), argc, argv);
+	g_object_unref (app);
+	return status;
+}
+
+static void startup (GtkApplication *application, gpointer user_data __attribute__ ((unused)))
+{
+  static const GActionEntry actions[] = {
+    { "about", about },
+    { "quit", quit }
+  };
+  
+  GMenu *menu;
+
+  g_action_map_add_action_entries (G_ACTION_MAP (application), actions, G_N_ELEMENTS (actions), application);
+
+  menu = g_menu_new ();
+  g_menu_append (menu, "About", "app.about");
+  g_menu_append (menu, "Quit",  "app.quit");
+  gtk_application_set_app_menu (application, G_MENU_MODEL (menu));
+  g_object_unref (menu);
+}
+
+static void activate (GtkApplication *app, gpointer user_data __attribute__ ((unused)))
+{
+	GtkWidget *butEn, *butDe, *butHa, *grid;
 	GtkWidget *label;
-	struct info s_Info;
+	GError *err = NULL;
 	
-	gtk_init(&argc, &argv);
-	
-	s_Info.mainwin = gtk_window_new(GTK_WINDOW_TOPLEVEL);
+	s_Info.mainwin = gtk_application_window_new(app);
+	gtk_window_set_application (GTK_WINDOW (s_Info.mainwin), GTK_APPLICATION (app));
 	gtk_window_set_position(GTK_WINDOW(s_Info.mainwin), GTK_WIN_POS_CENTER);
 	gtk_window_set_title(GTK_WINDOW(s_Info.mainwin), "PolCrypt");
 	gtk_window_set_resizable(GTK_WINDOW(s_Info.mainwin), FALSE);
-	g_signal_connect(s_Info.mainwin, "destroy", G_CALLBACK(gtk_main_quit), NULL);
+	gtk_window_set_icon_from_file(GTK_WINDOW(s_Info.mainwin), icon, &err);
 	gtk_container_set_border_width(GTK_CONTAINER(s_Info.mainwin), 10);
 	
-	const gchar *str = "Welcome to PolCrypt (v2.0-alpha1)";
+	const gchar *str = "Welcome to PolCrypt (v2.0-alpha)";
 	label = gtk_label_new(str);
 	char *markup;
 	markup = g_markup_printf_escaped ("<span foreground=\"black\" size=\"x-large\"><b>%s</b></span>", str); // font grassetto e large
@@ -44,11 +84,9 @@ int main(int argc, char **argv){
 	butEn = gtk_button_new_with_label("Encrypt File");
 	butDe = gtk_button_new_with_label("Decrypt File");
 	butHa = gtk_button_new_with_label("Compute Hash");
-	butAb = gtk_button_new_with_label("About");
 	g_signal_connect(butEn, "clicked", G_CALLBACK (is_enc), &s_Info);
 	g_signal_connect(butDe, "clicked", G_CALLBACK (is_dec), &s_Info);
 	g_signal_connect(butHa, "clicked", G_CALLBACK (is_hash), &s_Info);
-	g_signal_connect(butAb, "clicked", G_CALLBACK (about_clicked), NULL);
 	
 	grid = gtk_grid_new();
 	gtk_container_add(GTK_CONTAINER(s_Info.mainwin), grid);
@@ -63,13 +101,8 @@ int main(int argc, char **argv){
 	gtk_grid_attach(GTK_GRID(grid), butEn, 1, 1, 3, 1);
 	gtk_grid_attach(GTK_GRID(grid), butDe, 1, 2, 3, 1);
 	gtk_grid_attach(GTK_GRID(grid), butHa, 1, 3, 3, 1);
-	gtk_grid_attach(GTK_GRID(grid), butAb, 1, 4, 3, 1);
 
 	gtk_widget_show_all(s_Info.mainwin);
-	
-	gtk_main();
-
-	return 0;
 }
 
 static void is_enc(GtkWidget *ignored __attribute__ ((unused)), struct info *s_Info){
@@ -88,7 +121,7 @@ static void is_hash(GtkWidget *ignored __attribute__ ((unused)), struct info *s_
 }
 
 static void file_dialog(struct info *s_Info){
-	s_Info->file_dialog =  gtk_file_chooser_dialog_new("prova", GTK_WINDOW(s_Info->mainwin), GTK_FILE_CHOOSER_ACTION_OPEN, ("_Cancel"), GTK_RESPONSE_CANCEL, ("_Ok"), GTK_RESPONSE_ACCEPT, NULL);
+	s_Info->file_dialog =  gtk_file_chooser_dialog_new("Choose File", NULL, GTK_FILE_CHOOSER_ACTION_OPEN, ("_Cancel"), GTK_RESPONSE_CANCEL, ("_Ok"), GTK_RESPONSE_ACCEPT, NULL);
 	if (gtk_dialog_run (GTK_DIALOG (s_Info->file_dialog)) == GTK_RESPONSE_ACCEPT){
 		s_Info->filename = gtk_file_chooser_get_filename (GTK_FILE_CHOOSER (s_Info->file_dialog));
 		if(s_Info->mode == 1){
@@ -268,8 +301,6 @@ static void select_hash_type(struct info *s_InfoHash){
    	gtk_container_add (GTK_CONTAINER (content_area), grid2);
    	gtk_widget_show_all (s_InfoHash->dialog);
    	
-   	/*s_TypePwd->isSignalActivate = 0;
-   	g_signal_connect_swapped(G_OBJECT(s_TypePwd->pwdReEntry), "activate", G_CALLBACK(do_enc), s_TypePwd);*/
    	s_HashType.filename = malloc(strlen(s_InfoHash->filename)+1);
    	strcpy(s_HashType.filename, s_InfoHash->filename);
    	
@@ -284,23 +315,27 @@ static void select_hash_type(struct info *s_InfoHash){
 	switch(result){
 		case GTK_RESPONSE_CLOSE:
 			g_signal_connect_swapped (s_InfoHash->dialog, "response", G_CALLBACK(gtk_widget_destroy), s_InfoHash->dialog);
-			gtk_widget_destroy(s_InfoHash->dialog);	
+			gtk_widget_destroy(s_InfoHash->dialog);
 			break;
 	}
 	free(s_HashType.filename);
 }
 
-static void about_clicked(GtkWidget *a_dialog, gpointer data __attribute__ ((unused))){
-
+static void about (GSimpleAction *action __attribute__ ((unused)), GVariant *parameter __attribute__ ((unused)), gpointer user_data __attribute__ ((unused)))
+{
         const gchar *authors[] = /* Qui definisco gli autori*/
         {
-                "Paolo Stivanin",
+                "Paolo Stivanin <info@paolostivanin.com>",
                 NULL,
         };
-
-        a_dialog = gtk_about_dialog_new ();
+        
+        GError *error = NULL;
+        GdkPixbuf *logo_about = gdk_pixbuf_new_from_file_at_size(icon, 64, 64, &error);
+        
+        GtkWidget *a_dialog = gtk_about_dialog_new ();
         gtk_about_dialog_set_program_name (GTK_ABOUT_DIALOG (a_dialog), "PolCrypt");
-        gtk_about_dialog_set_version (GTK_ABOUT_DIALOG (a_dialog), "2.0-alpha1");
+        gtk_about_dialog_set_logo(GTK_ABOUT_DIALOG(a_dialog), logo_about);
+        gtk_about_dialog_set_version (GTK_ABOUT_DIALOG (a_dialog), "2.0-alpha");
         gtk_about_dialog_set_copyright (GTK_ABOUT_DIALOG (a_dialog), "Copyright (C) 2014");
         gtk_about_dialog_set_comments (GTK_ABOUT_DIALOG (a_dialog), "With this software you can encrypt and decrypt file with AES-256 CBC using HMAC-SHA512 for message authentication or you can compute various type of hashes");
         gtk_about_dialog_set_license(GTK_ABOUT_DIALOG(a_dialog),
@@ -318,4 +353,10 @@ static void about_clicked(GtkWidget *a_dialog, gpointer data __attribute__ ((unu
 
         gtk_dialog_run(GTK_DIALOG (a_dialog)); /* Avvio il dialog a_dialog */
         gtk_widget_destroy(a_dialog); /* Alla pressione del pulsante chiudi il widget viene chiuso */
+}
+
+static void quit (GSimpleAction *action __attribute__ ((unused)), GVariant *parameter __attribute__ ((unused)), gpointer user_data __attribute__ ((unused)))
+{
+   GApplication *application = user_data;
+   g_application_quit (application);
 }

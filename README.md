@@ -50,6 +50,7 @@ How to compile
 `make all` to build the cli and gui version<br>
 `make cli` to build only the cli version<br>
 `make gui` to build only the gui version<br>
+`make install` to install the software<br>
 After you have successfully compiled the software, you will find the `polcrypt-{cli,gui}` binary into the project root directory.
 
 

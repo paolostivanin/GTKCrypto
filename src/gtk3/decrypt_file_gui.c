@@ -11,6 +11,8 @@
 #include <sys/stat.h>
 #include "polcrypt.h"
 
+// INFO DIALOG TIPO "Decrypting input file"
+
 int decrypt_file_gui(struct info *s_InfoDec){
 	int algo = -1, fd, number_of_block, block_done = 0, number_of_pkcs7_byte;	
 	struct metadata s_mdata;
@@ -176,35 +178,8 @@ int decrypt_file_gui(struct info *s_InfoDec){
 		return -1;
 	}
 	
-	/* FROM HERE... */
-	int nLastPct = -1, pct;
-	gfloat pvalue;
-	GtkWidget *content_area, *progressbar;
-	GtkWidget *dd = gtk_dialog_new();
-	gtk_window_set_title(GTK_WINDOW(dd), "Progress...");
-	progressbar = gtk_progress_bar_new();
-	content_area = gtk_dialog_get_content_area (GTK_DIALOG (dd));
-	gtk_widget_set_size_request(dd, 200, 50);
-   	gtk_container_add (GTK_CONTAINER (content_area), progressbar);
-   	gtk_widget_show_all (dd);
-	/* ...TO HERE IS FOR THE PROGRESS BAR */
-	
 	gtk_widget_hide(GTK_WIDGET(s_InfoDec->dialog));
-
 	while(number_of_block > block_done){
-		
-		/* FROM HERE... */
-		pvalue = (gfloat) block_done / (gfloat) number_of_block;
-		pct = pvalue * 100;
-		if (nLastPct != pct){
-			gtk_progress_bar_set_fraction (GTK_PROGRESS_BAR (progressbar), pvalue);
-			while(gtk_events_pending ()){
-				gtk_main_iteration ();
-			}
-            nLastPct = pct;
-        }
-        /* ...TO HERE IS FOR THE PROGRESS BAR */
-        
 		memset(cipher_text, 0, sizeof(cipher_text));
 		retval = fread(cipher_text, 1, 16, fp);
 		if(!retval) break;
@@ -217,10 +192,7 @@ int decrypt_file_gui(struct info *s_InfoDec){
 		fwrite(decBuffer, 1, 16, fpout);
 		block_done++;
 	}
-	end:
-	//AND ALSO THIS, IS FOR THE PROGRESS BAR
-	gtk_widget_destroy (dd);
-	
+	end:	
 	gcry_cipher_close(hd);
 	gcry_free(inputKey);
 	gcry_free(derived_key);

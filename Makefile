@@ -1,4 +1,4 @@
-CFLAGS = -Wall -Wextra -U_FORTIFY_SOURCE -D_FORTIFY_SOURCE=2 -O2 -Wformat -Wformat-security -fstack-protector-all -fPIE -Wno-unused-result -Wno-return-type
+CFLAGS = -Wall -Wextra -U_FORTIFY_SOURCE -D_FORTIFY_SOURCE=2 -O2 -Wformat -Wformat-security -fstack-protector-all -fPIE -Wno-unused-result -Wno-return-type -Wno-missing-field-initializers -g -ggdb
 LDFLAGS = -Wl,-z,now -Wl,-z,relro -lgcrypt
 
 CLI_HASH_SOURCES = src/cli/hashes/md5.c src/cli/hashes/sha256.c src/cli/hashes/sha512.c src/cli/hashes/whirlpool.c src/cli/hashes/rmd160.c src/cli/hashes/sha1.c 
@@ -10,7 +10,11 @@ GUI_SOURCES = src/gtk3/main-gui.c src/gtk3/check_pkcs7.c src/gtk3/encrypt_file_g
 all: polcrypt-cli polcrypt-gui
 cli: polcrypt-cli
 gui: polcrypt-gui
-
+install:
+	test -s polcrypt-cli && cp -v polcrypt-cli /usr/bin/ || echo "--> CLI not built"
+	test -s polcrypt-gui && cp -v polcrypt-gui /usr/bin/ || echo "--> GUI not built"
+	cp -v polcrypt.png /usr/share/icons/hicolor/128x128/apps/
+	
 polcrypt-cli: $(CLI_SOURCES)
 	$(CC) $(CFLAGS) $(CLI_SOURCES) $(CLI_HASH_SOURCES) -o polcrypt-cli $(LDFLAGS)
 
