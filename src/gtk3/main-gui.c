@@ -35,6 +35,12 @@ int main(int argc, char **argv){
 	gcry_control(GCRYCTL_INIT_SECMEM, 16384, 0);
 	gcry_control(GCRYCTL_INITIALIZATION_FINISHED, 0);
 	
+	const gchar *ret = glib_check_version(2, 36, 0);
+	if(ret != NULL){
+		printf("%s\n", ret);
+		return -1;
+	}
+	
 	setlocale(LC_ALL, "");
 	bindtextdomain(PACKAGE, LOCALE_DIR);
 	textdomain(PACKAGE);
