@@ -178,7 +178,6 @@ int decrypt_file_gui(struct info *s_InfoDec){
 		return -1;
 	}
 	
-	gtk_widget_hide(GTK_WIDGET(s_InfoDec->dialog));
 	while(number_of_block > block_done){
 		memset(cipher_text, 0, sizeof(cipher_text));
 		retval = fread(cipher_text, 1, 16, fp);
@@ -192,7 +191,7 @@ int decrypt_file_gui(struct info *s_InfoDec){
 		fwrite(decBuffer, 1, 16, fpout);
 		block_done++;
 	}
-	end:	
+	end:
 	gcry_cipher_close(hd);
 	gcry_free(inputKey);
 	gcry_free(derived_key);

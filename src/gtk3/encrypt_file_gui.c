@@ -99,8 +99,7 @@ int encrypt_file_gui(struct info *s_InfoEnc){
 	fseek(fp, 0, SEEK_SET);
 	
 	fwrite(&s_mdata, sizeof(struct metadata), 1, fpout);
-
-	gtk_widget_hide(GTK_WIDGET(s_InfoEnc->dialog));
+	
 	while(number_of_block > block_done){
 		memset(plain_text, 0, sizeof(plain_text));
 		retval = fread(plain_text, 1, 16, fp);

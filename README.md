@@ -31,8 +31,8 @@ Requirements
 ------------
 * GCC or Clang	: required version of Clang **>= 3.1**, of GCC **>= 4.4.0**;
 * Gcrypt	: required version **>=1.5.0**;
-* GTK+		: required version **>=3.6.0**;
-
+* GTK+		: required version **>=3.4.0**;
+* Glib		: for CLI **>=2.32.0**, for GUI **>=2.36.0**;
 
 How to use (CLI)
 ---------------

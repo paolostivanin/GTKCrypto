@@ -160,7 +160,7 @@ static void file_dialog(struct info *s_Info){
 
 static void type_pwd_enc(struct info *s_TypePwd){
 	gtk_widget_hide(GTK_WIDGET(s_TypePwd->file_dialog));
-	GtkWidget *content_area, *grid2, *label, *labelAgain;
+	GtkWidget *content_area, *grid2, *label, *labelAgain, *infoarea;
    	s_TypePwd->dialog = gtk_dialog_new_with_buttons ("Password", NULL, GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT, _("_Quit"), GTK_RESPONSE_CLOSE, _("_Ok"), GTK_RESPONSE_OK, NULL);
    	content_area = gtk_dialog_get_content_area (GTK_DIALOG (s_TypePwd->dialog));
    	
@@ -170,18 +170,30 @@ static void type_pwd_enc(struct info *s_TypePwd){
    	s_TypePwd->pwdReEntry = gtk_entry_new();
    	gtk_entry_set_visibility(GTK_ENTRY(s_TypePwd->pwdEntry), FALSE); //input nascosto
    	gtk_entry_set_visibility(GTK_ENTRY(s_TypePwd->pwdReEntry), FALSE);
-
-   	gtk_widget_set_size_request(s_TypePwd->dialog, 150, 100); // richiedo una grandezza minima
    	
+   	gtk_widget_set_size_request(s_TypePwd->dialog, 150, 100); // richiedo una grandezza minima
+	
+   	s_TypePwd->infobar = gtk_info_bar_new();
+	s_TypePwd->infolabel = gtk_label_new(_("Encrypting and deleting the file can take some\n minutes depending on the file size..."));
+	gtk_label_set_justify(GTK_LABEL(s_TypePwd->infolabel), GTK_JUSTIFY_CENTER);
+    gtk_info_bar_set_message_type(GTK_INFO_BAR(s_TypePwd->infobar), GTK_MESSAGE_INFO);
+    infoarea = gtk_info_bar_get_content_area(GTK_INFO_BAR(s_TypePwd->infobar));
+    gtk_container_add(GTK_CONTAINER(infoarea), s_TypePwd->infolabel);
+    	
    	grid2 = gtk_grid_new();
-	gtk_grid_set_row_homogeneous(GTK_GRID(grid2), TRUE); // righe stessa altezza
 	gtk_grid_set_column_homogeneous(GTK_GRID(grid2), TRUE); // colonne stessa larghezza
 	gtk_grid_set_row_spacing(GTK_GRID(grid2), 5); // spazio fra le righe
+	
+	GValue bottomMargin = G_VALUE_INIT;
+	g_value_init (&bottomMargin, G_TYPE_UINT);
+	g_value_set_uint(&bottomMargin, 10);
+	g_object_set_property(G_OBJECT(s_TypePwd->pwdEntry), "margin-bottom", &bottomMargin);
 	
 	gtk_grid_attach(GTK_GRID(grid2), label, 0, 0, 3, 1);
 	gtk_grid_attach(GTK_GRID(grid2), s_TypePwd->pwdEntry, 0, 1, 3, 1);
 	gtk_grid_attach(GTK_GRID(grid2), labelAgain, 0, 2, 3, 1);
-	gtk_grid_attach(GTK_GRID(grid2), s_TypePwd->pwdReEntry, 0, 3, 3, 1);		
+	gtk_grid_attach(GTK_GRID(grid2), s_TypePwd->pwdReEntry, 0, 3, 3, 1);
+	gtk_grid_attach(GTK_GRID(grid2), s_TypePwd->infobar, 0, 4, 3, 1);
 
    	/* Add the grid, and show everything we've added to the dialog */
    	gtk_container_add (GTK_CONTAINER (content_area), grid2);
@@ -205,23 +217,30 @@ static void type_pwd_enc(struct info *s_TypePwd){
 
 static void type_pwd_dec(struct info *s_TypePwdDec){
 	gtk_widget_hide(GTK_WIDGET(s_TypePwdDec->file_dialog));
-	GtkWidget *content_area, *grid2, *label;
+	GtkWidget *content_area, *grid2, *label, *infoarea;
    	s_TypePwdDec->dialog = gtk_dialog_new_with_buttons ("Password", NULL, GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT, _("_Quit"), GTK_RESPONSE_CLOSE, _("_Ok"), GTK_RESPONSE_OK, NULL);
    	content_area = gtk_dialog_get_content_area (GTK_DIALOG (s_TypePwdDec->dialog));
    	
    	label = gtk_label_new(_("Type password"));
    	s_TypePwdDec->pwdEntry = gtk_entry_new();
    	gtk_entry_set_visibility(GTK_ENTRY(s_TypePwdDec->pwdEntry), FALSE); //input nascosto
-
+   	
    	gtk_widget_set_size_request(s_TypePwdDec->dialog, 150, 100); // richiedo una grandezza minima
+   
+   	s_TypePwdDec->infobar = gtk_info_bar_new();
+	s_TypePwdDec->infolabel = gtk_label_new(_("Decrypting the file can take some\nminutes depending on the file size..."));
+	gtk_label_set_justify(GTK_LABEL(s_TypePwdDec->infolabel), GTK_JUSTIFY_CENTER);
+    gtk_info_bar_set_message_type(GTK_INFO_BAR(s_TypePwdDec->infobar), GTK_MESSAGE_INFO);
+    infoarea = gtk_info_bar_get_content_area(GTK_INFO_BAR(s_TypePwdDec->infobar));
+    gtk_container_add(GTK_CONTAINER(infoarea), s_TypePwdDec->infolabel);
    	
    	grid2 = gtk_grid_new();
-	gtk_grid_set_row_homogeneous(GTK_GRID(grid2), TRUE); // righe stessa altezza
 	gtk_grid_set_column_homogeneous(GTK_GRID(grid2), TRUE); // colonne stessa larghezza
 	gtk_grid_set_row_spacing(GTK_GRID(grid2), 5); // spazio fra le righe
 	
 	gtk_grid_attach(GTK_GRID(grid2), label, 0, 0, 3, 1);
 	gtk_grid_attach(GTK_GRID(grid2), s_TypePwdDec->pwdEntry, 0, 1, 3, 1);
+	gtk_grid_attach(GTK_GRID(grid2), s_TypePwdDec->infobar, 0, 2, 3, 1);
 
    	/* Add the grid, and show everything we've added to the dialog */
    	gtk_container_add (GTK_CONTAINER (content_area), grid2);
