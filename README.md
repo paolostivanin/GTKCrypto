@@ -19,7 +19,7 @@ Security
 
 Latest release
 --------------
-The latest (v2.0.0-alpha) release can be found in the '2.0.0-dev' branch, just clone it :)
+The latest (v2.0.0-beta) release can be found in the master branch, just clone it :)
 
 
 RoadMap

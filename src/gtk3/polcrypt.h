@@ -7,7 +7,7 @@
 #define BUF_FILE 1048576 /* 1 MiB di memoria per il file come buffer massimo, poi spezzo (hash) */
 #define BUFSIZE 24576  /* delete_input_file */
 #define GCRYPT_MIN_VER "1.5.0"
-#define VERSION "2.0.0-alpha"
+#define VERSION "2.0.0-beta"
 
 struct metadata{
 	unsigned char algo_type[16]; //aes,twofish,serpent,aes-two,aes-ser,aes-two-ser

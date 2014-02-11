@@ -35,11 +35,16 @@ int main(int argc, char **argv){
 	gcry_control(GCRYCTL_INIT_SECMEM, 16384, 0);
 	gcry_control(GCRYCTL_INITIALIZATION_FINISHED, 0);
 	
-	const gchar *ret = glib_check_version(2, 36, 0);
-	if(ret != NULL){
-		printf("%s\n", ret);
+	const gchar *glibVer = glib_check_version(2, 36, 0);
+	if(glibVer != NULL){
+		printf("%s\n", glibVer);
 		return -1;
 	}
+	const gchar *gtkVer = gtk_check_version(3, 4, 0);
+	if(gtkVer != NULL){
+		printf("%s\n", gtkVer);
+		return -1;
+	}		
 	
 	setlocale(LC_ALL, "");
 	bindtextdomain(PACKAGE, LOCALE_DIR);
