@@ -11,8 +11,6 @@
 #include <sys/stat.h>
 #include "polcrypt.h"
 
-// INFO DIALOG TIPO "Decrypting input file"
-
 int decrypt_file_gui(struct info *s_InfoDec){
 	int algo = -1, fd, number_of_block, block_done = 0, number_of_pkcs7_byte;	
 	struct metadata s_mdata;
@@ -40,7 +38,7 @@ int decrypt_file_gui(struct info *s_InfoDec){
 		return -1;
 	}
 	memcpy(extBuf, (s_InfoDec->filename)+lenFilename-4, 4);
-	extBuf[5] = '\0';
+	extBuf[4] = '\0';
 	if(strcmp(extBuf, ".enc") == 0){
 		outFilename = malloc(lenFilename-3);
 		strncpy(outFilename, s_InfoDec->filename, lenFilename-4);

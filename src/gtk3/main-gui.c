@@ -211,6 +211,7 @@ static void type_pwd_enc(struct info *s_TypePwd){
 		case GTK_RESPONSE_OK:
 			s_TypePwd->isSignalActivate = -1;
 			do_enc(s_TypePwd);
+			printf("'lè ritorna!\n");
 			gtk_widget_destroy(s_TypePwd->dialog);
 			break;
 		case GTK_RESPONSE_CLOSE:
@@ -270,10 +271,12 @@ static void type_pwd_dec(struct info *s_TypePwdDec){
 static int do_enc(struct info *s_InfoCheckPwd){
 	const gchar *pw1 = gtk_entry_get_text(GTK_ENTRY(s_InfoCheckPwd->pwdEntry));
 	const gchar *pw2 = gtk_entry_get_text(GTK_ENTRY(s_InfoCheckPwd->pwdReEntry));
+	
 	if(g_strcmp0(pw1, pw2) != 0){
 		g_print("pwd diverse\n");
 		return -1;
 	}
+	
 	encrypt_file_gui(s_InfoCheckPwd);
 	if(s_InfoCheckPwd->isSignalActivate == 0) gtk_widget_destroy (GTK_WIDGET(s_InfoCheckPwd->dialog));
 	return 0;

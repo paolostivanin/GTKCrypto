@@ -1,64 +1,64 @@
-#: src/gtk3/main-gui.c:74
+#: src/gtk3/main-gui.c:79
 msgid "About"
 msgstr ""
 
-#: src/gtk3/main-gui.c:75
+#: src/gtk3/main-gui.c:80
 msgid "Quit"
 msgstr ""
 
-#: src/gtk3/main-gui.c:95
+#: src/gtk3/main-gui.c:100
 #, c-format
 msgid "Welcome to PolCrypt %s"
 msgstr ""
 
-#: src/gtk3/main-gui.c:102
+#: src/gtk3/main-gui.c:107
 msgid "Encrypt File"
 msgstr ""
 
-#: src/gtk3/main-gui.c:103
+#: src/gtk3/main-gui.c:108
 msgid "Decrypt File"
 msgstr ""
 
-#: src/gtk3/main-gui.c:104
+#: src/gtk3/main-gui.c:109
 msgid "Compute Hash"
 msgstr ""
 
-#: src/gtk3/main-gui.c:142
+#: src/gtk3/main-gui.c:147
 msgid "Choose File"
 msgstr ""
 
-#: src/gtk3/main-gui.c:142
+#: src/gtk3/main-gui.c:147
 msgid "_Cancel"
 msgstr ""
 
-#: src/gtk3/main-gui.c:142 src/gtk3/main-gui.c:164 src/gtk3/main-gui.c:221
+#: src/gtk3/main-gui.c:147 src/gtk3/main-gui.c:169 src/gtk3/main-gui.c:227
 msgid "_Ok"
 msgstr ""
 
-#: src/gtk3/main-gui.c:164 src/gtk3/main-gui.c:221 src/gtk3/main-gui.c:287
+#: src/gtk3/main-gui.c:169 src/gtk3/main-gui.c:227 src/gtk3/main-gui.c:295
 msgid "_Quit"
 msgstr ""
 
-#: src/gtk3/main-gui.c:167 src/gtk3/main-gui.c:224
+#: src/gtk3/main-gui.c:172 src/gtk3/main-gui.c:230
 msgid "Type password"
 msgstr ""
 
-#: src/gtk3/main-gui.c:168
+#: src/gtk3/main-gui.c:173
 msgid "Retype password"
 msgstr ""
 
-#: src/gtk3/main-gui.c:177
+#: src/gtk3/main-gui.c:182
 msgid ""
 "Encrypting and deleting the file can take some\n"
 " minutes depending on the file size..."
 msgstr ""
 
-#: src/gtk3/main-gui.c:231
+#: src/gtk3/main-gui.c:237
 msgid ""
 "Decrypting the file can take some\n"
 "minutes depending on the file size..."
 msgstr ""
 
-#: src/gtk3/main-gui.c:287
+#: src/gtk3/main-gui.c:295
 msgid "Select Hash"
 msgstr ""

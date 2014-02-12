@@ -13,7 +13,7 @@ gui: polcrypt-gui
 install:
 	test -s polcrypt-cli && cp -v polcrypt-cli /usr/bin/ || echo "--> CLI not built"
 	test -s polcrypt-gui && cp -v polcrypt-gui /usr/bin/ || echo "--> GUI not built"
-	test -s po/it.mo && cp -v po/it.mo /usr/share/locale/it/LC_MESSAGES/polcrypt.mo || echo "--> Italian language not copied"
+	test -s po/it-gui.mo && cp -v po/it-gui.mo /usr/share/locale/it/LC_MESSAGES/polcrypt.mo || echo "--> Italian language not copied"
 	test -s po/it-cli.mo && cp -v po/it-cli.mo /usr/share/locale/it/LC_MESSAGES/polcrypt-cli.mo || echo "--> Italian language not copied"
 	cp -v polcrypt.png /usr/share/icons/hicolor/128x128/apps/
 	

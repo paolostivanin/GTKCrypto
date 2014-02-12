@@ -10,8 +10,6 @@
 #include <sys/stat.h>
 #include "polcrypt.h"
 
-// INFO DIALOG TIPO "Encrypting and deleting input file"
-
 int encrypt_file_gui(struct info *s_InfoEnc){
 	int algo = -1, fd, number_of_block, block_done = 0, retcode;
 	struct metadata s_mdata;
