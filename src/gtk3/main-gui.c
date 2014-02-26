@@ -8,7 +8,7 @@
 #include "polcrypt.h"
 
 #define LOCALE_DIR "/usr/share/locale" // or your specification
-#define PACKAGE    "polcrypt"              // mo file name in LOCALE
+#define PACKAGE    "polcrypt"          // mo file name in LOCALE
 
 static void file_dialog(struct info *);
 static void is_enc(GtkWidget *, struct info *);
@@ -16,13 +16,13 @@ static void is_dec(GtkWidget *, struct info *);
 static void is_hash(GtkWidget *, struct info *);
 static void type_pwd_enc(struct info *);
 static void type_pwd_dec(struct info *);
-static int do_enc(struct info *);
-static int do_dec(struct info *);
+static void do_enc(struct info *);
 static void select_hash_type(struct info *);
 static void activate (GtkApplication *, gpointer);
 static void startup (GtkApplication *, gpointer);
 static void quit (GSimpleAction *, GVariant *, gpointer);
 static void about (GSimpleAction *, GVariant *, gpointer);
+static void show_error(struct info *);
 
 struct info s_Info;
 const gchar *icon = "/usr/share/icons/hicolor/128x128/apps/polcrypt.png";
@@ -204,21 +204,17 @@ static void type_pwd_enc(struct info *s_TypePwd){
    	gtk_container_add (GTK_CONTAINER (content_area), grid2);
    	gtk_widget_show_all (s_TypePwd->dialog);
    	
-   	s_TypePwd->isSignalActivate = 0;
-   	g_signal_connect_swapped(G_OBJECT(s_TypePwd->pwdReEntry), "activate", G_CALLBACK(do_enc), s_TypePwd);
    	gint result = gtk_dialog_run(GTK_DIALOG(s_TypePwd->dialog));
 	switch(result){
 		case GTK_RESPONSE_OK:
-			s_TypePwd->isSignalActivate = -1;
 			do_enc(s_TypePwd);
-			printf("'lè ritorna!\n");
 			gtk_widget_destroy(s_TypePwd->dialog);
 			break;
 		case GTK_RESPONSE_CLOSE:
-			g_signal_connect_swapped (s_TypePwd->dialog, "response", G_CALLBACK(gtk_widget_destroy), s_TypePwd->dialog);
-			gtk_widget_destroy (s_TypePwd->dialog);	
+			gtk_widget_destroy(s_TypePwd->dialog);
 			break;
 	}
+	if(s_TypePwd->toEnc == -1) show_error(s_TypePwd);
 }
 
 static void type_pwd_dec(struct info *s_TypePwdDec){
@@ -252,40 +248,33 @@ static void type_pwd_dec(struct info *s_TypePwdDec){
    	gtk_container_add (GTK_CONTAINER (content_area), grid2);
    	gtk_widget_show_all (s_TypePwdDec->dialog);
    	
-   	s_TypePwdDec->isSignalActivate = 0;
-   	g_signal_connect_swapped(G_OBJECT(s_TypePwdDec->pwdEntry), "activate", G_CALLBACK(do_dec), s_TypePwdDec);
    	gint result = gtk_dialog_run(GTK_DIALOG(s_TypePwdDec->dialog));
 	switch(result){
 		case GTK_RESPONSE_OK:
-			s_TypePwdDec->isSignalActivate = -1;
-			do_dec(s_TypePwdDec);
-			gtk_widget_destroy(s_TypePwdDec->dialog);
+			if(decrypt_file_gui(s_TypePwdDec) == -15){
+				gtk_widget_destroy(s_TypePwdDec->dialog);
+				type_pwd_dec(s_TypePwdDec);
+			}
+			else gtk_widget_destroy(s_TypePwdDec->dialog);
 			break;
 		case GTK_RESPONSE_CLOSE:
-			g_signal_connect_swapped (s_TypePwdDec->dialog, "response", G_CALLBACK(gtk_widget_destroy), s_TypePwdDec->dialog);
 			gtk_widget_destroy (s_TypePwdDec->dialog);	
 			break;
 	}
 }
 
-static int do_enc(struct info *s_InfoCheckPwd){
+static void do_enc(struct info *s_InfoCheckPwd){
+	s_InfoCheckPwd->toEnc = 0;
 	const gchar *pw1 = gtk_entry_get_text(GTK_ENTRY(s_InfoCheckPwd->pwdEntry));
 	const gchar *pw2 = gtk_entry_get_text(GTK_ENTRY(s_InfoCheckPwd->pwdReEntry));
 	
 	if(g_strcmp0(pw1, pw2) != 0){
-		g_print("pwd diverse\n");
-		return -1;
+		s_InfoCheckPwd->toEnc = -1;
 	}
-	
-	encrypt_file_gui(s_InfoCheckPwd);
-	if(s_InfoCheckPwd->isSignalActivate == 0) gtk_widget_destroy (GTK_WIDGET(s_InfoCheckPwd->dialog));
-	return 0;
-}
 
-static int do_dec(struct info *s_InfoDecPwd){
-	decrypt_file_gui(s_InfoDecPwd);
-	if(s_InfoDecPwd->isSignalActivate == 0) gtk_widget_destroy (GTK_WIDGET(s_InfoDecPwd->dialog));
-	return 0;
+	if(s_InfoCheckPwd->toEnc == 0){
+		encrypt_file_gui(s_InfoCheckPwd);
+	}
 }
 
 static void select_hash_type(struct info *s_InfoHash){
@@ -404,4 +393,17 @@ static void quit (GSimpleAction *action __attribute__ ((unused)), GVariant *para
 {
    GApplication *application = user_data;
    g_application_quit (application);
+}
+
+static void show_error(struct info *s_Error){
+	GtkWidget *dialog;
+	dialog = gtk_message_dialog_new(GTK_WINDOW(s_Error->mainwin),
+            GTK_DIALOG_DESTROY_WITH_PARENT,
+            GTK_MESSAGE_ERROR,
+            GTK_BUTTONS_OK,
+            "Password are different, try again.");
+	gtk_window_set_title(GTK_WINDOW(dialog), "Error");
+	gtk_dialog_run(GTK_DIALOG(dialog));
+	gtk_widget_destroy(dialog);
+	type_pwd_enc(s_Error);
 }

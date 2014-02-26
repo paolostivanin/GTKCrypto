@@ -11,6 +11,8 @@
 #include <sys/stat.h>
 #include "polcrypt.h"
 
+static void show_error(struct info *);
+
 int decrypt_file_gui(struct info *s_InfoDec){
 	int algo = -1, fd, number_of_block, block_done = 0, number_of_pkcs7_byte;	
 	struct metadata s_mdata;
@@ -149,12 +151,12 @@ int decrypt_file_gui(struct info *s_InfoDec){
 		return -1;
 	}
 	if(memcmp(mac_of_file, hmac, 64) != 0){
-		fprintf(stderr, "--> CRITICAL ERROR: hmac doesn't match. This is caused by\n                    1) wrong password\n                    or\n                    2) corrupted file\n");
+		show_error(s_InfoDec);
 		gcry_free(derived_key);
 		gcry_free(crypto_key);
 		gcry_free(mac_key);
 		gcry_free(inputKey);
-		return -1;
+		return -15;
 	}
 	free(hmac);
 	if(fseek(fp, current_file_offset, SEEK_SET) == -1){
@@ -201,4 +203,16 @@ int decrypt_file_gui(struct info *s_InfoDec){
 	fclose(fpout);
 
 	return 0;
+}
+
+static void show_error(struct info *s_Error){
+	GtkWidget *dialog;
+	dialog = gtk_message_dialog_new(GTK_WINDOW(s_Error->mainwin),
+            GTK_DIALOG_DESTROY_WITH_PARENT,
+            GTK_MESSAGE_ERROR,
+            GTK_BUTTONS_OK,
+            "HMAC doesn't match. This is caused by\n1) wrong password\nor\n2) corrupted file\n");
+	gtk_window_set_title(GTK_WINDOW(dialog), "Error");
+	gtk_dialog_run(GTK_DIALOG(dialog));
+	gtk_widget_destroy(dialog);
 }

@@ -17,7 +17,7 @@ struct metadata{
 extern struct metadata s_mdata;
 
 struct info{
-	gint mode, isSignalActivate;
+	gint mode, toEnc;
 	gchar *filename;
 	GtkWidget *pwdEntry, *pwdReEntry, *mainwin, *dialog, *file_dialog, *infobar, *infolabel;
 };
