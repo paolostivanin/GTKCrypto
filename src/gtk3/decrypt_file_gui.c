@@ -11,20 +11,22 @@
 #include <sys/stat.h>
 #include "polcrypt.h"
 
-static void show_error(struct info *);
+guchar *calculate_hmac(const gchar *, const guchar *key, size_t, gint);
+gint check_pkcs7(guchar *, guchar *);
+static void show_error(struct info *, const gchar *);
 
-int decrypt_file_gui(struct info *s_InfoDec){
-	int algo = -1, fd, number_of_block, block_done = 0, number_of_pkcs7_byte;	
+gint decrypt_file_gui(struct info *s_InfoDec){
+	gint algo = -1, fd, number_of_block, block_done = 0, number_of_pkcs7_byte;	
 	struct metadata s_mdata;
 	struct stat fileStat;
 	memset(&s_mdata, 0, sizeof(struct metadata));
-	unsigned char *derived_key = NULL, *crypto_key = NULL, *mac_key = NULL, *decBuffer = NULL;
-	unsigned char hex[15] = { 0x01,0x02,0x03,0x04,0x05,0x06,0x07,0x08,0x09,0x0A,0x0B,0x0C,0x0D,0x0E,0x0F}, cipher_text[16], mac_of_file[64] ={0};
-	char *inputKey = NULL;
+	guchar *derived_key = NULL, *crypto_key = NULL, *mac_key = NULL, *decBuffer = NULL;
+	guchar hex[15] = { 0x01,0x02,0x03,0x04,0x05,0x06,0x07,0x08,0x09,0x0A,0x0B,0x0C,0x0D,0x0E,0x0F}, cipher_text[16], mac_of_file[64] ={0};
+	gchar *inputKey = NULL;
 	off_t fsize = 0;
-	const char *name = "aes256";
+	const gchar *name = "aes256";
 	size_t blkLength, keyLength, txtLenght = 16, retval = 0, pwd_len;
-	long current_file_offset, bytes_before_mac;
+	glong current_file_offset, bytes_before_mac;
 	FILE *fp, *fpout;
 
 	blkLength = gcry_cipher_get_algo_blklen(GCRY_CIPHER_AES256);
@@ -32,7 +34,7 @@ int decrypt_file_gui(struct info *s_InfoDec){
 	algo = gcry_cipher_map_name(name);
 	decBuffer = gcry_malloc(txtLenght);
 	
-	char *outFilename = NULL, *extBuf = NULL;
+	gchar *outFilename = NULL, *extBuf = NULL;
 	size_t lenFilename = strlen(s_InfoDec->filename);
 	extBuf = malloc(5);
 	if(extBuf == NULL){
@@ -56,7 +58,7 @@ int decrypt_file_gui(struct info *s_InfoDec){
 	}
 
 
-	const char *inputWidKey = gtk_entry_get_text(GTK_ENTRY(s_InfoDec->pwdEntry));
+	const gchar *inputWidKey = gtk_entry_get_text(GTK_ENTRY(s_InfoDec->pwdEntry));
 	pwd_len = strlen(inputWidKey);
 	inputKey = gcry_malloc_secure(pwd_len+1);
 	strncpy(inputKey, inputWidKey, pwd_len);
@@ -141,8 +143,8 @@ int decrypt_file_gui(struct info *s_InfoDec){
 		gcry_free(inputKey);
 		return -1;
 	}
-	unsigned char *hmac = calculate_hmac(s_InfoDec->filename, mac_key, keyLength, 1);
-	if(hmac == (unsigned char *)1){
+	guchar *hmac = calculate_hmac(s_InfoDec->filename, mac_key, keyLength, 1);
+	if(hmac == (guchar *)1){
 		fprintf(stderr, "decrypt_file: error during HMAC calculation\n");
 		gcry_free(derived_key);
 		gcry_free(crypto_key);
@@ -151,7 +153,7 @@ int decrypt_file_gui(struct info *s_InfoDec){
 		return -1;
 	}
 	if(memcmp(mac_of_file, hmac, 64) != 0){
-		show_error(s_InfoDec);
+		show_error(s_InfoDec, "HMAC doesn't match. This is caused by\n1) wrong password\nor\n2) corrupted file\n");
 		gcry_free(derived_key);
 		gcry_free(crypto_key);
 		gcry_free(mac_key);
@@ -205,13 +207,13 @@ int decrypt_file_gui(struct info *s_InfoDec){
 	return 0;
 }
 
-static void show_error(struct info *s_Error){
+void show_error(struct info *s_Error, const gchar *message){
 	GtkWidget *dialog;
 	dialog = gtk_message_dialog_new(GTK_WINDOW(s_Error->mainwin),
             GTK_DIALOG_DESTROY_WITH_PARENT,
             GTK_MESSAGE_ERROR,
             GTK_BUTTONS_OK,
-            "HMAC doesn't match. This is caused by\n1) wrong password\nor\n2) corrupted file\n");
+            "%s", message);
 	gtk_window_set_title(GTK_WINDOW(dialog), "Error");
 	gtk_dialog_run(GTK_DIALOG(dialog));
 	gtk_widget_destroy(dialog);

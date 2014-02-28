@@ -7,9 +7,6 @@
 #include <libintl.h>
 #include "polcrypt.h"
 
-#define LOCALE_DIR "/usr/share/locale" // or your specification
-#define PACKAGE    "polcrypt"          // mo file name in LOCALE
-
 static void file_dialog(struct info *);
 static void is_enc(GtkWidget *, struct info *);
 static void is_dec(GtkWidget *, struct info *);
@@ -22,12 +19,20 @@ static void activate (GtkApplication *, gpointer);
 static void startup (GtkApplication *, gpointer);
 static void quit (GSimpleAction *, GVariant *, gpointer);
 static void about (GSimpleAction *, GVariant *, gpointer);
-static void show_error(struct info *);
+gint encrypt_file_gui(struct info *);
+gint decrypt_file_gui(struct info *);
+gint compute_md5(struct hashes *);
+gint compute_sha1(struct hashes *);
+gint compute_sha256(struct hashes *);
+gint compute_sha512(struct hashes *);
+gint compute_whirlpool(struct hashes *);
+gint compute_rmd160(struct hashes *);
+static void show_error(struct info *, const gchar *);
 
 struct info s_Info;
 const gchar *icon = "/usr/share/icons/hicolor/128x128/apps/polcrypt.png";
 
-int main(int argc, char **argv){
+gint main(int argc, char **argv){
 	if(!gcry_check_version(GCRYPT_MIN_VER)){
 		fputs("libgcrypt min version required: 1.5.0\n", stderr);
 		return -1;
@@ -51,7 +56,7 @@ int main(int argc, char **argv){
 	textdomain(PACKAGE);
 	
 	GtkApplication *app;
-	int status;
+	gint status;
 	GError *err = NULL;
 	GdkPixbuf *logo = gdk_pixbuf_new_from_file(icon, &err);
 	gtk_window_set_default_icon(logo);
@@ -66,20 +71,20 @@ int main(int argc, char **argv){
 
 static void startup (GtkApplication *application, gpointer user_data __attribute__ ((unused)))
 {
-  static const GActionEntry actions[] = {
-    { "about", about },
-    { "quit", quit }
-  };
-  
-  GMenu *menu;
-
-  g_action_map_add_action_entries (G_ACTION_MAP (application), actions, G_N_ELEMENTS (actions), application);
-
-  menu = g_menu_new ();
-  g_menu_append (menu, _("About"), "app.about");
-  g_menu_append (menu, _("Quit"),  "app.quit");
-  gtk_application_set_app_menu (application, G_MENU_MODEL (menu));
-  g_object_unref (menu);
+	static const GActionEntry actions[] = {
+		{ "about", about },
+		{ "quit", quit }
+	};
+	
+	GMenu *menu;
+	
+	g_action_map_add_action_entries (G_ACTION_MAP (application), actions, G_N_ELEMENTS (actions), application);
+	
+	menu = g_menu_new ();
+	g_menu_append (menu, _("About"), "app.about");
+	g_menu_append (menu, _("Quit"),  "app.quit");
+	gtk_application_set_app_menu (application, G_MENU_MODEL (menu));
+	g_object_unref (menu);
 }
 
 static void activate (GtkApplication *app, gpointer user_data __attribute__ ((unused)))
@@ -99,7 +104,7 @@ static void activate (GtkApplication *app, gpointer user_data __attribute__ ((un
 	gchar welcomeBuf[40];
 	sprintf(welcomeBuf, _("Welcome to PolCrypt %s"), VERSION);
 	label = gtk_label_new(welcomeBuf);
-	char *markup;
+	gchar *markup;
 	markup = g_markup_printf_escaped ("<span foreground=\"black\" size=\"x-large\"><b>%s</b></span>", welcomeBuf); // font grassetto e large
 	gtk_label_set_markup (GTK_LABEL (label), markup);
 	g_free(markup);
@@ -214,7 +219,7 @@ static void type_pwd_enc(struct info *s_TypePwd){
 			gtk_widget_destroy(s_TypePwd->dialog);
 			break;
 	}
-	if(s_TypePwd->toEnc == -1) show_error(s_TypePwd);
+	if(s_TypePwd->toEnc == -1) show_error(s_TypePwd, "Password are different, try again!");
 }
 
 static void type_pwd_dec(struct info *s_TypePwdDec){
@@ -357,7 +362,7 @@ static void select_hash_type(struct info *s_InfoHash){
 
 static void about (GSimpleAction *action __attribute__ ((unused)), GVariant *parameter __attribute__ ((unused)), gpointer user_data __attribute__ ((unused)))
 {
-        const gchar *authors[] = /* Qui definisco gli autori*/
+        const gchar *authors[] = 
         {
                 "Paolo Stivanin <info@paolostivanin.com>",
                 NULL,
@@ -369,9 +374,9 @@ static void about (GSimpleAction *action __attribute__ ((unused)), GVariant *par
         GtkWidget *a_dialog = gtk_about_dialog_new ();
         gtk_about_dialog_set_program_name (GTK_ABOUT_DIALOG (a_dialog), "PolCrypt");
         gtk_about_dialog_set_logo(GTK_ABOUT_DIALOG(a_dialog), logo_about);
-        gtk_about_dialog_set_version (GTK_ABOUT_DIALOG (a_dialog), "2.0-alpha");
+        gtk_about_dialog_set_version (GTK_ABOUT_DIALOG (a_dialog), VERSION);
         gtk_about_dialog_set_copyright (GTK_ABOUT_DIALOG (a_dialog), "Copyright (C) 2014");
-        gtk_about_dialog_set_comments (GTK_ABOUT_DIALOG (a_dialog), "With this software you can encrypt and decrypt file with AES-256 CBC using HMAC-SHA512 for message authentication or you can compute various type of hashes");
+        gtk_about_dialog_set_comments (GTK_ABOUT_DIALOG (a_dialog), _("With this software you can encrypt and decrypt file with AES-256 CBC using HMAC-SHA512 for message authentication or you can compute various type of hashes"));
         gtk_about_dialog_set_license(GTK_ABOUT_DIALOG(a_dialog),
 "This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.\n"
 "\n"
@@ -395,13 +400,13 @@ static void quit (GSimpleAction *action __attribute__ ((unused)), GVariant *para
    g_application_quit (application);
 }
 
-static void show_error(struct info *s_Error){
+void show_error(struct info *s_Error, const gchar *message){
 	GtkWidget *dialog;
 	dialog = gtk_message_dialog_new(GTK_WINDOW(s_Error->mainwin),
             GTK_DIALOG_DESTROY_WITH_PARENT,
             GTK_MESSAGE_ERROR,
             GTK_BUTTONS_OK,
-            "Password are different, try again.");
+            "%s", message);
 	gtk_window_set_title(GTK_WINDOW(dialog), "Error");
 	gtk_dialog_run(GTK_DIALOG(dialog));
 	gtk_widget_destroy(dialog);

@@ -2,15 +2,16 @@
 #include <stdlib.h>
 #include <string.h>
 #include <fcntl.h>
+#include <glib.h>
 #include <unistd.h>
 #include <errno.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include "polcrypt.h"
 
-int zero_write(int file, size_t fSize, int isBigger){
+gint zero_write(gint file, size_t fSize, gint isBigger){
 	if(isBigger  == 0){
-		unsigned char zBuf[fSize];
+		guchar zBuf[fSize];
 		memset(zBuf, 0, sizeof(zBuf));
 		write(file, zBuf, sizeof(zBuf));
 		if(fsync(file) == -1){
@@ -20,7 +21,7 @@ int zero_write(int file, size_t fSize, int isBigger){
 		return 0;
 	}
 	else{
-		unsigned char zBuf[BUFSIZE];
+		guchar zBuf[BUFSIZE];
 		memset(zBuf, 0, sizeof(zBuf));
 		size_t doneSize = 0, writeBytes = 0;
 		while(fSize > doneSize){

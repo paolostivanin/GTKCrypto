@@ -3,14 +3,15 @@
 #include <string.h>
 #include <fcntl.h>
 #include <unistd.h>
+#include <glib.h>
 #include <errno.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include "polcrypt.h"
 
-int random_write(int file, int fileRand, size_t fSize, int isBigger){
+gint random_write(gint file, gint fileRand, size_t fSize, gint isBigger){
 	if(isBigger == 0){
-		unsigned char bRand[fSize];
+		guchar bRand[fSize];
 		read(fileRand, bRand, sizeof(bRand));
 		write(file, bRand, sizeof(bRand));
 		if(fsync(file) == -1){
@@ -20,7 +21,7 @@ int random_write(int file, int fileRand, size_t fSize, int isBigger){
 		return 0;
 	}
 	else{
-		unsigned char bytesRandom[BUFSIZE];
+		guchar bytesRandom[BUFSIZE];
 		size_t doneSize = 0, writeBytes = 0;
 		read(fileRand, bytesRandom, sizeof(bytesRandom));
 		while(fSize > doneSize){

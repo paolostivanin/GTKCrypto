@@ -11,7 +11,7 @@
 #include <sys/stat.h>
 #include "../polcrypt.h"
 
-int compute_sha256(struct hashes *s_SHA256){
+gint compute_sha256(struct hashes *s_SHA256){
    	if(!gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(s_SHA256->checkS256))){
 		gtk_entry_set_text(GTK_ENTRY(s_SHA256->entryS256), "");
 		goto fine;
@@ -19,11 +19,11 @@ int compute_sha256(struct hashes *s_SHA256){
 	else if(strlen(gtk_entry_get_text(GTK_ENTRY(s_SHA256->entryS256))) == 64){
 		goto fine;
 	}
-	int algo, i, fd;
-	char sha256hash[65];
+	gint algo, i, fd;
+	gchar sha256hash[65];
 	struct stat fileStat;
-	char *buffer;
-	const char *name = gcry_md_algo_name(GCRY_MD_SHA256);
+	gchar *buffer;
+	const gchar *name = gcry_md_algo_name(GCRY_MD_SHA256);
 	algo = gcry_md_map_name(name);
 	off_t fsize = 0, donesize = 0, diff = 0;
 
@@ -78,7 +78,7 @@ int compute_sha256(struct hashes *s_SHA256){
 	}
 	nowhile:
 	gcry_md_final(hd);
-	unsigned char *sha = gcry_md_read(hd, algo);
+	guchar *sha = gcry_md_read(hd, algo);
  	for(i=0; i<32; i++){
  		sprintf(sha256hash+(i*2), "%02x", sha[i]);
  	}

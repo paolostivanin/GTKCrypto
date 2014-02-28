@@ -10,26 +10,30 @@
 #include <sys/stat.h>
 #include "polcrypt.h"
 
-int encrypt_file_gui(struct info *s_InfoEnc){
-	int algo = -1, fd, number_of_block, block_done = 0, retcode;
+guchar *calculate_hmac(const gchar *, const guchar *key, size_t, gint);
+gint delete_input_file(struct info *, size_t);
+static void show_error(struct info *, const gchar *);
+
+gint encrypt_file_gui(struct info *s_InfoEnc){
+	gint algo = -1, fd, number_of_block, block_done = 0, retcode, counterForGoto = 0;
 	struct metadata s_mdata;
 	struct stat fileStat;
 	memset(&s_mdata, 0, sizeof(struct metadata));
-	unsigned char hex[15] = { 0x01,0x02,0x03,0x04,0x05,0x06,0x07,0x08,0x09,0x0A,0x0B,0x0C,0x0D,0x0E,0x0F}, plain_text[16];
-	unsigned char *derived_key = NULL, *crypto_key = NULL, *mac_key = NULL, *encBuffer = NULL;
-	char *inputKey = NULL;
-	float result_of_division_by_16, fsize_float;
+	guchar hex[15] = { 0x01,0x02,0x03,0x04,0x05,0x06,0x07,0x08,0x09,0x0A,0x0B,0x0C,0x0D,0x0E,0x0F}, plain_text[16];
+	guchar *derived_key = NULL, *crypto_key = NULL, *mac_key = NULL, *encBuffer = NULL;
+	gchar *inputKey = NULL;
+	gfloat result_of_division_by_16, fsize_float;
 	off_t fsize = 0;
-	const char *name = "aes256";
+	const gchar *name = "aes256";
 	size_t blkLength, keyLength, txtLenght = 16, retval = 0, i;
 	
-	const char *inputWidKey = gtk_entry_get_text(GTK_ENTRY(s_InfoEnc->pwdEntry));
+	const gchar *inputWidKey = gtk_entry_get_text(GTK_ENTRY(s_InfoEnc->pwdEntry));
 	size_t len = strlen(inputWidKey);
 	inputKey = gcry_malloc_secure(len+1);
 	strncpy(inputKey, inputWidKey, len);
 	inputKey[len] = '\0';
 
-	char *outFilename;
+	gchar *outFilename;
 	size_t lenFilename = strlen(s_InfoEnc->filename);
 	outFilename = malloc(lenFilename+5); // ".enc\0" sono 5 chars
 	strncpy(outFilename, s_InfoEnc->filename, lenFilename);
@@ -46,13 +50,13 @@ int encrypt_file_gui(struct info *s_InfoEnc){
 
 	fd = open(s_InfoEnc->filename, O_RDONLY | O_NOFOLLOW);
 	if(fd == -1){
-		fprintf(stderr, "encrypt_file: %s\n", strerror(errno));
+		show_error(s_InfoEnc, strerror(errno));
 		gcry_free(inputKey);
 		return -1;
 	}
   	if(fstat(fd, &fileStat) < 0){
-  		fprintf(stderr, "encrypt_file: %s\n", strerror(errno));
-  		gcry_free(inputKey);
+		show_error(s_InfoEnc, strerror(errno));
+		gcry_free(inputKey);
     	close(fd);
     	return -1;
   	}
@@ -66,27 +70,51 @@ int encrypt_file_gui(struct info *s_InfoEnc){
 	
 	FILE *fp = fopen(s_InfoEnc->filename, "r");
 	FILE *fpout = fopen(outFilename, "w");
-	if(fp == NULL || fpout == NULL){
-		fprintf(stderr, "encrypt_file: file opening error\n");
+	if(fp == NULL){
+		show_error(s_InfoEnc, strerror(errno));
+		gcry_free(inputKey);
+		return -1;
+	}
+	if(fpout == NULL){
+		show_error(s_InfoEnc, strerror(errno));
 		gcry_free(inputKey);
 		return -1;
 	}
 
 	gcry_cipher_hd_t hd;
 	gcry_cipher_open(&hd, algo, GCRY_CIPHER_MODE_CBC, 0);
-	if(((derived_key = gcry_malloc_secure(64)) == NULL) || ((crypto_key = gcry_malloc_secure(32)) == NULL) || ((mac_key = gcry_malloc_secure(32)) == NULL)){
-		fprintf(stderr, "encrypt_file: memory allocation error\n");
+	if((derived_key = gcry_malloc_secure(64)) == NULL){
+		show_error(s_InfoEnc, "gcry_malloc_secure: failed at line 82");
 		gcry_free(inputKey);
 		return -1;
 	}
-
-	if(gcry_kdf_derive (inputKey, len+1, GCRY_KDF_PBKDF2, GCRY_MD_SHA512, s_mdata.salt, 32, 150000, 64, derived_key) != 0){
-		fprintf(stderr, "encrypt_file: key derivation error\n");
+	if((crypto_key = gcry_malloc_secure(32)) == NULL){
+		show_error(s_InfoEnc, "gcry_malloc_secure: failed at line 87");
+		gcry_free(inputKey);
+		gcry_free(derived_key);
+		return -1;
+	}
+	
+	if((mac_key = gcry_malloc_secure(32)) == NULL){
+		show_error(s_InfoEnc, "gcry_malloc_secure: failed at line 93");
+		gcry_free(inputKey);
 		gcry_free(derived_key);
 		gcry_free(crypto_key);
-		gcry_free(mac_key);
-		gcry_free(inputKey);
 		return -1;
+	}
+
+	tryAgainDerive:
+	if(gcry_kdf_derive (inputKey, len+1, GCRY_KDF_PBKDF2, GCRY_MD_SHA512, s_mdata.salt, 32, 150000, 64, derived_key) != 0){
+		if(counterForGoto == 3){
+			show_error(s_InfoEnc, "Key derivation error");
+			gcry_free(derived_key);
+			gcry_free(crypto_key);
+			gcry_free(mac_key);
+			gcry_free(inputKey);
+			return -1;
+		}
+		counterForGoto += 1;
+		goto tryAgainDerive;
 	}
 	memcpy(crypto_key, derived_key, 32);
 	memcpy(mac_key, derived_key + 32, 32);
@@ -129,9 +157,12 @@ int encrypt_file_gui(struct info *s_InfoEnc){
 	fclose(fpout);
 	fclose(fp);
 
-	unsigned char *hmac = calculate_hmac(outFilename, mac_key, keyLength, 0);
-	if(hmac == (unsigned char *)1){
-		fprintf(stderr, "encrypt_file: error during HMAC calculation\n");
+	guchar *hmac = calculate_hmac(outFilename, mac_key, keyLength, 0);
+	if(hmac == (guchar *)1){
+		show_error(s_InfoEnc, "Error during HMAC calculation");
+		gcry_free(derived_key);
+		gcry_free(crypto_key);
+		gcry_free(mac_key);
 		gcry_free(inputKey);
 		return -1;
 	}
@@ -141,9 +172,9 @@ int encrypt_file_gui(struct info *s_InfoEnc){
 	
 	retcode = delete_input_file(s_InfoEnc, fsize);
 	if(retcode == -1)
-		fprintf(stderr, "encrypt_file: secure file deletion failed\n");
-	if(retcode == -1)
-		fprintf(stderr, "encrypt_file: file unlink failed\n");
+		show_error(s_InfoEnc, "Secure file deletion failed, delete it manually");
+	if(retcode == -2)
+		show_error(s_InfoEnc, "File unlink failed, remove it manually");
 
 	gcry_cipher_close(hd);
 	gcry_free(derived_key);
@@ -155,4 +186,16 @@ int encrypt_file_gui(struct info *s_InfoEnc){
 	fclose(fpout);
 
 	return 0;
+}
+
+void show_error(struct info *s_Error, const gchar *message){
+	GtkWidget *dialog;
+	dialog = gtk_message_dialog_new(GTK_WINDOW(s_Error->mainwin),
+            GTK_DIALOG_DESTROY_WITH_PARENT,
+            GTK_MESSAGE_ERROR,
+            GTK_BUTTONS_OK,
+            "%s", message);
+	gtk_window_set_title(GTK_WINDOW(dialog), "Error");
+	gtk_dialog_run(GTK_DIALOG(dialog));
+	gtk_widget_destroy(dialog);
 }

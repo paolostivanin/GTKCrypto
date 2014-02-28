@@ -10,8 +10,11 @@
 #include <errno.h>
 #include "polcrypt.h"
 
-int delete_input_file(struct info *s_InfoDel, size_t fileSize){
-	int fd, fdRandom;
+gint random_write(gint, gint, size_t, gint);
+gint zero_write(gint, size_t, gint);
+
+gint delete_input_file(struct info *s_InfoDel, size_t fileSize){
+	gint fd, fdRandom;
 	fd = open(s_InfoDel->filename, O_WRONLY | O_NOFOLLOW);
 	fdRandom = open("/dev/random", O_RDONLY);
 	if(fd == -1){
@@ -42,7 +45,7 @@ int delete_input_file(struct info *s_InfoDel, size_t fileSize){
 
 	if(remove(s_InfoDel->filename) == -1){
 		fprintf(stderr, "Input file remove: %s\n", strerror(errno));
-		return -1;
+		return -2;
 	}
 		
 	return 0;

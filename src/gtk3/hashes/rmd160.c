@@ -11,7 +11,7 @@
 #include <sys/stat.h>
 #include "../polcrypt.h"
 
-int compute_rmd160(struct hashes *s_RMD){
+gint compute_rmd160(struct hashes *s_RMD){
    	if(!gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(s_RMD->checkRMD))){
 		gtk_entry_set_text(GTK_ENTRY(s_RMD->entryRMD), "");
 		goto fine;
@@ -19,11 +19,11 @@ int compute_rmd160(struct hashes *s_RMD){
 	else if(strlen(gtk_entry_get_text(GTK_ENTRY(s_RMD->entryRMD))) == 40){
 		goto fine;
 	}
-	int algo, i, fd;
-	char rmd160hash[41];
+	gint algo, i, fd;
+	gchar rmd160hash[41];
 	struct stat fileStat;
-	char *buffer;
-	const char *name = gcry_md_algo_name(GCRY_MD_RMD160);
+	gchar *buffer;
+	const gchar *name = gcry_md_algo_name(GCRY_MD_RMD160);
 	algo = gcry_md_map_name(name);
 	off_t fsize = 0, donesize = 0, diff = 0;
 
@@ -78,7 +78,7 @@ int compute_rmd160(struct hashes *s_RMD){
 	}
 	nowhile:
 	gcry_md_final(hd);
-	unsigned char *rmd160 = gcry_md_read(hd, algo);
+	guchar *rmd160 = gcry_md_read(hd, algo);
  	for(i=0; i<20; i++){
  		sprintf(rmd160hash+(i*2), "%02x", rmd160[i]);
  	}

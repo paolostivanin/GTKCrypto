@@ -11,17 +11,21 @@
 #include <sys/stat.h>
 
 //mode = 0 encrypt, mode = 1 decrypt
-unsigned char *calculate_hmac(const char *filename, const unsigned char *key, size_t keylen, int mode){
-	int fd;
+guchar *calculate_hmac(const gchar *filename, const guchar *key, size_t keylen, gint mode){
+	gint fd;
 	struct stat fileStat;
-	char *buffer;
+	gchar *buffer;
 	FILE *fp;
 	size_t fsize = 0, donesize = 0, diff = 0;
-	fd = open(filename, O_RDONLY);
+	fd = open(filename, O_RDONLY | O_NOFOLLOW);
+	if(fd == -1){
+		fprintf(stderr, "%s\n", strerror(errno));
+		return (guchar *)1;
+	}
   	if(fstat(fd, &fileStat) < 0){
-  		fprintf(stderr, "hmac fstat: %s\n", strerror(errno));
+		fprintf(stderr, "%s\n", strerror(errno));
     	close(fd);
-    	return (unsigned char *)1;
+    	return (guchar *)1;
   	}
   	fsize = fileStat.st_size;
   	if(mode == 1) fsize -= 64;
@@ -29,8 +33,7 @@ unsigned char *calculate_hmac(const char *filename, const unsigned char *key, si
 	
 	fp = fopen(filename, "r");
 	if(fp == NULL){
-		fprintf(stderr, "hmac fopen: %s\n", strerror(errno));
-		return (unsigned char *)1;
+		return (guchar *)1;
 	}
 	gcry_md_hd_t hd;
 	gcry_md_open(&hd, GCRY_MD_SHA512, GCRY_MD_FLAG_HMAC);
@@ -39,11 +42,11 @@ unsigned char *calculate_hmac(const char *filename, const unsigned char *key, si
 		buffer = malloc(fsize);
   		if(buffer == NULL){
   			fprintf(stderr, "hmac malloc error\n");
-  			return (unsigned char *)1;
+  			return (guchar *)1;
   		}
 		if(fread(buffer, 1, fsize, fp) != fsize){
 			fprintf(stderr, "hmac fread error \n");
-			return (unsigned char *)1;
+			return (guchar *)1;
 		}
 		gcry_md_write(hd, buffer, fsize);
 		goto nowhile;
@@ -51,12 +54,12 @@ unsigned char *calculate_hmac(const char *filename, const unsigned char *key, si
 	buffer = malloc(16);
   	if(buffer == NULL){
   		fprintf(stderr, "hmac malloc error\n");
-  		return (unsigned char *)1;
+  		return (guchar *)1;
   	}
 	while(fsize > donesize){
 		if(fread(buffer, 1, 16, fp) != 16){
 			fprintf(stderr, "fread error hmac\n");
-			return (unsigned char *)1;
+			return (guchar *)1;
 		}
 		gcry_md_write(hd, buffer, 16);
 		donesize+=16;
@@ -64,7 +67,7 @@ unsigned char *calculate_hmac(const char *filename, const unsigned char *key, si
 		if(diff > 0 && diff < 16){
 			if(fread(buffer, 1, diff, fp) != diff){
 				fprintf(stderr, "hmac fread error\n");
-				return (unsigned char *)1;
+				return (guchar *)1;
 			}
 			gcry_md_write(hd, buffer, diff);
 			break;
@@ -72,10 +75,10 @@ unsigned char *calculate_hmac(const char *filename, const unsigned char *key, si
 	}
 	nowhile:
 	gcry_md_final(hd);
-	unsigned char *tmp_hmac = gcry_md_read(hd, GCRY_MD_SHA512);
+	guchar *tmp_hmac = gcry_md_read(hd, GCRY_MD_SHA512);
 	free(buffer);
  	fclose(fp);
- 	unsigned char *hmac = malloc(64);
+ 	guchar *hmac = malloc(64);
  	memcpy(hmac, tmp_hmac, 64);
 	gcry_md_close(hd);
 	return hmac;

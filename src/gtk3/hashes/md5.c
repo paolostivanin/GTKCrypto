@@ -11,7 +11,7 @@
 #include <sys/stat.h>
 #include "../polcrypt.h"
 
-int compute_md5(struct hashes *s_MD5){
+gint compute_md5(struct hashes *s_MD5){
    	if(!gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(s_MD5->checkMD5))){
 		gtk_entry_set_text(GTK_ENTRY(s_MD5->entryMD5), "");
 		goto fine;
@@ -20,11 +20,11 @@ int compute_md5(struct hashes *s_MD5){
 		goto fine;
 	}
   
-	int algo, i, fd;
-	char md5hash[33];
+	gint algo, i, fd;
+	gchar md5hash[33];
 	struct stat fileStat;
-	char *buffer;
-	const char *name = gcry_md_algo_name(GCRY_MD_MD5);
+	gchar *buffer;
+	const gchar *name = gcry_md_algo_name(GCRY_MD_MD5);
 	algo = gcry_md_map_name(name);
 	off_t fsize = 0, donesize = 0, diff = 0;
 
@@ -79,7 +79,7 @@ int compute_md5(struct hashes *s_MD5){
 	}
 	nowhile:
 	gcry_md_final(hd);
-	unsigned char *md5 = gcry_md_read(hd, algo);
+	guchar *md5 = gcry_md_read(hd, algo);
  	for(i=0; i<16; i++){
  		sprintf(md5hash+(i*2), "%02x", md5[i]);
  	}

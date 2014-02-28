@@ -11,7 +11,7 @@
 #include <sys/stat.h>
 #include "../polcrypt.h"
 
-int compute_whirlpool(struct hashes *s_Whir){
+gint compute_whirlpool(struct hashes *s_Whir){
    	if(!gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(s_Whir->checkWhir))){
 		gtk_entry_set_text(GTK_ENTRY(s_Whir->entryWhir), "");
 		goto fine;
@@ -19,11 +19,11 @@ int compute_whirlpool(struct hashes *s_Whir){
 	else if(strlen(gtk_entry_get_text(GTK_ENTRY(s_Whir->entryWhir))) == 128){
 		goto fine;
 	}
-	int algo, i, fd;
-	char whirlpoolhash[129];
+	gint algo, i, fd;
+	gchar whirlpoolhash[129];
 	struct stat fileStat;
-	char *buffer;
-	const char *name = gcry_md_algo_name(GCRY_MD_WHIRLPOOL);
+	gchar *buffer;
+	const gchar *name = gcry_md_algo_name(GCRY_MD_WHIRLPOOL);
 	algo = gcry_md_map_name(name);
 	off_t fsize = 0, donesize = 0, diff = 0;
 
@@ -78,7 +78,7 @@ int compute_whirlpool(struct hashes *s_Whir){
 	}
 	nowhile:
 	gcry_md_final(hd);
-	unsigned char *whirlpool = gcry_md_read(hd, algo);
+	guchar *whirlpool = gcry_md_read(hd, algo);
  	for(i=0; i<64; i++){
  		sprintf(whirlpoolhash+(i*2), "%02x", whirlpool[i]);
  	}

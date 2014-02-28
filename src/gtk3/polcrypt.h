@@ -1,13 +1,15 @@
 #ifndef POLCRYPT_H_INCLUDED
 #define POLCRYPT_H_INCLUDED
 
-#include <glib.h>
-#include <gtk/gtk.h>
-
 #define BUF_FILE 1048576 /* 1 MiB di memoria per il file come buffer massimo, poi spezzo (hash) */
 #define BUFSIZE 24576  /* delete_input_file */
 #define GCRYPT_MIN_VER "1.5.0"
-#define VERSION "2.0.0-beta"
+#define VERSION "2.0.1-dev"
+#define LOCALE_DIR "/usr/share/locale" // or your specification
+#define PACKAGE    "polcrypt"          // mo file name in LOCALE
+
+#include <glib.h>
+#include <gtk/gtk.h>
 
 struct metadata{
 	unsigned char algo_type[16]; //aes,twofish,serpent,aes-two,aes-ser,aes-two-ser
@@ -29,19 +31,5 @@ struct hashes{
 	GtkWidget *checkMD5, *checkS1, *checkS256, *checkS512, *checkWhir, *checkRMD;
 };
 extern struct hashes s_HashType;
-
-int encrypt_file_gui(struct info *);
-int decrypt_file_gui(struct info *);
-int delete_input_file(struct info *, size_t);
-unsigned char *calculate_hmac(const char *, const unsigned char *key, size_t, int);
-int random_write(int, int, size_t, int);
-int zero_write(int, size_t, int);
-int check_pkcs7(unsigned char *, unsigned char *);
-int compute_md5(struct hashes *);
-int compute_sha1(struct hashes *);
-int compute_sha256(struct hashes *);
-int compute_sha512(struct hashes *);
-int compute_whirlpool(struct hashes *);
-int compute_rmd160(struct hashes *);
 
 #endif

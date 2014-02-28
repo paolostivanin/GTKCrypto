@@ -11,7 +11,7 @@
 #include <sys/stat.h>
 #include "../polcrypt.h"
 
-int compute_sha1(struct hashes *s_SHA1){
+gint compute_sha1(struct hashes *s_SHA1){
    	if(!gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(s_SHA1->checkS1))){
 		gtk_entry_set_text(GTK_ENTRY(s_SHA1->entryS1), "");
 		goto fine;
@@ -19,11 +19,11 @@ int compute_sha1(struct hashes *s_SHA1){
 	else if(strlen(gtk_entry_get_text(GTK_ENTRY(s_SHA1->entryS1))) == 40){
 		goto fine;
 	}
-	int algo, i, fd;
-	char sha1hash[41];
+	gint algo, i, fd;
+	gchar sha1hash[41];
 	struct stat fileStat;
-	char *buffer;
-	const char *name = gcry_md_algo_name(GCRY_MD_SHA1);
+	gchar *buffer;
+	const gchar *name = gcry_md_algo_name(GCRY_MD_SHA1);
 	algo = gcry_md_map_name(name);
 	off_t fsize = 0, donesize = 0, diff = 0;
 
@@ -78,7 +78,7 @@ int compute_sha1(struct hashes *s_SHA1){
 	}
 	nowhile:
 	gcry_md_final(hd);
-	unsigned char *sha = gcry_md_read(hd, algo);
+	guchar *sha = gcry_md_read(hd, algo);
  	for(i=0; i<20; i++){
  		sprintf(sha1hash+(i*2), "%02x", sha[i]);
  	}
