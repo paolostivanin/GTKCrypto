@@ -12,10 +12,10 @@
 
 int encrypt_file(const char *input_file_path, const char *output_file_path){
 	int algo = -1, fd, number_of_block, block_done = 0, retcode;
-	struct metadata s_mdata;
+	struct metadata_t Metadata;
 	struct termios oldt, newt;
 	struct stat fileStat;
-	memset(&s_mdata, 0, sizeof(struct metadata));
+	memset(&Metadata, 0, sizeof(struct metadata_t));
 	unsigned char hex[15] = { 0x01,0x02,0x03,0x04,0x05,0x06,0x07,0x08,0x09,0x0A,0x0B,0x0C,0x0D,0x0E,0x0F}, plain_text[16];
 	unsigned char *derived_key = NULL, *crypto_key = NULL, *mac_key = NULL, *encBuffer = NULL;
 	char *input_key = NULL, *compare_key = NULL;
@@ -29,8 +29,8 @@ int encrypt_file(const char *input_file_path, const char *output_file_path){
 	algo = gcry_cipher_map_name(name);
 	encBuffer = gcry_malloc(txtLenght);
 
-	gcry_create_nonce(s_mdata.iv, 16);
-	gcry_create_nonce(s_mdata.salt, 32);
+	gcry_create_nonce(Metadata.iv, 16);
+	gcry_create_nonce(Metadata.salt, 32);
 
  	if(((input_key = gcry_malloc_secure(256)) == NULL) || ((compare_key = gcry_malloc_secure(256)) == NULL)){
 		fprintf(stderr, "encrypt_file: memory allocation error\n");
@@ -109,7 +109,7 @@ int encrypt_file(const char *input_file_path, const char *output_file_path){
 		return -1;
 	}
 
-	if(gcry_kdf_derive (input_key, pwd_len, GCRY_KDF_PBKDF2, GCRY_MD_SHA512, s_mdata.salt, 32, 150000, 64, derived_key) != 0){
+	if(gcry_kdf_derive (input_key, pwd_len, GCRY_KDF_PBKDF2, GCRY_MD_SHA512, Metadata.salt, 32, 150000, 64, derived_key) != 0){
 		fprintf(stderr, "encrypt_file: key derivation error\n");
 		gcry_free(derived_key);
 		gcry_free(crypto_key);
@@ -121,11 +121,11 @@ int encrypt_file(const char *input_file_path, const char *output_file_path){
 	memcpy(mac_key, derived_key + 32, 32);
 
 	gcry_cipher_setkey(hd, crypto_key, keyLength);
-	gcry_cipher_setiv(hd, s_mdata.iv, blkLength);
+	gcry_cipher_setiv(hd, Metadata.iv, blkLength);
 
 	fseek(fp, 0, SEEK_SET);
 	
-	fwrite(&s_mdata, sizeof(struct metadata), 1, fpout);
+	fwrite(&Metadata, sizeof(struct metadata_t), 1, fpout);
 	
 	while(number_of_block > block_done){
 		memset(plain_text, 0, sizeof(plain_text));
