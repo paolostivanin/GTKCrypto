@@ -11,12 +11,12 @@
 #include <sys/stat.h>
 #include "../polcrypt.h"
 
-gint compute_md5(struct hashes *s_MD5){
-   	if(!gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(s_MD5->checkMD5))){
-		gtk_entry_set_text(GTK_ENTRY(s_MD5->entryMD5), "");
+gint compute_md5(struct hashWidget_t *HashWidget){
+   	if(!gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(HashWidget->checkMD5))){
+		gtk_entry_set_text(GTK_ENTRY(HashWidget->entryMD5), "");
 		goto fine;
 	}
-	else if(strlen(gtk_entry_get_text(GTK_ENTRY(s_MD5->entryMD5))) == 32){
+	else if(strlen(gtk_entry_get_text(GTK_ENTRY(HashWidget->entryMD5))) == 32){
 		goto fine;
 	}
   
@@ -28,7 +28,7 @@ gint compute_md5(struct hashes *s_MD5){
 	algo = gcry_md_map_name(name);
 	off_t fsize = 0, donesize = 0, diff = 0;
 
-	fd = open(s_MD5->filename, O_RDONLY | O_NOFOLLOW);
+	fd = open(HashWidget->filename, O_RDONLY | O_NOFOLLOW);
 	if(fd == -1){
 		fprintf(stderr, "compute_md5: %s\n", strerror(errno));
 		return -1;
@@ -42,7 +42,7 @@ gint compute_md5(struct hashes *s_MD5){
   	close(fd);
   	
 	FILE *fp;
-	fp = fopen(s_MD5->filename, "r");
+	fp = fopen(HashWidget->filename, "r");
 	if(fp == NULL){
 		fprintf(stderr, "compute_md5: %s\n", strerror(errno));
 		return -1;
@@ -84,7 +84,7 @@ gint compute_md5(struct hashes *s_MD5){
  		sprintf(md5hash+(i*2), "%02x", md5[i]);
  	}
  	md5hash[32] = '\0';
- 	gtk_entry_set_text(GTK_ENTRY(s_MD5->entryMD5), md5hash);
+ 	gtk_entry_set_text(GTK_ENTRY(HashWidget->entryMD5), md5hash);
  	free(buffer);
  	fclose(fp);
 	gcry_md_close(hd);

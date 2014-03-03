@@ -11,25 +11,25 @@
 #include <glib.h>
 #include <gtk/gtk.h>
 
-struct metadata{
+struct metadata_t{
 	unsigned char algo_type[16]; //aes,twofish,serpent,aes-two,aes-ser,aes-two-ser
 	unsigned char salt[32];
 	unsigned char iv[16];
 };
-extern struct metadata s_mdata;
+extern struct metadata_t Metadata;
 
-struct info{
+struct widget_t{
 	gint mode, toEnc;
 	gchar *filename;
 	GtkWidget *pwdEntry, *pwdReEntry, *mainwin, *dialog, *file_dialog, *infobar, *infolabel;
 };
-extern struct info s_Info;
+extern struct widget_t Widget;
 
-struct hashes{
+struct hashWidget_t{
 	gchar *filename;
 	GtkWidget *entryMD5, *entryS1, *entryS256, *entryS512, *entryWhir, *entryRMD;
 	GtkWidget *checkMD5, *checkS1, *checkS256, *checkS512, *checkWhir, *checkRMD;
 };
-extern struct hashes s_HashType;
+extern struct hashWidget_t HashWidget;
 
 #endif

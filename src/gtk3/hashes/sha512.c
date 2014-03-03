@@ -11,12 +11,12 @@
 #include <sys/stat.h>
 #include "../polcrypt.h"
 
-gint compute_sha512(struct hashes *s_SHA512){
-   	if(!gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(s_SHA512->checkS512))){
-		gtk_entry_set_text(GTK_ENTRY(s_SHA512->entryS512), "");
+gint compute_sha512(struct hashWidget_t *HashWidget){
+   	if(!gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(HashWidget->checkS512))){
+		gtk_entry_set_text(GTK_ENTRY(HashWidget->entryS512), "");
 		goto fine;
 	}
-	else if(strlen(gtk_entry_get_text(GTK_ENTRY(s_SHA512->entryS512))) == 128){
+	else if(strlen(gtk_entry_get_text(GTK_ENTRY(HashWidget->entryS512))) == 128){
 		goto fine;
 	}
 	gint algo, i, fd;
@@ -27,7 +27,7 @@ gint compute_sha512(struct hashes *s_SHA512){
 	algo = gcry_md_map_name(name);
 	off_t fsize = 0, donesize = 0, diff = 0;
 
-	fd = open(s_SHA512->filename, O_RDONLY | O_NOFOLLOW);
+	fd = open(HashWidget->filename, O_RDONLY | O_NOFOLLOW);
 	if(fd == -1){
 		fprintf(stderr, "compute_sha512: %s\n", strerror(errno));
 		return 1;
@@ -41,7 +41,7 @@ gint compute_sha512(struct hashes *s_SHA512){
   	close(fd);
   	
 	FILE *fp;
-	fp = fopen(s_SHA512->filename, "r");
+	fp = fopen(HashWidget->filename, "r");
 	if(fp == NULL){
 		fprintf(stderr, "compute_sha512: %s\n", strerror(errno));
 		return -1;
@@ -83,7 +83,7 @@ gint compute_sha512(struct hashes *s_SHA512){
  		sprintf(sha512hash+(i*2), "%02x", sha512[i]);
  	}
  	sha512hash[128] = '\0';
- 	gtk_entry_set_text(GTK_ENTRY(s_SHA512->entryS512), sha512hash);
+ 	gtk_entry_set_text(GTK_ENTRY(HashWidget->entryS512), sha512hash);
  	free(buffer);
  	fclose(fp);
 	gcry_md_close(hd);

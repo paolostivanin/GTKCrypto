@@ -11,12 +11,12 @@
 #include <sys/stat.h>
 #include "../polcrypt.h"
 
-gint compute_whirlpool(struct hashes *s_Whir){
-   	if(!gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(s_Whir->checkWhir))){
-		gtk_entry_set_text(GTK_ENTRY(s_Whir->entryWhir), "");
+gint compute_whirlpool(struct hashWidget_t *HashWidget){
+   	if(!gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(HashWidget->checkWhir))){
+		gtk_entry_set_text(GTK_ENTRY(HashWidget->entryWhir), "");
 		goto fine;
 	}
-	else if(strlen(gtk_entry_get_text(GTK_ENTRY(s_Whir->entryWhir))) == 128){
+	else if(strlen(gtk_entry_get_text(GTK_ENTRY(HashWidget->entryWhir))) == 128){
 		goto fine;
 	}
 	gint algo, i, fd;
@@ -27,7 +27,7 @@ gint compute_whirlpool(struct hashes *s_Whir){
 	algo = gcry_md_map_name(name);
 	off_t fsize = 0, donesize = 0, diff = 0;
 
-	fd = open(s_Whir->filename, O_RDONLY | O_NOFOLLOW);
+	fd = open(HashWidget->filename, O_RDONLY | O_NOFOLLOW);
 	if(fd == -1){
 		fprintf(stderr, "compute_whirlpool: %s\n", strerror(errno));
 		return 1;
@@ -41,7 +41,7 @@ gint compute_whirlpool(struct hashes *s_Whir){
   	close(fd);
   	
 	FILE *fp;
-	fp = fopen(s_Whir->filename, "r");
+	fp = fopen(HashWidget->filename, "r");
 	if(fp == NULL){
 		fprintf(stderr, "compute_whirlpool: %s\n", strerror(errno));
 		return -1;
@@ -83,7 +83,7 @@ gint compute_whirlpool(struct hashes *s_Whir){
  		sprintf(whirlpoolhash+(i*2), "%02x", whirlpool[i]);
  	}
  	whirlpoolhash[128] = '\0';
- 	gtk_entry_set_text(GTK_ENTRY(s_Whir->entryWhir), whirlpoolhash);
+ 	gtk_entry_set_text(GTK_ENTRY(HashWidget->entryWhir), whirlpoolhash);
  	free(buffer);
  	fclose(fp);
 	gcry_md_close(hd);

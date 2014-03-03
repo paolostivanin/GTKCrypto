@@ -11,14 +11,14 @@
 #include "polcrypt.h"
 
 guchar *calculate_hmac(const gchar *, const guchar *key, size_t, gint);
-gint delete_input_file(struct info *, size_t);
-static void show_error(struct info *, const gchar *);
+gint delete_input_file(struct widget_t *, size_t);
+static void show_error(struct widget_t *, const gchar *);
 
-gint encrypt_file_gui(struct info *s_InfoEnc){
+gint encrypt_file_gui(struct widget_t *WidgetMain){
 	gint algo = -1, fd, number_of_block, block_done = 0, retcode, counterForGoto = 0;
-	struct metadata s_mdata;
+	struct metadata_t Metadata;
 	struct stat fileStat;
-	memset(&s_mdata, 0, sizeof(struct metadata));
+	memset(&Metadata, 0, sizeof(struct metadata_t));
 	guchar hex[15] = { 0x01,0x02,0x03,0x04,0x05,0x06,0x07,0x08,0x09,0x0A,0x0B,0x0C,0x0D,0x0E,0x0F}, plain_text[16];
 	guchar *derived_key = NULL, *crypto_key = NULL, *mac_key = NULL, *encBuffer = NULL;
 	gchar *inputKey = NULL;
@@ -27,16 +27,16 @@ gint encrypt_file_gui(struct info *s_InfoEnc){
 	const gchar *name = "aes256";
 	size_t blkLength, keyLength, txtLenght = 16, retval = 0, i;
 	
-	const gchar *inputWidKey = gtk_entry_get_text(GTK_ENTRY(s_InfoEnc->pwdEntry));
+	const gchar *inputWidKey = gtk_entry_get_text(GTK_ENTRY(WidgetMain->pwdEntry));
 	size_t len = strlen(inputWidKey);
 	inputKey = gcry_malloc_secure(len+1);
 	strncpy(inputKey, inputWidKey, len);
 	inputKey[len] = '\0';
 
 	gchar *outFilename;
-	size_t lenFilename = strlen(s_InfoEnc->filename);
+	size_t lenFilename = strlen(WidgetMain->filename);
 	outFilename = malloc(lenFilename+5); // ".enc\0" sono 5 chars
-	strncpy(outFilename, s_InfoEnc->filename, lenFilename);
+	strncpy(outFilename, WidgetMain->filename, lenFilename);
 	memcpy(outFilename+lenFilename, ".enc", 4);
 	outFilename[lenFilename+4] = '\0';
 
@@ -45,17 +45,17 @@ gint encrypt_file_gui(struct info *s_InfoEnc){
 	algo = gcry_cipher_map_name(name);
 	encBuffer = gcry_malloc(txtLenght);
 
-	gcry_create_nonce(s_mdata.iv, 16);
-	gcry_create_nonce(s_mdata.salt, 32);
+	gcry_create_nonce(Metadata.iv, 16);
+	gcry_create_nonce(Metadata.salt, 32);
 
-	fd = open(s_InfoEnc->filename, O_RDONLY | O_NOFOLLOW);
+	fd = open(WidgetMain->filename, O_RDONLY | O_NOFOLLOW);
 	if(fd == -1){
-		show_error(s_InfoEnc, strerror(errno));
+		show_error(WidgetMain, strerror(errno));
 		gcry_free(inputKey);
 		return -1;
 	}
   	if(fstat(fd, &fileStat) < 0){
-		show_error(s_InfoEnc, strerror(errno));
+		show_error(WidgetMain, strerror(errno));
 		gcry_free(inputKey);
     	close(fd);
     	return -1;
@@ -68,15 +68,15 @@ gint encrypt_file_gui(struct info *s_InfoEnc){
 	number_of_block = (int)result_of_division_by_16;
 	if(result_of_division_by_16 > number_of_block) number_of_block += 1;
 	
-	FILE *fp = fopen(s_InfoEnc->filename, "r");
+	FILE *fp = fopen(WidgetMain->filename, "r");
 	FILE *fpout = fopen(outFilename, "w");
 	if(fp == NULL){
-		show_error(s_InfoEnc, strerror(errno));
+		show_error(WidgetMain, strerror(errno));
 		gcry_free(inputKey);
 		return -1;
 	}
 	if(fpout == NULL){
-		show_error(s_InfoEnc, strerror(errno));
+		show_error(WidgetMain, strerror(errno));
 		gcry_free(inputKey);
 		return -1;
 	}
@@ -84,19 +84,19 @@ gint encrypt_file_gui(struct info *s_InfoEnc){
 	gcry_cipher_hd_t hd;
 	gcry_cipher_open(&hd, algo, GCRY_CIPHER_MODE_CBC, 0);
 	if((derived_key = gcry_malloc_secure(64)) == NULL){
-		show_error(s_InfoEnc, "gcry_malloc_secure: failed at line 82");
+		show_error(WidgetMain, "gcry_malloc_secure: failed at line 82");
 		gcry_free(inputKey);
 		return -1;
 	}
 	if((crypto_key = gcry_malloc_secure(32)) == NULL){
-		show_error(s_InfoEnc, "gcry_malloc_secure: failed at line 87");
+		show_error(WidgetMain, "gcry_malloc_secure: failed at line 87");
 		gcry_free(inputKey);
 		gcry_free(derived_key);
 		return -1;
 	}
 	
 	if((mac_key = gcry_malloc_secure(32)) == NULL){
-		show_error(s_InfoEnc, "gcry_malloc_secure: failed at line 93");
+		show_error(WidgetMain, "gcry_malloc_secure: failed at line 93");
 		gcry_free(inputKey);
 		gcry_free(derived_key);
 		gcry_free(crypto_key);
@@ -104,9 +104,9 @@ gint encrypt_file_gui(struct info *s_InfoEnc){
 	}
 
 	tryAgainDerive:
-	if(gcry_kdf_derive (inputKey, len+1, GCRY_KDF_PBKDF2, GCRY_MD_SHA512, s_mdata.salt, 32, 150000, 64, derived_key) != 0){
+	if(gcry_kdf_derive (inputKey, len+1, GCRY_KDF_PBKDF2, GCRY_MD_SHA512, Metadata.salt, 32, 150000, 64, derived_key) != 0){
 		if(counterForGoto == 3){
-			show_error(s_InfoEnc, "Key derivation error");
+			show_error(WidgetMain, "Key derivation error");
 			gcry_free(derived_key);
 			gcry_free(crypto_key);
 			gcry_free(mac_key);
@@ -120,11 +120,11 @@ gint encrypt_file_gui(struct info *s_InfoEnc){
 	memcpy(mac_key, derived_key + 32, 32);
 
 	gcry_cipher_setkey(hd, crypto_key, keyLength);
-	gcry_cipher_setiv(hd, s_mdata.iv, blkLength);
+	gcry_cipher_setiv(hd, Metadata.iv, blkLength);
 
 	fseek(fp, 0, SEEK_SET);
 	
-	fwrite(&s_mdata, sizeof(struct metadata), 1, fpout);
+	fwrite(&Metadata, sizeof(struct metadata_t), 1, fpout);
 	
 	while(number_of_block > block_done){
 		memset(plain_text, 0, sizeof(plain_text));
@@ -159,7 +159,7 @@ gint encrypt_file_gui(struct info *s_InfoEnc){
 
 	guchar *hmac = calculate_hmac(outFilename, mac_key, keyLength, 0);
 	if(hmac == (guchar *)1){
-		show_error(s_InfoEnc, "Error during HMAC calculation");
+		show_error(WidgetMain, "Error during HMAC calculation");
 		gcry_free(derived_key);
 		gcry_free(crypto_key);
 		gcry_free(mac_key);
@@ -170,11 +170,11 @@ gint encrypt_file_gui(struct info *s_InfoEnc){
 	fwrite(hmac, 1, 64, fpout);
 	free(hmac);
 	
-	retcode = delete_input_file(s_InfoEnc, fsize);
+	retcode = delete_input_file(WidgetMain, fsize);
 	if(retcode == -1)
-		show_error(s_InfoEnc, "Secure file deletion failed, delete it manually");
+		show_error(WidgetMain, "Secure file deletion failed, delete it manually");
 	if(retcode == -2)
-		show_error(s_InfoEnc, "File unlink failed, remove it manually");
+		show_error(WidgetMain, "File unlink failed, remove it manually");
 
 	gcry_cipher_close(hd);
 	gcry_free(derived_key);
@@ -188,7 +188,7 @@ gint encrypt_file_gui(struct info *s_InfoEnc){
 	return 0;
 }
 
-void show_error(struct info *s_Error, const gchar *message){
+void show_error(struct widget_t *s_Error, const gchar *message){
 	GtkWidget *dialog;
 	dialog = gtk_message_dialog_new(GTK_WINDOW(s_Error->mainwin),
             GTK_DIALOG_DESTROY_WITH_PARENT,
