@@ -22,17 +22,13 @@ Latest release
 The latest (v2.0.1-dev) release can be found in the master branch, just clone it :)
 
 
-RoadMap
--------
-??/02/2014 - v2.1.0
-* possibility to choose single, double or triple encryption (aes, twofish, serpent, aes+twofish, aes+serpent, aes+twofish+serpent)
-
 Requirements
 ------------
 * GCC or Clang	: required version of Clang **>= 3.1**, of GCC **>= 4.4.0**;
 * Gcrypt	: required version **>=1.5.0**;
 * GTK+		: required version **>=3.4.0**;
 * Glib		: for CLI **>=2.32.0**, for GUI **>=2.36.0**;
+
 
 How to use (CLI)
 ---------------

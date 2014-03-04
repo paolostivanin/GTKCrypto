@@ -24,17 +24,21 @@
 	* ADDED: documentation;
 	* FIXED: bugs [if any];
 
-??/??/2014 - v1.1.0
-	* NEWSTABLE RELEASE :)
-
-??/??/2014 - v2.0-alpha
+??/03/2014 - v2.0.1
 	* ADDED: GTK+3 interface;
-	* ADDED: double encryption with 2 different keys;
-	* IMPROVED: code base rework;
-
-??/??/2014 - v2.0-beta
+	* ADDED: translation;
+	* IMPROVED: error handling and reporting;
 	* IMPROVED: documentation;
-	* FIXED: bugs [if any];
+	* REMOVED: tiger1, tiger2, sha224, sha384
+	* FIXED: various bugs;
 
-??/??/2014 - v2.0.0
-	* NEWSTABLE RELEASE :)
+??/??/2014 - v2.1.0
+	* REMOVED: RMD160
+	* ADDED: GOST R 34.11-94
+	* ADDED: STRIBOG512
+	* IMPROVED: hash are computed using threads
+	* ADDED: support for single or multiple encryption (aes, twofish, serpent, aes+twofish, aes+serpent, aes+twofish+serpent)
+
+??/??/2014 - v2.2.0
+	* ADDED: asymmetric encryption support (with RSA or with a ECC algo)
+	* ADDED: data compression using zlib
