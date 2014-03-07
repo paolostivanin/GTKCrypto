@@ -1,10 +1,10 @@
 #ifndef POLCRYPT_H_INCLUDED
 #define POLCRYPT_H_INCLUDED
 
-#define BUF_FILE 1048576 /* 1 MiB di memoria per il file come buffer massimo, poi spezzo (hash) */
+#define BUF_FILE 16777216 /* 16 MiB di memoria per il file come buffer massimo, poi spezzo (hash) */
 #define BUFSIZE 24576  /* delete_input_file */
 #define GCRYPT_MIN_VER "1.5.0"
-#define VERSION "2.0.1-dev"
+#define VERSION "2.1.0-dev"
 #define LOCALE_DIR "/usr/share/locale" // or your specification
 #define PACKAGE    "polcrypt"          // mo file name in LOCALE
 

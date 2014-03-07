@@ -9,6 +9,7 @@
 #include <unistd.h>
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <sys/mman.h>
 #include "../polcrypt.h"
 
 gint compute_sha512(struct hashWidget_t *HashWidget){
@@ -19,13 +20,13 @@ gint compute_sha512(struct hashWidget_t *HashWidget){
 	else if(strlen(gtk_entry_get_text(GTK_ENTRY(HashWidget->entryS512))) == 128){
 		goto fine;
 	}
-	gint algo, i, fd;
+	gint algo, i, fd, retVal;
 	gchar sha512hash[129];
 	struct stat fileStat;
-	gchar *buffer;
+	gchar *fAddr;
 	const gchar *name = gcry_md_algo_name(GCRY_MD_SHA512);
 	algo = gcry_md_map_name(name);
-	off_t fsize = 0, donesize = 0, diff = 0;
+	off_t fsize = 0, donesize = 0, diff = 0, offset = 0;
 
 	fd = open(HashWidget->filename, O_RDONLY | O_NOFOLLOW);
 	if(fd == -1){
@@ -38,44 +39,51 @@ gint compute_sha512(struct hashWidget_t *HashWidget){
     	return 1;
   	}
   	fsize = fileStat.st_size;
-  	close(fd);
-  	
-	FILE *fp;
-	fp = fopen(HashWidget->filename, "r");
-	if(fp == NULL){
-		fprintf(stderr, "compute_sha512: %s\n", strerror(errno));
-		return -1;
-	}
+
 	gcry_md_hd_t hd;
 	gcry_md_open(&hd, algo, 0);
+
 	if(fsize < BUF_FILE){
-		buffer = malloc(fsize);
-  		if(buffer == NULL){
-			fprintf(stderr, "compute_sha512: memory allocation error\n");
-			fclose(fp);
+		fAddr = mmap(NULL, fsize, PROT_READ, MAP_FILE | MAP_SHARED, fd, 0);
+		if(fAddr == MAP_FAILED){
+			printf("%d - %s\n", errno, strerror(errno));
 			return -1;
-  		}
-		fread(buffer, 1, fsize, fp);
-		gcry_md_write(hd, buffer, fsize);
+		}
+		gcry_md_write(hd, fAddr, fsize);
+		retVal = munmap(fAddr, fsize);
+		if(retVal == -1){
+			perror("--> munmap ");
+			return -1;
+		}
 		goto nowhile;
 	}
-	buffer = malloc(BUF_FILE);
-  	if(buffer == NULL){
-  		fprintf(stderr, "compute_sha512: memory allocation error\n");
-  		fclose(fp);
-  		return -1;
-  	}
+
 	while(fsize > donesize){
-		fread(buffer, 1, BUF_FILE, fp);
-		gcry_md_write(hd, buffer, BUF_FILE);
+		fAddr = mmap(NULL, BUF_FILE, PROT_READ, MAP_FILE | MAP_SHARED, fd, offset);
+		if(fAddr == MAP_FAILED){
+			printf("%d - %s\n", errno, strerror(errno));
+			return -1;
+		}
+		gcry_md_write(hd, fAddr, BUF_FILE);
 		donesize+=BUF_FILE;
 		diff=fsize-donesize;
+		offset += BUF_FILE;
 		if(diff < BUF_FILE){
-			fread(buffer, 1, diff, fp);
-			gcry_md_write(hd, buffer, diff);
+			fAddr = mmap(NULL, diff, PROT_READ, MAP_FILE | MAP_SHARED, fd, offset);
+			if(fAddr == MAP_FAILED){
+				printf("%d - %s\n", errno, strerror(errno));
+				return -1;
+			}
+			gcry_md_write(hd, fAddr, diff);
 			break;
 		}
+		retVal = munmap(fAddr, BUF_FILE);
+		if(retVal == -1){
+			perror("--> munmap ");
+			return -1;
+		}
 	}
+	
 	nowhile:
 	gcry_md_final(hd);
 	guchar *sha512 = gcry_md_read(hd, algo);
@@ -84,8 +92,6 @@ gint compute_sha512(struct hashWidget_t *HashWidget){
  	}
  	sha512hash[128] = '\0';
  	gtk_entry_set_text(GTK_ENTRY(HashWidget->entryS512), sha512hash);
- 	free(buffer);
- 	fclose(fp);
 	gcry_md_close(hd);
 	fine:
 	return 0;
