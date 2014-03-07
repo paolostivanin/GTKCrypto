@@ -29,6 +29,7 @@
 	* ADDED: translation;
 	* IMPROVED: error handling and reporting;
 	* IMPROVED: documentation;
+	* IMPROVED: using mmap for better performance
 	* REMOVED: tiger1, tiger2, sha224, sha384
 	* FIXED: various bugs;
 
@@ -37,7 +38,6 @@
 	* ADDED: GOST R 34.11-94
 	* ADDED: STRIBOG512
 	* IMPROVED: hash are computed using threads
-	* IMPROVED: using mmap for better performance
 	* ADDED: support for single or multiple encryption (aes, twofish, serpent, aes+twofish, aes+serpent, aes+twofish+serpent)
 
 ??/??/2014 - v2.2.0
