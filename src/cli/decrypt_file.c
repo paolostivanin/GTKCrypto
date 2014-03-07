@@ -8,7 +8,13 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <termios.h>
+#include <glib/gi18n.h>
+#include <locale.h>
+#include <libintl.h>
 #include "polcrypt.h"
+
+int check_pkcs7(unsigned char *, unsigned char *);
+unsigned char *calculate_hmac(const char *, const unsigned char *, size_t, int);
 
 int decrypt_file(const char *input_file_path, const char *output_file_path){
 	int algo = -1, fd, number_of_block, block_done = 0, number_of_pkcs7_byte;	
@@ -31,16 +37,16 @@ int decrypt_file(const char *input_file_path, const char *output_file_path){
 	decBuffer = gcry_malloc(txtLenght);
 
  	if(((tmp_key = gcry_malloc_secure(256)) == NULL)){
-		fprintf(stderr, "decrypt_file: memory allocation error\n");
+		fprintf(stderr, _("decrypt_file: memory allocation error\n"));
 		return -1;
 	}
  	tcgetattr( STDIN_FILENO, &oldt);
   	newt = oldt;
-	printf("Type password: ");
+	printf(_("Type password: "));
 	newt.c_lflag &= ~(ECHO);
 	tcsetattr( STDIN_FILENO, TCSANOW, &newt);
  	if(fgets(tmp_key, 254, stdin) == NULL){
- 		fprintf(stderr, "decrypt_file: fgets error\n");
+ 		fprintf(stderr, _("decrypt_file: fgets error\n"));
  		tcsetattr( STDIN_FILENO, TCSANOW, &oldt);
  		return -1;
  	}
@@ -48,7 +54,7 @@ int decrypt_file(const char *input_file_path, const char *output_file_path){
  	printf("\n");
  	pwd_len = strlen(tmp_key); 
  	if(((input_key = gcry_malloc_secure(pwd_len)) == NULL)){
-		fprintf(stderr, "decrypt_file: memory allocation error\n");
+		fprintf(stderr, _("decrypt_file: memory allocation error\n"));
 		return -1;
 	}
 	strncpy(input_key, tmp_key, strlen(tmp_key));
@@ -92,13 +98,13 @@ int decrypt_file(const char *input_file_path, const char *output_file_path){
 	gcry_cipher_hd_t hd;
 	gcry_cipher_open(&hd, algo, GCRY_CIPHER_MODE_CBC, 0);
 	if(((derived_key = gcry_malloc_secure(64)) == NULL) || ((crypto_key = gcry_malloc_secure(32)) == NULL) || ((mac_key = gcry_malloc_secure(32)) == NULL)){
-		fprintf(stderr, "decrypt_file: memory allocation error\n");
+		fprintf(stderr, _("decrypt_file: memory allocation error\n"));
 		gcry_free(input_key);
 		return -1;
 	}
 
 	if(gcry_kdf_derive (input_key, pwd_len, GCRY_KDF_PBKDF2, GCRY_MD_SHA512, Metadata.salt, 32, 150000, 64, derived_key) != 0){
-		fprintf(stderr, "decrypt_file: key derivation error\n");
+		fprintf(stderr, _("decrypt_file: key derivation error\n"));
 		gcry_free(derived_key);
 		gcry_free(crypto_key);
 		gcry_free(mac_key);
@@ -127,7 +133,7 @@ int decrypt_file(const char *input_file_path, const char *output_file_path){
 		return -1;		
 	}
 	if(fread(mac_of_file, 1, 64, fp) != 64){
-		fprintf(stderr, "decrypt_file: fread mac error\n");;
+		fprintf(stderr, _("decrypt_file: fread mac error\n"));
 		gcry_free(derived_key);
 		gcry_free(crypto_key);
 		gcry_free(mac_key);
@@ -136,7 +142,7 @@ int decrypt_file(const char *input_file_path, const char *output_file_path){
 	}
 	unsigned char *hmac = calculate_hmac(input_file_path, mac_key, keyLength, 1);
 	if(hmac == (unsigned char *)1){
-		fprintf(stderr, "decrypt_file: error during HMAC calculation\n");
+		fprintf(stderr, _("decrypt_file: error during HMAC calculation\n"));
 		gcry_free(derived_key);
 		gcry_free(crypto_key);
 		gcry_free(mac_key);
@@ -144,7 +150,7 @@ int decrypt_file(const char *input_file_path, const char *output_file_path){
 		return -1;
 	}
 	if(memcmp(mac_of_file, hmac, 64) != 0){
-		fprintf(stderr, "--> CRITICAL ERROR: hmac doesn't match. This is caused by\n                    1) wrong password\n                    or\n                    2) corrupted file\n");
+		fprintf(stderr, _("--> CRITICAL ERROR: hmac doesn't match. This is caused by\n                    1) wrong password\n                    or\n                    2) corrupted file\n"));
 		gcry_free(derived_key);
 		gcry_free(crypto_key);
 		gcry_free(mac_key);

@@ -1,64 +1,147 @@
-#: src/gtk3/main-gui.c:79
+#: src/gtk3/decrypt_file_gui.c:44
+#, c-format
+msgid "decrypt_file: error during memory allocation"
+msgstr ""
+
+#: src/gtk3/decrypt_file_gui.c:101
+#, c-format
+msgid "decrypt_file: cannot read file metadata_t\n"
+msgstr ""
+
+#: src/gtk3/decrypt_file_gui.c:109
+#, c-format
+msgid "decrypt_file: gcry_malloc_secure failed at line 108\n"
+msgstr ""
+
+#: src/gtk3/decrypt_file_gui.c:115
+#, c-format
+msgid "decrypt_file: gcry_malloc_secure failed at line 114\n"
+msgstr ""
+
+#: src/gtk3/decrypt_file_gui.c:121
+#, c-format
+msgid "decrypt_file: gcry_malloc_secure failed at line 120\n"
+msgstr ""
+
+#: src/gtk3/decrypt_file_gui.c:129
+#, c-format
+msgid "decrypt_file: Key derivation error\n"
+msgstr ""
+
+#: src/gtk3/decrypt_file_gui.c:162
+#, c-format
+msgid "decrypt_file: fread mac error\n"
+msgstr ""
+
+#: src/gtk3/decrypt_file_gui.c:171
+msgid "Error during HMAC calculation\n"
+msgstr ""
+
+#: src/gtk3/decrypt_file_gui.c:179
+msgid ""
+"HMAC doesn't match. This is caused by\n"
+"1) wrong password\n"
+"or\n"
+"2) corrupted file\n"
+msgstr ""
+
+#: src/gtk3/encrypt_file_gui.c:90
+#, c-format
+msgid "encrypt_file: gcry_malloc_secure failed at line 86\n"
+msgstr ""
+
+#: src/gtk3/encrypt_file_gui.c:95
+#, c-format
+msgid "encrypt_file: gcry_malloc_secure failed at line 91\n"
+msgstr ""
+
+#: src/gtk3/encrypt_file_gui.c:102
+#, c-format
+msgid "encrypt_file: gcry_malloc_secure failed at line 98\n"
+msgstr ""
+
+#: src/gtk3/encrypt_file_gui.c:112
+#, c-format
+msgid "encrypt_file: Key derivation error\n"
+msgstr ""
+
+#: src/gtk3/encrypt_file_gui.c:165
+msgid "Error during HMAC calculation"
+msgstr ""
+
+#: src/gtk3/encrypt_file_gui.c:178
+msgid "Secure file deletion failed, overwrite it manually"
+msgstr ""
+
+#: src/gtk3/encrypt_file_gui.c:180
+msgid "File unlink failed, remove it manually"
+msgstr ""
+
+#: src/gtk3/main-gui.c:84
 msgid "About"
 msgstr ""
 
-#: src/gtk3/main-gui.c:80
+#: src/gtk3/main-gui.c:85
 msgid "Quit"
 msgstr ""
 
-#: src/gtk3/main-gui.c:100
+#: src/gtk3/main-gui.c:105
 #, c-format
 msgid "Welcome to PolCrypt %s"
 msgstr ""
 
-#: src/gtk3/main-gui.c:107
+#: src/gtk3/main-gui.c:112
 msgid "Encrypt File"
 msgstr ""
 
-#: src/gtk3/main-gui.c:108
+#: src/gtk3/main-gui.c:113
 msgid "Decrypt File"
 msgstr ""
 
-#: src/gtk3/main-gui.c:109
+#: src/gtk3/main-gui.c:114
 msgid "Compute Hash"
 msgstr ""
 
-#: src/gtk3/main-gui.c:147
+#: src/gtk3/main-gui.c:152
 msgid "Choose File"
 msgstr ""
 
-#: src/gtk3/main-gui.c:147
+#: src/gtk3/main-gui.c:152
 msgid "_Cancel"
 msgstr ""
 
-#: src/gtk3/main-gui.c:147 src/gtk3/main-gui.c:169 src/gtk3/main-gui.c:227
+#: src/gtk3/main-gui.c:152 src/gtk3/main-gui.c:174 src/gtk3/main-gui.c:228
 msgid "_Ok"
 msgstr ""
 
-#: src/gtk3/main-gui.c:169 src/gtk3/main-gui.c:227 src/gtk3/main-gui.c:295
+#: src/gtk3/main-gui.c:174 src/gtk3/main-gui.c:228 src/gtk3/main-gui.c:289
 msgid "_Quit"
 msgstr ""
 
-#: src/gtk3/main-gui.c:172 src/gtk3/main-gui.c:230
+#: src/gtk3/main-gui.c:177 src/gtk3/main-gui.c:231
 msgid "Type password"
 msgstr ""
 
-#: src/gtk3/main-gui.c:173
+#: src/gtk3/main-gui.c:178
 msgid "Retype password"
 msgstr ""
 
-#: src/gtk3/main-gui.c:182
+#: src/gtk3/main-gui.c:187
 msgid ""
 "Encrypting and deleting the file can take some\n"
 " minutes depending on the file size..."
 msgstr ""
 
-#: src/gtk3/main-gui.c:237
+#: src/gtk3/main-gui.c:238
 msgid ""
 "Decrypting the file can take some\n"
 "minutes depending on the file size..."
 msgstr ""
 
-#: src/gtk3/main-gui.c:295
+#: src/gtk3/main-gui.c:289
 msgid "Select Hash"
+msgstr ""
+
+#: src/gtk3/main-gui.c:379
+msgid "With this software you can encrypt and decrypt file with AES-256 CBC using HMAC-SHA512 for message authentication or you can compute various type of hashes"
 msgstr ""

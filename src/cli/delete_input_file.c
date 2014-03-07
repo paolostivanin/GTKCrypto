@@ -8,6 +8,9 @@
 #include <errno.h>
 #include "polcrypt.h"
 
+int random_write(int, int, size_t, int);
+int zero_write(int, size_t, int);
+
 int delete_input_file(const char *inputFilePath, size_t fileSize){
 	int fd, fdRandom;
 	fd = open(inputFilePath, O_WRONLY | O_NOFOLLOW);

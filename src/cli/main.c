@@ -13,10 +13,24 @@
 #include <libintl.h>
 #include "polcrypt.h"
 
+int encrypt_file(const char *, const char *);
+int decrypt_file(const char *, const char *);
+int compute_sha1(const char *);
+int compute_sha256(const char *);
+int compute_sha512(const char *);
+int compute_md5(const char *);
+int compute_whirlpool(const char *);
+int compute_all(const char *);
+int do_action();
 
 struct argvArgs_t Args;
 
 int main(int argc, char **argv){
+	if(argc == 1){
+		printf(_("To encrypt|decrypt a file: %s [--encrypt] | [--decrypt] <path-to-input_file> --output <path_to_output_file>\n"), argv[0]);
+		printf(_("To calculate one or more file hash: %s --hash <path-to-input_file> --algo [md5|sha1|sha256|sha512|whirlpool|all]\n"), argv[0]);
+	}
+	
 	if(getuid() == 0){
 		printf(_("You are root, please run this program as NORMAL USER!\n"));
 		return 0;
@@ -55,7 +69,7 @@ int main(int argc, char **argv){
 			
 			case 'h':
 				printf(_("To encrypt|decrypt a file: %s [--encrypt] | [--decrypt] <path-to-input_file> --output <path_to_output_file>\n"), argv[0]);
-				printf(_("To calculate one or more file hash: %s --hash <path-to-input_file> --algo [md5|rmd160|sha1|sha256|sha512|whirlpool|all]\n"), argv[0]);
+				printf(_("To calculate one or more file hash: %s --hash <path-to-input_file> --algo [md5|sha1|sha256|sha512|whirlpool|all]\n"), argv[0]);
 				return 0;
 			
 			case '?':
@@ -197,10 +211,6 @@ int do_action(){
 			compute_md5(Args.inputFilePath);
 			return 0;
 		}
-		if(strcmp(Args.algo, "rmd160") == 0){
-			compute_rmd160(Args.inputFilePath);
-			return 0;
-		}
 		if(strcmp(Args.algo, "sha1") == 0){
 			compute_sha1(Args.inputFilePath);
 			return 0;
@@ -219,14 +229,13 @@ int do_action(){
 		}
 		if(strcmp(Args.algo, "all") == 0){
 			compute_md5(Args.inputFilePath);
-			compute_rmd160(Args.inputFilePath);
 			compute_sha1(Args.inputFilePath);
 			compute_sha256(Args.inputFilePath);
 			compute_sha512(Args.inputFilePath);
 			compute_whirlpool(Args.inputFilePath);
 			return 0;
 		}
-		else printf(_("--> Available hash algo are: md5, rmd160, sha1, sha256, sha512 and whirlpool\n"));
+		else printf(_("--> Available hash algo are: md5, sha1, sha256, sha512 and whirlpool\n"));
 	}
 	return 0;
 }
