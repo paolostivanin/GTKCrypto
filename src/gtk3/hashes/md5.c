@@ -12,6 +12,8 @@
 #include <sys/mman.h>
 #include "../polcrypt.h"
 
+static void show_error(const gchar *);
+
 gint compute_md5(struct hashWidget_t *HashWidget){
    	if(!gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(HashWidget->checkMD5))){
 		gtk_entry_set_text(GTK_ENTRY(HashWidget->entryMD5), "");
@@ -31,7 +33,7 @@ gint compute_md5(struct hashWidget_t *HashWidget){
 
 	fd = open(HashWidget->filename, O_RDONLY | O_NOFOLLOW);
 	if(fd == -1){
-		fprintf(stderr, "compute_md5: %s\n", strerror(errno));
+		show_error(strerror(errno));
 		return -1;
 	}
   	if(fstat(fd, &fileStat) < 0){
@@ -46,7 +48,7 @@ gint compute_md5(struct hashWidget_t *HashWidget){
 	if(fsize < BUF_FILE){
 		fAddr = mmap(NULL, fsize, PROT_READ, MAP_FILE | MAP_SHARED, fd, 0);
 		if(fAddr == MAP_FAILED){
-			printf("%d - %s\n", errno, strerror(errno));
+			fprintf(stderr, "compute_md5: %s\n", strerror(errno));
 			return -1;
 		}
 		gcry_md_write(hd, fAddr, fsize);
@@ -61,7 +63,7 @@ gint compute_md5(struct hashWidget_t *HashWidget){
 	while(fsize > donesize){
 		fAddr = mmap(NULL, BUF_FILE, PROT_READ, MAP_FILE | MAP_SHARED, fd, offset);
 		if(fAddr == MAP_FAILED){
-			printf("%d - %s\n", errno, strerror(errno));
+			fprintf(stderr, "compute_md5: %s\n", strerror(errno));
 			return -1;
 		}
 		gcry_md_write(hd, fAddr, BUF_FILE);
@@ -71,10 +73,15 @@ gint compute_md5(struct hashWidget_t *HashWidget){
 		if(diff < BUF_FILE){
 			fAddr = mmap(NULL, diff, PROT_READ, MAP_FILE | MAP_SHARED, fd, offset);
 			if(fAddr == MAP_FAILED){
-				printf("%d - %s\n", errno, strerror(errno));
+				fprintf(stderr, "compute_md5: %s\n", strerror(errno));
 				return -1;
 			}
 			gcry_md_write(hd, fAddr, diff);
+			retVal = munmap(fAddr, BUF_FILE);
+			if(retVal == -1){
+				perror("--> munmap ");
+				return -1;
+			}
 			break;
 		}
 		retVal = munmap(fAddr, BUF_FILE);
@@ -94,4 +101,16 @@ gint compute_md5(struct hashWidget_t *HashWidget){
 	gcry_md_close(hd);
 	fine:
 	return 0;
+}
+
+static void show_error(const gchar *message){
+	GtkWidget *dialog;
+	dialog = gtk_message_dialog_new(NULL,
+            GTK_DIALOG_DESTROY_WITH_PARENT,
+            GTK_MESSAGE_ERROR,
+            GTK_BUTTONS_OK,
+            "%s", message);
+	gtk_window_set_title(GTK_WINDOW(dialog), "Error");
+	gtk_dialog_run(GTK_DIALOG(dialog));
+	gtk_widget_destroy(dialog);
 }

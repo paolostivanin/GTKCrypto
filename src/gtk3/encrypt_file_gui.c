@@ -8,6 +8,9 @@
 #include <unistd.h>
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <glib/gi18n.h>
+#include <locale.h>
+#include <libintl.h>
 #include "polcrypt.h"
 
 guchar *calculate_hmac(const gchar *, const guchar *key, size_t, gint);
@@ -84,19 +87,19 @@ gint encrypt_file_gui(struct widget_t *WidgetMain){
 	gcry_cipher_hd_t hd;
 	gcry_cipher_open(&hd, algo, GCRY_CIPHER_MODE_CBC, 0);
 	if((derived_key = gcry_malloc_secure(64)) == NULL){
-		show_error(WidgetMain, "gcry_malloc_secure: failed at line 82");
+		fprintf(stderr, _("encrypt_file: gcry_malloc_secure failed at line 86\n"));
 		gcry_free(inputKey);
 		return -1;
 	}
 	if((crypto_key = gcry_malloc_secure(32)) == NULL){
-		show_error(WidgetMain, "gcry_malloc_secure: failed at line 87");
+		fprintf(stderr, _("encrypt_file: gcry_malloc_secure failed at line 91\n"));
 		gcry_free(inputKey);
 		gcry_free(derived_key);
 		return -1;
 	}
 	
 	if((mac_key = gcry_malloc_secure(32)) == NULL){
-		show_error(WidgetMain, "gcry_malloc_secure: failed at line 93");
+		fprintf(stderr, _("encrypt_file: gcry_malloc_secure failed at line 98\n"));
 		gcry_free(inputKey);
 		gcry_free(derived_key);
 		gcry_free(crypto_key);
@@ -106,7 +109,7 @@ gint encrypt_file_gui(struct widget_t *WidgetMain){
 	tryAgainDerive:
 	if(gcry_kdf_derive (inputKey, len+1, GCRY_KDF_PBKDF2, GCRY_MD_SHA512, Metadata.salt, 32, 150000, 64, derived_key) != 0){
 		if(counterForGoto == 3){
-			show_error(WidgetMain, "Key derivation error");
+			fprintf(stderr, _("encrypt_file: Key derivation error\n"));
 			gcry_free(derived_key);
 			gcry_free(crypto_key);
 			gcry_free(mac_key);
@@ -159,7 +162,7 @@ gint encrypt_file_gui(struct widget_t *WidgetMain){
 
 	guchar *hmac = calculate_hmac(outFilename, mac_key, keyLength, 0);
 	if(hmac == (guchar *)1){
-		show_error(WidgetMain, "Error during HMAC calculation");
+		show_error(WidgetMain, _("Error during HMAC calculation"));
 		gcry_free(derived_key);
 		gcry_free(crypto_key);
 		gcry_free(mac_key);
@@ -172,9 +175,9 @@ gint encrypt_file_gui(struct widget_t *WidgetMain){
 	
 	retcode = delete_input_file(WidgetMain, fsize);
 	if(retcode == -1)
-		show_error(WidgetMain, "Secure file deletion failed, delete it manually");
+		show_error(WidgetMain, _("Secure file deletion failed, overwrite it manually"));
 	if(retcode == -2)
-		show_error(WidgetMain, "File unlink failed, remove it manually");
+		show_error(WidgetMain, _("File unlink failed, remove it manually"));
 
 	gcry_cipher_close(hd);
 	gcry_free(derived_key);

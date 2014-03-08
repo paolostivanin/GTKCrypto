@@ -1,10 +1,10 @@
 #ifndef POLCRYPT_H_INCLUDED
 #define POLCRYPT_H_INCLUDED
 
-#define BUF_FILE 16777216 /* 16 MiB di memoria per il file come buffer massimo, poi spezzo (hash) */
-#define BUFSIZE 24576  /* delete_input_file */
+#define BUF_FILE 16777216 /* 16 MiB memory buffer (hash) */
+#define BUFSIZE 1048576  /* 1 MiB memory buffer (delete_input_file) */
 #define GCRYPT_MIN_VER "1.5.0"
-#define VERSION "2.1.0-dev"
+#define VERSION "2.0.1"
 #define LOCALE_DIR "/usr/share/locale" // or your specification
 #define PACKAGE    "polcrypt"          // mo file name in LOCALE
 
@@ -27,8 +27,8 @@ extern struct widget_t Widget;
 
 struct hashWidget_t{
 	gchar *filename;
-	GtkWidget *entryMD5, *entryS1, *entryS256, *entryS512, *entryWhir, *entryRMD;
-	GtkWidget *checkMD5, *checkS1, *checkS256, *checkS512, *checkWhir, *checkRMD;
+	GtkWidget *entryMD5, *entryS1, *entryS256, *entryS512, *entryWhir;
+	GtkWidget *checkMD5, *checkS1, *checkS256, *checkS512, *checkWhir;
 };
 extern struct hashWidget_t HashWidget;
 

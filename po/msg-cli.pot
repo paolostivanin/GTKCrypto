@@ -1,0 +1,182 @@
+#: src/cli/decrypt_file.c:40 src/cli/decrypt_file.c:57
+#: src/cli/decrypt_file.c:101
+#, c-format
+msgid "decrypt_file: memory allocation error\n"
+msgstr ""
+
+#: src/cli/decrypt_file.c:45 src/cli/encrypt_file.c:47
+#, c-format
+msgid "Type password: "
+msgstr ""
+
+#: src/cli/decrypt_file.c:49
+#, c-format
+msgid "decrypt_file: fgets error\n"
+msgstr ""
+
+#: src/cli/decrypt_file.c:107
+#, c-format
+msgid "decrypt_file: key derivation error\n"
+msgstr ""
+
+#: src/cli/decrypt_file.c:136
+#, c-format
+msgid "decrypt_file: fread mac error\n"
+msgstr ""
+
+#: src/cli/decrypt_file.c:145
+#, c-format
+msgid "decrypt_file: error during HMAC calculation\n"
+msgstr ""
+
+#: src/cli/decrypt_file.c:153
+#, c-format
+msgid ""
+"--> CRITICAL ERROR: hmac doesn't match. This is caused by\n"
+"                    1) wrong password\n"
+"                    or\n"
+"                    2) corrupted file\n"
+msgstr ""
+
+#: src/cli/encrypt_file.c:42 src/cli/encrypt_file.c:75
+#: src/cli/encrypt_file.c:113
+#, c-format
+msgid "encrypt_file: memory allocation error\n"
+msgstr ""
+
+#: src/cli/encrypt_file.c:51 src/cli/encrypt_file.c:60
+#, c-format
+msgid "encrypt_file: fgets error\n"
+msgstr ""
+
+#: src/cli/encrypt_file.c:56
+#, c-format
+msgid ""
+"\n"
+"Retype password: "
+msgstr ""
+
+#: src/cli/encrypt_file.c:66
+#, c-format
+msgid "encrypt_file: password doesn't match\n"
+msgstr ""
+
+#: src/cli/encrypt_file.c:105
+#, c-format
+msgid "encrypt_file: file opening error\n"
+msgstr ""
+
+#: src/cli/encrypt_file.c:119
+#, c-format
+msgid "encrypt_file: key derivation error\n"
+msgstr ""
+
+#: src/cli/encrypt_file.c:168
+#, c-format
+msgid "encrypt_file: error during HMAC calculation\n"
+msgstr ""
+
+#: src/cli/encrypt_file.c:177
+#, c-format
+msgid "encrypt_file: secure file deletion failed\n"
+msgstr ""
+
+#: src/cli/encrypt_file.c:179
+#, c-format
+msgid "encrypt_file: file unlink failed\n"
+msgstr ""
+
+#: src/cli/main.c:30 src/cli/main.c:71
+#, c-format
+msgid "To encrypt|decrypt a file: %s [--encrypt] | [--decrypt] <path-to-input_file> --output <path_to_output_file>\n"
+msgstr ""
+
+#: src/cli/main.c:31 src/cli/main.c:72
+#, c-format
+msgid "To calculate one or more file hash: %s --hash <path-to-input_file> --algo [md5|sha1|sha256|sha512|whirlpool|all]\n"
+msgstr ""
+
+#: src/cli/main.c:35
+#, c-format
+msgid "You are root, please run this program as NORMAL USER!\n"
+msgstr ""
+
+#: src/cli/main.c:39
+#, c-format
+msgid "libgcrypt min version required: 1.5.0\n"
+msgstr ""
+
+#: src/cli/main.c:67
+#, c-format
+msgid "PolCrypt v%s developed by Paolo Stivanin <info@paolostivanin.com>\n"
+msgstr ""
+
+#: src/cli/main.c:86
+#, c-format
+msgid "main (case e): error during memory allocation\n"
+msgstr ""
+
+#: src/cli/main.c:97
+#, c-format
+msgid "main (case d): error during memory allocation\n"
+msgstr ""
+
+#: src/cli/main.c:108
+#, c-format
+msgid "main (case s): error during memory allocation\n"
+msgstr ""
+
+#: src/cli/main.c:114
+#, c-format
+msgid "You must select an hash algo. Use --help for more information\n"
+msgstr ""
+
+#: src/cli/main.c:121
+#, c-format
+msgid "You must use the option --hash to use the option --algo\n"
+msgstr ""
+
+#: src/cli/main.c:127
+#, c-format
+msgid "main (case a): error during memory allocation\n"
+msgstr ""
+
+#: src/cli/main.c:138
+#, c-format
+msgid "You must use the option --encrypt || --decrypt to use the option --output\n"
+msgstr ""
+
+#: src/cli/main.c:144
+#, c-format
+msgid "main (case o): error during memory allocation\n"
+msgstr ""
+
+#: src/cli/main.c:154
+#, c-format
+msgid "Unknown option\n"
+msgstr ""
+
+#: src/cli/main.c:178
+#, c-format
+msgid "main (encrypt): %s\n"
+msgstr ""
+
+#: src/cli/main.c:186
+#, c-format
+msgid "main: error during file encryption\n"
+msgstr ""
+
+#: src/cli/main.c:197
+#, c-format
+msgid "main (decrypt): %s\n"
+msgstr ""
+
+#: src/cli/main.c:204
+#, c-format
+msgid "main: error during file decryption\n"
+msgstr ""
+
+#: src/cli/main.c:238
+#, c-format
+msgid "--> Available hash algo are: md5, sha1, sha256, sha512 and whirlpool\n"
+msgstr ""

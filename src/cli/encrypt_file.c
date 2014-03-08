@@ -7,8 +7,14 @@
 #include <unistd.h>
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <glib/gi18n.h>
+#include <locale.h>
+#include <libintl.h>
 #include <termios.h>
 #include "polcrypt.h"
+
+unsigned char *calculate_hmac(const char *, const unsigned char *, size_t, int);
+int delete_input_file(const char *, size_t);
 
 int encrypt_file(const char *input_file_path, const char *output_file_path){
 	int algo = -1, fd, number_of_block, block_done = 0, retcode;
@@ -33,31 +39,31 @@ int encrypt_file(const char *input_file_path, const char *output_file_path){
 	gcry_create_nonce(Metadata.salt, 32);
 
  	if(((input_key = gcry_malloc_secure(256)) == NULL) || ((compare_key = gcry_malloc_secure(256)) == NULL)){
-		fprintf(stderr, "encrypt_file: memory allocation error\n");
+		fprintf(stderr, _("encrypt_file: memory allocation error\n"));
 		return -1;
 	}
  	tcgetattr( STDIN_FILENO, &oldt);
   	newt = oldt;
-	printf("Type password: ");
+	printf(_("Type password: "));
 	newt.c_lflag &= ~(ECHO);
 	tcsetattr( STDIN_FILENO, TCSANOW, &newt);
  	if(fgets(input_key, 254, stdin) == NULL){
- 		fprintf(stderr, "encrypt_file: fgets error\n");
+ 		fprintf(stderr, _("encrypt_file: fgets error\n"));
  		tcsetattr( STDIN_FILENO, TCSANOW, &oldt);
  		return -1;
  	}
  	tcsetattr( STDIN_FILENO, TCSANOW, &oldt);
- 	printf("\nRetype password: ");
+ 	printf(_("\nRetype password: "));
  	newt.c_lflag &= ~(ECHO);
  	tcsetattr( STDIN_FILENO, TCSANOW, &newt);
  	if(fgets(compare_key, 254, stdin) == NULL){
- 		fprintf(stderr, "encrypt_file: fgets error\n");
+ 		fprintf(stderr, _("encrypt_file: fgets error\n"));
  		tcsetattr( STDIN_FILENO, TCSANOW, &oldt);
  		return -1;
  	}
  	tcsetattr( STDIN_FILENO, TCSANOW, &oldt);
  	if(strcmp((const char *)input_key, (const char *)compare_key) != 0){
- 		fprintf(stderr, "encrypt_file: password doesn't match\n");
+ 		fprintf(stderr, _("encrypt_file: password doesn't match\n"));
  		free(input_key);
  		free(compare_key);
  		return -1;
@@ -66,7 +72,7 @@ int encrypt_file(const char *input_file_path, const char *output_file_path){
  	pwd_len = strlen(compare_key); //è gia 4 perchè con fgets ho \0\n quindi non serve fare +1
  	gcry_free(input_key);
     if(((input_key = gcry_malloc_secure(pwd_len)) == NULL)){
-		fprintf(stderr, "encrypt_file: memory allocation error\n");
+		fprintf(stderr, _("encrypt_file: memory allocation error\n"));
 		return -1;
 	}
 	strncpy(input_key, compare_key, pwd_len);
@@ -96,7 +102,7 @@ int encrypt_file(const char *input_file_path, const char *output_file_path){
 	FILE *fp = fopen(input_file_path, "r");
 	FILE *fpout = fopen(output_file_path, "w");
 	if(fp == NULL || fpout == NULL){
-		fprintf(stderr, "encrypt_file: file opening error\n");
+		fprintf(stderr, _("encrypt_file: file opening error\n"));
 		gcry_free(input_key);
 		return -1;
 	}
@@ -104,13 +110,13 @@ int encrypt_file(const char *input_file_path, const char *output_file_path){
 	gcry_cipher_hd_t hd;
 	gcry_cipher_open(&hd, algo, GCRY_CIPHER_MODE_CBC, 0);
 	if(((derived_key = gcry_malloc_secure(64)) == NULL) || ((crypto_key = gcry_malloc_secure(32)) == NULL) || ((mac_key = gcry_malloc_secure(32)) == NULL)){
-		fprintf(stderr, "encrypt_file: memory allocation error\n");
+		fprintf(stderr, _("encrypt_file: memory allocation error\n"));
 		gcry_free(input_key);
 		return -1;
 	}
 
 	if(gcry_kdf_derive (input_key, pwd_len, GCRY_KDF_PBKDF2, GCRY_MD_SHA512, Metadata.salt, 32, 150000, 64, derived_key) != 0){
-		fprintf(stderr, "encrypt_file: key derivation error\n");
+		fprintf(stderr, _("encrypt_file: key derivation error\n"));
 		gcry_free(derived_key);
 		gcry_free(crypto_key);
 		gcry_free(mac_key);
@@ -159,7 +165,7 @@ int encrypt_file(const char *input_file_path, const char *output_file_path){
 
 	unsigned char *hmac = calculate_hmac(output_file_path, mac_key, keyLength, 0);
 	if(hmac == (unsigned char *)1){
-		fprintf(stderr, "encrypt_file: error during HMAC calculation\n");
+		fprintf(stderr, _("encrypt_file: error during HMAC calculation\n"));
 		return -1;
 	}
 	fpout = fopen(output_file_path, "a");
@@ -168,9 +174,9 @@ int encrypt_file(const char *input_file_path, const char *output_file_path){
 	
 	retcode = delete_input_file(input_file_path, fsize);
 	if(retcode == -1)
-		fprintf(stderr, "encrypt_file: secure file deletion failed\n");
+		fprintf(stderr, _("encrypt_file: secure file deletion failed\n"));
 	if(retcode == -1)
-		fprintf(stderr, "encrypt_file: file unlink failed\n");
+		fprintf(stderr, _("encrypt_file: file unlink failed\n"));
 
 	gcry_cipher_close(hd);
 	gcry_free(input_key);
