@@ -33,11 +33,12 @@
 	* REMOVED: tiger1, tiger2, sha224, sha384, rmd160
 	* FIXED: various bugs;
 
-??/??/2014 - v2.1.0
+??/03-04/2014 - v2.1.0
 	* ADDED: GOST R 34.11-94
 	* ADDED: STRIBOG512
 	* IMPROVED: hash are computed using threads
 	* ADDED: support for single or multiple encryption (aes, twofish, serpent, aes+twofish, aes+serpent, aes+twofish+serpent)
+	* NOT SURE: aes256-ctr/aes256-gcm instead of aes256-cbc
 
 ??/??/2014 - v2.2.0
 	* ADDED: asymmetric encryption support (with RSA or with a ECC algo)

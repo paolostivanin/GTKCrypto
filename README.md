@@ -3,7 +3,7 @@ PolCrypt
 
 This software let you to:
 * Encrypt and decrypt files using AES256-CBC;
-* Compute the hash of a given file (supported hashes are MD5, RMD160, SHA1, SHA256, SHA512 and WHIRLPOOL);
+* Compute the hash of a given file (supported hashes are MD5, GOST R 34.11-94, STRIBOG512, SHA1, SHA256, SHA512 and WHIRLPOOL);
 
 This software is developed by Paolo Stivanin (a.k.a Polslinux)
 
@@ -19,7 +19,7 @@ Security
 
 Latest release
 --------------
-The latest (v2.0.1) release can be found in the master branch, just clone it :)
+The latest (v2.1.0-dev) release can be found in the '-dev' branch, just clone it :)
 
 
 Requirements
