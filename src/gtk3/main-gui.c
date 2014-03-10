@@ -27,7 +27,9 @@ gint compute_sha1(struct hashWidget_t *);
 gint compute_sha256(struct hashWidget_t *);
 gint compute_sha512(struct hashWidget_t *);
 gint compute_whirlpool(struct hashWidget_t *);
-//gint compute_rmd160(struct hashWidget_t *);
+gint compute_gostr(struct hashWidget_t *);
+gint compute_stribog512(struct hashWidget_t *);
+
 
 struct widget_t Widget;
 const gchar *icon = "/usr/share/icons/hicolor/128x128/apps/polcrypt.png";
@@ -294,21 +296,24 @@ static void select_hash_type(struct widget_t *WidgetHash){
    	HashWidget.checkS256 = gtk_check_button_new_with_label("SHA-256");
    	HashWidget.checkS512 = gtk_check_button_new_with_label("SHA-512");
    	HashWidget.checkWhir = gtk_check_button_new_with_label("Whirlpool");
-   	//HashWidget.checkRMD = gtk_check_button_new_with_label("RMD160");
+   	HashWidget.checkGOSTR = gtk_check_button_new_with_label("GOSTR3411_94");
+   	HashWidget.checkSTRIBOG512 = gtk_check_button_new_with_label("STRIBOG512");
    	
    	HashWidget.entryMD5 = gtk_entry_new();
    	HashWidget.entryS1 = gtk_entry_new();
    	HashWidget.entryS256 = gtk_entry_new();
    	HashWidget.entryS512 = gtk_entry_new();
    	HashWidget.entryWhir = gtk_entry_new();
-   	//HashWidget.entryRMD = gtk_entry_new();
+   	HashWidget.entryGOSTR = gtk_entry_new();
+   	HashWidget.entrySTRIBOG512 = gtk_entry_new();
    	
    	gtk_editable_set_editable(GTK_EDITABLE(HashWidget.entryMD5), FALSE);
    	gtk_editable_set_editable(GTK_EDITABLE(HashWidget.entryS1), FALSE);
    	gtk_editable_set_editable(GTK_EDITABLE(HashWidget.entryS256), FALSE);
    	gtk_editable_set_editable(GTK_EDITABLE(HashWidget.entryS512), FALSE);
    	gtk_editable_set_editable(GTK_EDITABLE(HashWidget.entryWhir), FALSE);
-   	//gtk_editable_set_editable(GTK_EDITABLE(HashWidget.entryRMD), FALSE);
+   	gtk_editable_set_editable(GTK_EDITABLE(HashWidget.entryGOSTR), FALSE);
+   	gtk_editable_set_editable(GTK_EDITABLE(HashWidget.entrySTRIBOG512), FALSE);
 
    	gtk_widget_set_size_request(WidgetHash->dialog, 250, 150); // richiedo una grandezza minima
    	
@@ -333,8 +338,11 @@ static void select_hash_type(struct widget_t *WidgetHash){
 	gtk_grid_attach(GTK_GRID(grid2), HashWidget.checkWhir, 0, 4, 1, 1);
 	gtk_grid_attach(GTK_GRID(grid2), HashWidget.entryWhir, 2, 4, 6, 1);
 	
-/*	gtk_grid_attach(GTK_GRID(grid2), HashWidget.checkRMD, 0, 5, 1, 1);
-	gtk_grid_attach(GTK_GRID(grid2), HashWidget.entryRMD, 2, 5, 6, 1);*/
+	gtk_grid_attach(GTK_GRID(grid2), HashWidget.checkGOSTR, 0, 5, 1, 1);
+	gtk_grid_attach(GTK_GRID(grid2), HashWidget.entryGOSTR, 2, 5, 6, 1);
+
+	gtk_grid_attach(GTK_GRID(grid2), HashWidget.checkSTRIBOG512, 0, 6, 1, 1);
+	gtk_grid_attach(GTK_GRID(grid2), HashWidget.entrySTRIBOG512, 2, 6, 6, 1);
 
    	/* Add the grid, and show everything we've added to the dialog */
    	gtk_container_add (GTK_CONTAINER (content_area), grid2);
@@ -348,7 +356,8 @@ static void select_hash_type(struct widget_t *WidgetHash){
    	g_signal_connect_swapped(HashWidget.checkS256, "clicked", G_CALLBACK(compute_sha256), &HashWidget);
    	g_signal_connect_swapped(HashWidget.checkS512, "clicked", G_CALLBACK(compute_sha512), &HashWidget);
    	g_signal_connect_swapped(HashWidget.checkWhir, "clicked", G_CALLBACK(compute_whirlpool), &HashWidget);
-   	//g_signal_connect_swapped(HashWidget.checkRMD, "clicked", G_CALLBACK(compute_rmd160), &HashWidget);
+   	g_signal_connect_swapped(HashWidget.checkGOSTR, "clicked", G_CALLBACK(compute_gostr), &HashWidget);
+   	g_signal_connect_swapped(HashWidget.checkSTRIBOG512, "clicked", G_CALLBACK(compute_stribog512), &HashWidget);
 
    	gint result = gtk_dialog_run(GTK_DIALOG(WidgetHash->dialog));
 	switch(result){

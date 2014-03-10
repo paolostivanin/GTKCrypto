@@ -43,3 +43,4 @@
 ??/??/2014 - v2.2.0
 	* ADDED: asymmetric encryption support (with RSA or with a ECC algo)
 	* ADDED: data compression using zlib
+	* ADDED: multiple file selection for en/de/cryption
