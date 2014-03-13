@@ -21,6 +21,8 @@ void *compute_sha256(struct argvArgs_t *);
 void *compute_sha512(struct argvArgs_t *);
 void *compute_md5(struct argvArgs_t *);
 void *compute_whirlpool(struct argvArgs_t *);
+void *compute_stribog512(struct argvArgs_t *);
+void *compute_gostr(struct argvArgs_t *);
 int do_action();
 
 struct argvArgs_t Args;
@@ -228,17 +230,21 @@ int do_action(){
 			return 0;
 		}
 		if(strcmp(Args.algo, "all") == 0){
-			GThread *t1, *t2, *t3, *t4, *t5;
-			t1 = g_thread_new("one", (GThreadFunc)compute_md5, &Args);
-			t2 = g_thread_new("two", (GThreadFunc)compute_sha1, &Args);
-			t3 = g_thread_new("three", (GThreadFunc)compute_sha256, &Args);
-			t4 = g_thread_new("four", (GThreadFunc)compute_sha512, &Args);
-			t5 = g_thread_new("five", (GThreadFunc)compute_whirlpool, &Args);
+			GThread *t1, *t2, *t3, *t4, *t5, *t6, *t7;
+			t1 = g_thread_new("t1", (GThreadFunc)compute_md5, &Args);
+			t2 = g_thread_new("t2", (GThreadFunc)compute_sha1, &Args);
+			t3 = g_thread_new("t3", (GThreadFunc)compute_sha256, &Args);
+			t4 = g_thread_new("t4", (GThreadFunc)compute_sha512, &Args);
+			t5 = g_thread_new("t5", (GThreadFunc)compute_whirlpool, &Args);
+			t6 = g_thread_new("t6", (GThreadFunc)compute_gostr, &Args);
+			t7 = g_thread_new("t7", (GThreadFunc)compute_stribog512, &Args);
 			g_thread_join(t1);
 			g_thread_join(t2);
 			g_thread_join(t3);
 			g_thread_join(t4);
 			g_thread_join(t5);
+			g_thread_join(t6);
+			g_thread_join(t7);
 			return 0;
 		}
 		else printf(_("--> Available hash algo are: md5, sha1, sha256, sha512 and whirlpool\n"));

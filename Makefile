@@ -1,7 +1,7 @@
 CFLAGS = -Wall -Wextra -D_FILE_OFFSET_BITS=64 -U_FORTIFY_SOURCE -D_FORTIFY_SOURCE=2 -O2 -Wformat -Wformat-security -fstack-protector-all -fPIE -Wno-unused-result -Wno-return-type -Wno-missing-field-initializers
 LDFLAGS = -Wl,-z,now -Wl,-z,relro -lgcrypt
 
-CLI_HASH_SOURCES = src/cli/hashes/md5.c src/cli/hashes/sha256.c src/cli/hashes/sha512.c src/cli/hashes/whirlpool.c src/cli/hashes/sha1.c 
+CLI_HASH_SOURCES = src/cli/hashes/md5.c src/cli/hashes/stribog512.c src/cli/hashes/gostr3411_94.c src/cli/hashes/sha256.c src/cli/hashes/sha512.c src/cli/hashes/whirlpool.c src/cli/hashes/sha1.c 
 CLI_SOURCES = src/cli/main.c src/cli/check_pkcs7.c src/cli/encrypt_file.c src/cli/decrypt_file.c src/cli/hmac.c src/cli/delete_input_file.c src/cli/random_write.c src/cli/zero_write.c
 
 GUI_HASH_SOURCES = src/gtk3/hashes/md5.c src/gtk3/hashes/sha1.c src/gtk3/hashes/sha256.c src/gtk3/hashes/sha512.c src/gtk3/hashes/whirlpool.c src/gtk3/hashes/gostr3411_94.c src/gtk3/hashes/stribog512.c
