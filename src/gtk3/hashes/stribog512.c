@@ -14,7 +14,7 @@
 
 static void show_error(const gchar *);
 
-gint compute_stribog512(struct hashWidget_t *HashWidget){
+void *compute_stribog512(struct hashWidget_t *HashWidget){
    	if(!gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(HashWidget->checkSTRIBOG512))){
 		gtk_entry_set_text(GTK_ENTRY(HashWidget->entrySTRIBOG512), "");
 		goto fine;
@@ -33,12 +33,12 @@ gint compute_stribog512(struct hashWidget_t *HashWidget){
 	fd = open(HashWidget->filename, O_RDONLY | O_NOFOLLOW);
 	if(fd == -1){
 		show_error(strerror(errno));
-		return 1;
+		return NULL;
 	}
   	if(fstat(fd, &fileStat) < 0){
   		fprintf(stderr, "compute_stribog512: %s\n", strerror(errno));
     	close(fd);
-    	return 1;
+    	return NULL;
   	}
   	fsize = fileStat.st_size;
 
@@ -49,13 +49,13 @@ gint compute_stribog512(struct hashWidget_t *HashWidget){
 		fAddr = mmap(NULL, fsize, PROT_READ, MAP_FILE | MAP_SHARED, fd, 0);
 		if(fAddr == MAP_FAILED){
 			printf("%d - %s\n", errno, strerror(errno));
-			return -1;
+			return NULL;
 		}
 		gcry_md_write(hd, fAddr, fsize);
 		retVal = munmap(fAddr, fsize);
 		if(retVal == -1){
 			perror("--> munmap ");
-			return -1;
+			return NULL;
 		}
 		goto nowhile;
 	}
@@ -64,30 +64,30 @@ gint compute_stribog512(struct hashWidget_t *HashWidget){
 		fAddr = mmap(NULL, BUF_FILE, PROT_READ, MAP_FILE | MAP_SHARED, fd, offset);
 		if(fAddr == MAP_FAILED){
 			printf("%d - %s\n", errno, strerror(errno));
-			return -1;
+			return NULL;
 		}
 		gcry_md_write(hd, fAddr, BUF_FILE);
 		donesize+=BUF_FILE;
 		diff=fsize-donesize;
 		offset += BUF_FILE;
-		if(diff < BUF_FILE){
+		if(diff < BUF_FILE && diff > 0){
 			fAddr = mmap(NULL, diff, PROT_READ, MAP_FILE | MAP_SHARED, fd, offset);
 			if(fAddr == MAP_FAILED){
 				printf("%d - %s\n", errno, strerror(errno));
-				return -1;
+				return NULL;
 			}
 			gcry_md_write(hd, fAddr, diff);
 			retVal = munmap(fAddr, BUF_FILE);
 			if(retVal == -1){
 				perror("--> munmap ");
-				return -1;
+				return NULL;
 			}
 			break;
 		}
 		retVal = munmap(fAddr, BUF_FILE);
 		if(retVal == -1){
 			perror("--> munmap ");
-			return -1;
+			return NULL;
 		}
 	}
 	
@@ -101,7 +101,7 @@ gint compute_stribog512(struct hashWidget_t *HashWidget){
  	gtk_entry_set_text(GTK_ENTRY(HashWidget->entrySTRIBOG512), stribog512hash);
 	gcry_md_close(hd);
 	fine:
-	return 0;
+	return NULL;
 }
 
 static void show_error(const gchar *message){

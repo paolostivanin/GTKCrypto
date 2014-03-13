@@ -22,36 +22,35 @@ static void about (GSimpleAction *, GVariant *, gpointer);
 static void show_error(struct widget_t *, const gchar *);
 gint encrypt_file_gui(struct widget_t *);
 gint decrypt_file_gui(struct widget_t *);
-gint compute_md5(struct hashWidget_t *);
-gint compute_sha1(struct hashWidget_t *);
-gint compute_sha256(struct hashWidget_t *);
-gint compute_sha512(struct hashWidget_t *);
-gint compute_whirlpool(struct hashWidget_t *);
-gint compute_gostr(struct hashWidget_t *);
-gint compute_stribog512(struct hashWidget_t *);
+void *compute_md5(struct hashWidget_t *);
+void *compute_sha1(struct hashWidget_t *);
+void *compute_sha256(struct hashWidget_t *);
+void *compute_sha512(struct hashWidget_t *);
+void *compute_whirlpool(struct hashWidget_t *);
+void *compute_gostr(struct hashWidget_t *);
+void *compute_stribog512(struct hashWidget_t *);
 
+static void *threadMD5(struct hashWidget_t *);
+static void *threadSHA1(struct hashWidget_t *);
+static void *threadSHA256(struct hashWidget_t *);
+static void *threadSHA512(struct hashWidget_t *);
+static void *threadWHIRLPOOL(struct hashWidget_t *);
+static void *threadGOSTR(struct hashWidget_t *);
+static void *threadSTRIBOG512(struct hashWidget_t *);
 
 struct widget_t Widget;
 const gchar *icon = "/usr/share/icons/hicolor/128x128/apps/polcrypt.png";
 
+GCRY_THREAD_OPTION_PTHREAD_IMPL;
+
 gint main(int argc, char **argv){
+	gcry_control(GCRYCTL_SET_THREAD_CBS, &gcry_threads_pthread);
 	if(!gcry_check_version(GCRYPT_MIN_VER)){
 		fputs("libgcrypt min version required: 1.5.0\n", stderr);
 		return -1;
 	}
 	gcry_control(GCRYCTL_INIT_SECMEM, 16384, 0);
 	gcry_control(GCRYCTL_INITIALIZATION_FINISHED, 0);
-	
-	const gchar *glibVer = glib_check_version(2, 36, 0);
-	if(glibVer != NULL){
-		printf("%s\n", glibVer);
-		return -1;
-	}
-	const gchar *gtkVer = gtk_check_version(3, 4, 0);
-	if(gtkVer != NULL){
-		printf("%s\n", gtkVer);
-		return -1;
-	}		
 	
 	setlocale(LC_ALL, "");
 	bindtextdomain(PACKAGE, LOCALE_DIR);
@@ -94,6 +93,17 @@ static void activate (GtkApplication *app, gpointer user_data __attribute__ ((un
 	GtkWidget *butEn, *butDe, *butHa, *grid;
 	GtkWidget *label;
 	GError *err = NULL;
+	
+	const gchar *glibVer = glib_check_version(2, 36, 0);
+	if(glibVer != NULL){
+		show_error(NULL, "The required version of GLib is 2.36.0 or greater.");
+		return;
+	}
+	const gchar *gtkVer = gtk_check_version(3, 4, 0);
+	if(gtkVer != NULL){
+		show_error(NULL, "The required version of GTK+ is 3.4.0 or greater.");
+		return;
+	}	
 	
 	Widget.mainwin = gtk_application_window_new(app);
 	gtk_window_set_application (GTK_WINDOW (Widget.mainwin), GTK_APPLICATION (app));
@@ -216,12 +226,12 @@ static void type_pwd_enc(struct widget_t *WidgetEnc){
 		case GTK_RESPONSE_OK:
 			do_enc(WidgetEnc);
 			gtk_widget_destroy(WidgetEnc->dialog);
+			if(WidgetEnc->toEnc == -1) show_error(WidgetEnc, "Password are different, try again!");
 			break;
 		case GTK_RESPONSE_CLOSE:
 			gtk_widget_destroy(WidgetEnc->dialog);
 			break;
 	}
-	if(WidgetEnc->toEnc == -1) show_error(WidgetEnc, "Password are different, try again!");
 }
 
 static void type_pwd_dec(struct widget_t *WidgetDec){
@@ -290,7 +300,7 @@ static void select_hash_type(struct widget_t *WidgetHash){
 	GtkWidget *content_area, *grid2;
    	WidgetHash->dialog = gtk_dialog_new_with_buttons (_("Select Hash"), NULL, GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT, _("_Quit"), GTK_RESPONSE_CLOSE, NULL);
    	content_area = gtk_dialog_get_content_area (GTK_DIALOG (WidgetHash->dialog));
-   	
+   	   	
    	HashWidget.checkMD5 = gtk_check_button_new_with_label("MD5");
    	HashWidget.checkS1 = gtk_check_button_new_with_label("SHA-1");
    	HashWidget.checkS256 = gtk_check_button_new_with_label("SHA-256");
@@ -351,14 +361,14 @@ static void select_hash_type(struct widget_t *WidgetHash){
    	HashWidget.filename = malloc(strlen(WidgetHash->filename)+1);
    	strcpy(HashWidget.filename, WidgetHash->filename);
    	
-   	g_signal_connect_swapped(HashWidget.checkMD5, "clicked", G_CALLBACK(compute_md5), &HashWidget);
-   	g_signal_connect_swapped(HashWidget.checkS1, "clicked", G_CALLBACK(compute_sha1), &HashWidget);
-   	g_signal_connect_swapped(HashWidget.checkS256, "clicked", G_CALLBACK(compute_sha256), &HashWidget);
-   	g_signal_connect_swapped(HashWidget.checkS512, "clicked", G_CALLBACK(compute_sha512), &HashWidget);
-   	g_signal_connect_swapped(HashWidget.checkWhir, "clicked", G_CALLBACK(compute_whirlpool), &HashWidget);
-   	g_signal_connect_swapped(HashWidget.checkGOSTR, "clicked", G_CALLBACK(compute_gostr), &HashWidget);
-   	g_signal_connect_swapped(HashWidget.checkSTRIBOG512, "clicked", G_CALLBACK(compute_stribog512), &HashWidget);
-
+   	g_signal_connect_swapped(HashWidget.checkMD5, "clicked", G_CALLBACK(threadMD5), &HashWidget);
+   	g_signal_connect_swapped(HashWidget.checkS1, "clicked", G_CALLBACK(threadSHA1), &HashWidget);
+   	g_signal_connect_swapped(HashWidget.checkS256, "clicked", G_CALLBACK(threadSHA256), &HashWidget);
+   	g_signal_connect_swapped(HashWidget.checkS512, "clicked", G_CALLBACK(threadSHA512), &HashWidget);
+   	g_signal_connect_swapped(HashWidget.checkWhir, "clicked", G_CALLBACK(threadWHIRLPOOL), &HashWidget);
+   	g_signal_connect_swapped(HashWidget.checkGOSTR, "clicked", G_CALLBACK(threadGOSTR), &HashWidget);
+   	g_signal_connect_swapped(HashWidget.checkSTRIBOG512, "clicked", G_CALLBACK(threadSTRIBOG512), &HashWidget);
+   	
    	gint result = gtk_dialog_run(GTK_DIALOG(WidgetHash->dialog));
 	switch(result){
 		case GTK_RESPONSE_CLOSE:
@@ -409,15 +419,53 @@ static void quit (GSimpleAction *action __attribute__ ((unused)), GVariant *para
    g_application_quit (application);
 }
 
-void show_error(struct widget_t *s_Error, const gchar *message){
+static void show_error(struct widget_t *s_Error, const gchar *message){
 	GtkWidget *dialog;
-	dialog = gtk_message_dialog_new(GTK_WINDOW(s_Error->mainwin),
-            GTK_DIALOG_DESTROY_WITH_PARENT,
-            GTK_MESSAGE_ERROR,
-            GTK_BUTTONS_OK,
-            "%s", message);
+	if(s_Error != NULL){
+		dialog = gtk_message_dialog_new(GTK_WINDOW(s_Error->mainwin),
+			GTK_DIALOG_DESTROY_WITH_PARENT,
+			GTK_MESSAGE_ERROR,
+			GTK_BUTTONS_OK,
+			"%s", message);
+	}
+	else{
+		dialog = gtk_message_dialog_new(NULL,
+			GTK_DIALOG_DESTROY_WITH_PARENT,
+			GTK_MESSAGE_ERROR,
+			GTK_BUTTONS_OK,
+			"%s", message);
+		gtk_window_set_position(GTK_WINDOW(dialog), GTK_WIN_POS_CENTER);
+	}		
 	gtk_window_set_title(GTK_WINDOW(dialog), "Error");
 	gtk_dialog_run(GTK_DIALOG(dialog));
 	gtk_widget_destroy(dialog);
-	type_pwd_enc(s_Error);
+	if(s_Error != NULL) type_pwd_enc(s_Error);
+}
+
+static void *threadMD5(struct hashWidget_t *HashWidget){
+	HashWidget->t1 = g_thread_new("t1", (GThreadFunc)compute_md5, HashWidget);
+}
+
+static void *threadSHA1(struct hashWidget_t *HashWidget){
+	HashWidget->t2 = g_thread_new("t2", (GThreadFunc)compute_sha1, HashWidget);
+}
+
+static void *threadSHA256(struct hashWidget_t *HashWidget){
+	HashWidget->t3 = g_thread_new("t3", (GThreadFunc)compute_sha256, HashWidget);
+}
+
+static void *threadSHA512(struct hashWidget_t *HashWidget){
+	HashWidget->t4 = g_thread_new("t4", (GThreadFunc)compute_sha512, HashWidget);
+}
+
+static void *threadWHIRLPOOL(struct hashWidget_t *HashWidget){
+	HashWidget->t5 = g_thread_new("t5", (GThreadFunc)compute_whirlpool, HashWidget);
+}
+
+static void *threadGOSTR(struct hashWidget_t *HashWidget){
+	HashWidget->t6 = g_thread_new("t6", (GThreadFunc)compute_gostr, HashWidget);
+}
+
+static void *threadSTRIBOG512(struct hashWidget_t *HashWidget){
+	HashWidget->t7 = g_thread_new("t7", (GThreadFunc)compute_stribog512, HashWidget);
 }

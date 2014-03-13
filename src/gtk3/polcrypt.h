@@ -26,6 +26,7 @@ struct widget_t{
 extern struct widget_t Widget;
 
 struct hashWidget_t{
+	GThread *t1, *t2, *t3, *t4, *t5, *t6, *t7;
 	gchar *filename;
 	GtkWidget *entryMD5, *entryS1, *entryS256, *entryS512, *entryWhir, *entryGOSTR, *entrySTRIBOG512;
 	GtkWidget *checkMD5, *checkS1, *checkS256, *checkS512, *checkWhir, *checkGOSTR, *checkSTRIBOG512;

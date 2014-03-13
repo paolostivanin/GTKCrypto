@@ -1,5 +1,5 @@
 CFLAGS = -Wall -Wextra -U_FORTIFY_SOURCE -D_FORTIFY_SOURCE=2 -O2 -Wformat -Wformat-security -fstack-protector-all -fPIE -Wno-unused-result -Wno-return-type -Wno-missing-field-initializers
-LDFLAGS = -Wl,-z,now -Wl,-z,relro -lgcrypt
+LDFLAGS = -Wl,-z,now -Wl,-z,relro -lgcrypt -lpthread
 
 CLI_HASH_SOURCES = src/cli/hashes/md5.c src/cli/hashes/sha256.c src/cli/hashes/sha512.c src/cli/hashes/whirlpool.c src/cli/hashes/sha1.c 
 CLI_SOURCES = src/cli/main.c src/cli/check_pkcs7.c src/cli/encrypt_file.c src/cli/decrypt_file.c src/cli/hmac.c src/cli/delete_input_file.c src/cli/random_write.c src/cli/zero_write.c
