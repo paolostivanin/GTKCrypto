@@ -10,7 +10,7 @@
 #include <sys/mman.h>
 #include "../polcrypt.h"
 
-int compute_md5(const char *filename){
+void *compute_md5(struct argvArgs_t *Args){
 	int algo, i, fd, retVal;
 	char md5hash[33];
 	struct stat fileStat;
@@ -19,15 +19,15 @@ int compute_md5(const char *filename){
 	algo = gcry_md_map_name(name);
 	off_t fsize = 0, donesize = 0, diff = 0, offset = 0;
 
-	fd = open(filename, O_RDONLY | O_NOFOLLOW);
+	fd = open(Args->inputFilePath, O_RDONLY | O_NOFOLLOW);
 	if(fd == -1){
 		fprintf(stderr, "compute_md5: %s\n", strerror(errno));
-		return -1;
+		return NULL;
 	}
   	if(fstat(fd, &fileStat) < 0){
   		fprintf(stderr, "compute_md5: %s\n", strerror(errno));
     	close(fd);
-    	return -1;
+    	return NULL;
   	}
   	fsize = fileStat.st_size;
  
@@ -37,13 +37,13 @@ int compute_md5(const char *filename){
 		fAddr = mmap(NULL, fsize, PROT_READ, MAP_FILE | MAP_SHARED, fd, 0);
 		if(fAddr == MAP_FAILED){
 			fprintf(stderr, "compute_md5: %s\n", strerror(errno));
-			return -1;
+			return NULL;
 		}
 		gcry_md_write(hd, fAddr, fsize);
 		retVal = munmap(fAddr, fsize);
 		if(retVal == -1){
 			perror("--> munmap ");
-			return -1;
+			return NULL;
 		}
 		goto nowhile;
 	}
@@ -52,7 +52,7 @@ int compute_md5(const char *filename){
 		fAddr = mmap(NULL, BUF_FILE, PROT_READ, MAP_FILE | MAP_SHARED, fd, offset);
 		if(fAddr == MAP_FAILED){
 			fprintf(stderr, "compute_md5: %s\n", strerror(errno));
-			return -1;
+			return NULL;
 		}
 		gcry_md_write(hd, fAddr, BUF_FILE);
 		donesize+=BUF_FILE;
@@ -62,20 +62,20 @@ int compute_md5(const char *filename){
 			fAddr = mmap(NULL, diff, PROT_READ, MAP_FILE | MAP_SHARED, fd, offset);
 			if(fAddr == MAP_FAILED){
 				fprintf(stderr, "compute_md5: %s\n", strerror(errno));
-				return -1;
+				return NULL;
 			}
 			gcry_md_write(hd, fAddr, diff);
 			retVal = munmap(fAddr, BUF_FILE);
 			if(retVal == -1){
 				perror("--> munmap ");
-				return -1;
+				return NULL;
 			}
 			break;
 		}
 		retVal = munmap(fAddr, BUF_FILE);
 		if(retVal == -1){
 			perror("--> munmap ");
-			return -1;
+			return NULL;
 		}
 	}
 	
@@ -88,5 +88,4 @@ int compute_md5(const char *filename){
  	md5hash[32] = '\0';
  	printf("MD5:\t\t%s\n", md5hash);
 	gcry_md_close(hd);
-	return 0;
 }
