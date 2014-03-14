@@ -27,6 +27,8 @@ int do_action();
 
 struct argvArgs_t Args;
 
+GCRY_THREAD_OPTION_PTHREAD_IMPL;
+
 int main(int argc, char **argv){
 	if(argc == 1){
 		printf(_("To encrypt|decrypt a file: %s [--encrypt] | [--decrypt] <path-to-input_file> --output <path_to_output_file>\n"), argv[0]);
@@ -37,6 +39,7 @@ int main(int argc, char **argv){
 		printf(_("You are root, please run this program as NORMAL USER!\n"));
 		return 0;
 	}
+	gcry_control(GCRYCTL_SET_THREAD_CBS, &gcry_threads_pthread);
 	if(!gcry_check_version(GCRYPT_MIN_VER)){
 		printf(_("libgcrypt min version required: 1.5.0\n"));
 		return -1;
