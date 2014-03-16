@@ -41,9 +41,16 @@ int main(int argc, char **argv){
 	}
 	gcry_control(GCRYCTL_SET_THREAD_CBS, &gcry_threads_pthread);
 	if(!gcry_check_version(GCRYPT_MIN_VER)){
-		printf(_("libgcrypt min version required: 1.5.0\n"));
+		printf(_("libgcrypt min version required: 1.6.0\n"));
 		return -1;
 	}
+
+	const gchar *glibVer = glib_check_version(2, 32, 0);
+	if(glibVer != NULL){
+		show_error(NULL, "The required version of GLib is 2.32.0 or greater.");
+		return -1;
+	}
+	
 	gcry_control(GCRYCTL_INIT_SECMEM, 16384, 0);
 	gcry_control(GCRYCTL_INITIALIZATION_FINISHED, 0);
 
@@ -250,7 +257,7 @@ int do_action(){
 			g_thread_join(t7);
 			return 0;
 		}
-		else printf(_("--> Available hash algo are: md5, sha1, sha256, sha512 and whirlpool\n"));
+		else printf(_("--> Available hash algo are: md5, sha1, sha256, sha512, gostr, stribog512 and whirlpool\n"));
 	}
 	return 0;
 }

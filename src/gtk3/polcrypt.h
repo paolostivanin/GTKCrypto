@@ -3,7 +3,7 @@
 
 #define BUF_FILE 16777216 /* 16 MiB memory buffer (hash) */
 #define BUFSIZE 1048576  /* 1 MiB memory buffer (delete_input_file) */
-#define GCRYPT_MIN_VER "1.5.0"
+#define GCRYPT_MIN_VER "1.6.0"
 #define VERSION "2.1.0-dev"
 #define LOCALE_DIR "/usr/share/locale" // or your specification
 #define PACKAGE    "polcrypt"          // mo file name in LOCALE
@@ -12,7 +12,7 @@
 #include <gtk/gtk.h>
 
 struct metadata_t{
-	unsigned char algo_type[16]; //aes,twofish,serpent,aes-two,aes-ser,aes-two-ser
+	gint8 algo_type; //(1=aes),(2=twofish),(3=serpent),(4=aes-two),(5=aes-ser),(6=two-ser),(7=aes-two-ser)
 	unsigned char salt[32];
 	unsigned char iv[16];
 };
@@ -26,7 +26,6 @@ struct widget_t{
 extern struct widget_t Widget;
 
 struct hashWidget_t{
-	GThread *t1, *t2, *t3, *t4, *t5, *t6, *t7;
 	gchar *filename;
 	GtkWidget *entryMD5, *entryS1, *entryS256, *entryS512, *entryWhir, *entryGOSTR, *entrySTRIBOG512;
 	GtkWidget *checkMD5, *checkS1, *checkS256, *checkS512, *checkWhir, *checkGOSTR, *checkSTRIBOG512;

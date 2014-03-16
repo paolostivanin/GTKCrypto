@@ -16,11 +16,11 @@ int delete_input_file(const char *inputFilePath, size_t fileSize){
 	fd = open(inputFilePath, O_WRONLY | O_NOFOLLOW);
 	fdRandom = open("/dev/random", O_RDONLY);
 	if(fd == -1){
-		fprintf(stderr, "Input file: %s\n", strerror(errno));
+		fprintf(stderr, "delete_input_file (open fd): %s\n", strerror(errno));
 		return -1;
 	}
 	if(fdRandom == -1){
-		fprintf(stderr, "Random file: %s\n", strerror(errno));
+		fprintf(stderr, "delete_input_file (open fdRandom): %s\n", strerror(errno));
 		return -1;
 	}
 	if(fileSize < BUFSIZE){
@@ -36,14 +36,14 @@ int delete_input_file(const char *inputFilePath, size_t fileSize){
 	}
 	ftruncate(fd, 0);
 	if(fsync(fd) == -1){
-		fprintf(stderr, "fsync: %s\n", strerror(errno));
+		fprintf(stderr, "delete_input_file (fsync): %s\n", strerror(errno));
 		return -1;
 	}
 	close(fd);
 	close(fdRandom);
 
 	if(remove(inputFilePath) == -1){
-		fprintf(stderr, "Input file remove: %s\n", strerror(errno));
+		fprintf(stderr, "delete_input_file (remove): %s\n", strerror(errno));
 		return -1;
 	}
 		

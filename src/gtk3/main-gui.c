@@ -46,7 +46,7 @@ GCRY_THREAD_OPTION_PTHREAD_IMPL;
 gint main(int argc, char **argv){
 	gcry_control(GCRYCTL_SET_THREAD_CBS, &gcry_threads_pthread);
 	if(!gcry_check_version(GCRYPT_MIN_VER)){
-		fputs("libgcrypt min version required: 1.5.0\n", stderr);
+		fputs("libgcrypt min version required: 1.6.0\n", stderr);
 		return -1;
 	}
 	gcry_control(GCRYCTL_INIT_SECMEM, 16384, 0);
@@ -443,29 +443,29 @@ static void show_error(struct widget_t *s_Error, const gchar *message){
 }
 
 static void *threadMD5(struct hashWidget_t *HashWidget){
-	HashWidget->t1 = g_thread_new("t1", (GThreadFunc)compute_md5, HashWidget);
+	g_thread_new("t1", (GThreadFunc)compute_md5, HashWidget);
 }
 
 static void *threadSHA1(struct hashWidget_t *HashWidget){
-	HashWidget->t2 = g_thread_new("t2", (GThreadFunc)compute_sha1, HashWidget);
+	g_thread_new("t2", (GThreadFunc)compute_sha1, HashWidget);
 }
 
 static void *threadSHA256(struct hashWidget_t *HashWidget){
-	HashWidget->t3 = g_thread_new("t3", (GThreadFunc)compute_sha256, HashWidget);
+	g_thread_new("t3", (GThreadFunc)compute_sha256, HashWidget);
 }
 
 static void *threadSHA512(struct hashWidget_t *HashWidget){
-	HashWidget->t4 = g_thread_new("t4", (GThreadFunc)compute_sha512, HashWidget);
+	g_thread_new("t4", (GThreadFunc)compute_sha512, HashWidget);
 }
 
 static void *threadWHIRLPOOL(struct hashWidget_t *HashWidget){
-	HashWidget->t5 = g_thread_new("t5", (GThreadFunc)compute_whirlpool, HashWidget);
+	g_thread_new("t5", (GThreadFunc)compute_whirlpool, HashWidget);
 }
 
 static void *threadGOSTR(struct hashWidget_t *HashWidget){
-	HashWidget->t6 = g_thread_new("t6", (GThreadFunc)compute_gostr, HashWidget);
+	g_thread_new("t6", (GThreadFunc)compute_gostr, HashWidget);
 }
 
 static void *threadSTRIBOG512(struct hashWidget_t *HashWidget){
-	HashWidget->t7 = g_thread_new("t7", (GThreadFunc)compute_stribog512, HashWidget);
+	g_thread_new("t7", (GThreadFunc)compute_stribog512, HashWidget);
 }

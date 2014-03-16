@@ -3,7 +3,7 @@
 
 #define BUF_FILE 16777216 /* 16 MiB memory buffer (hash) */
 #define BUFSIZE 1048576  /* 1 MiB memory buffer (delete_input_file) */
-#define GCRYPT_MIN_VER "1.5.0"
+#define GCRYPT_MIN_VER "1.6.0"
 #define VERSION "2.1.0-dev"
 #define LOCALE_DIR "/usr/share/locale" // or your specification
 #define PACKAGE    "polcrypt-cli"          // mo file name in LOCALE
