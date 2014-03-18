@@ -2,15 +2,15 @@ PolCrypt
 ========
 
 This software let you to:
-* Encrypt and decrypt files using AES256-CBC;
-* Compute the hash of a given file (supported hashes are MD5, GOST R 34.11-94, STRIBOG512, SHA1, SHA256, SHA512 and WHIRLPOOL);
+* Encrypt and decrypt files using AES, Twofish, Serpent or Camellia (all with a 256bit key) in CBC mode;
+* Compute the hash of a given file (supported hashes are MD5, GOST, Stribog-512, SHA-1, SHA-256, SHA-512 and Whirlpool);
 
 This software is developed by Paolo Stivanin (a.k.a Polslinux)
 
 
 Security
 --------
-* Confidentiality is given by AES256-CBC;
+* Confidentiality is given by AES/Twofish/Serpent/Camellia;
 * Integrity is given by the MAC calculation (MAC = HMAC+SHA512);
 * The input key is derived using PBKDF2 with 150'000 iterations and using SHA512 as hash algo;
 * High security because your key is temporarly stored into a secure memory that will be destroyed when the program exit;
@@ -32,9 +32,9 @@ Requirements
 
 How to use (CLI)
 ---------------
-`./polcrypt-cli --encrypt <path-to-input-file> --output <path-to-output-file>` to encrypt a file<br>
-`./polcrypt-cli --decrypt <path-to-input-file> --output <path-to-output-file>` to decrypt a file<br>
-`./polcrypt-cli --hash <path-to-input-file> --algo <md5|sha1|sha256|sha512|rmd160|whirlpool|all>` to compute one or more file hash<br>
+`./polcrypt-cli --encrypt <path-to-input-file> --algo <aes,twofish,serpent,camellia>` to encrypt a file<br>
+`./polcrypt-cli --decrypt <path-to-input-file>` to decrypt a file<br>
+`./polcrypt-cli --hash <path-to-input-file> --algo <md5|sha1|sha256|sha512|gostr|stribog|whirlpool|all>` to compute one or more file hash<br>
 
 
 How to compile

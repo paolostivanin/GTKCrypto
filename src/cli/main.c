@@ -33,7 +33,7 @@ int main(int argc, char **argv){
 	if(argc == 1){
 		printf(_("To encrypt a file: %s [--encrypt] <path-to-input_file> --algo <aes,twofish,serpent,camellia>\n"), argv[0]);
 		printf(_("To decrypt a file: %s [--decrypt] <path-to-input_file>\n"), argv[0]);
-		printf(_("To calculate one or more file hash: %s --hash <path-to-input_file> --algo [md5|sha1|sha256|sha512|whirlpool|all]\n"), argv[0]);
+		printf(_("To calculate one or more file hash: %s --hash <path-to-input_file> --algo [md5|sha1|sha256|sha512|gostr|stribog|whirlpool|all]\n"), argv[0]);
 	}
 	
 	if(getuid() == 0){
@@ -82,7 +82,7 @@ int main(int argc, char **argv){
 			
 			case 'h':
 				printf(_("To encrypt|decrypt a file: %s [--encrypt] | [--decrypt] <path-to-input_file> --algo <aes,twofish,serpent,camellia>\n"), argv[0]);
-				printf(_("To calculate one or more file hash: %s --hash <path-to-input_file> --type [md5|sha1|sha256|sha512|whirlpool|all]\n"), argv[0]);
+				printf(_("To calculate one or more file hash: %s --hash <path-to-input_file> --type [md5|sha1|sha256|sha512|gostr|stribog|whirlpool|all]\n"), argv[0]);
 				return 0;
 			
 			case '?':
@@ -195,6 +195,14 @@ int do_action(){
 		}
 		if(strcmp(Args.algo, "sha512") == 0){
 			compute_sha512(&Args);
+			return 0;
+		}
+		if(strcmp(Args.algo, "gostr") == 0){
+			compute_gostr(&Args);
+			return 0;
+		}
+		if(strcmp(Args.algo, "stribog") == 0){
+			compute_stribog512(&Args);
 			return 0;
 		}
 		if(strcmp(Args.algo, "whirlpool") == 0){
