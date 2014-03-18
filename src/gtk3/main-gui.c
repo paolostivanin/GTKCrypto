@@ -182,8 +182,8 @@ static void file_dialog(struct widget_t *Widget){
 
 static void type_pwd_enc(struct widget_t *WidgetEnc){
 	gtk_widget_hide(GTK_WIDGET(WidgetEnc->file_dialog));
-	GtkWidget *content_area, *grid2, *label, *labelAgain, *infoarea, *labelcombo;
-   	WidgetEnc->dialog = gtk_dialog_new_with_buttons ("Password", NULL, GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT, _("_Quit"), GTK_RESPONSE_CLOSE, _("_Ok"), GTK_RESPONSE_OK, NULL);
+	GtkWidget *content_area, *grid2, *labelPwd, *labelRetypePwd, *infoarea, *labelCombo;
+   	WidgetEnc->dialog = gtk_dialog_new_with_buttons (_("Encryption Password"), NULL, GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT, _("_Quit"), GTK_RESPONSE_CLOSE, _("_Ok"), GTK_RESPONSE_OK, NULL);
    	content_area = gtk_dialog_get_content_area (GTK_DIALOG (WidgetEnc->dialog));
    	
    	WidgetEnc->combomenu = gtk_combo_box_text_new();
@@ -191,14 +191,14 @@ static void type_pwd_enc(struct widget_t *WidgetEnc){
    	gtk_combo_box_text_append(GTK_COMBO_BOX_TEXT(WidgetEnc->combomenu), "1", "SERPENT-256");
    	gtk_combo_box_text_append(GTK_COMBO_BOX_TEXT(WidgetEnc->combomenu), "2", "TWOFISH-256");
    	gtk_combo_box_text_append(GTK_COMBO_BOX_TEXT(WidgetEnc->combomenu), "3", "CAMELLIA-256");
-   	/*gtk_combo_box_text_append(GTK_COMBO_BOX_TEXT(WidgetEnc->combomenu), "4", "AES+TWOFISH");
+   	gtk_combo_box_text_append(GTK_COMBO_BOX_TEXT(WidgetEnc->combomenu), "4", "AES+TWOFISH");
    	gtk_combo_box_text_append(GTK_COMBO_BOX_TEXT(WidgetEnc->combomenu), "5", "AES+SERPENT");
    	gtk_combo_box_text_append(GTK_COMBO_BOX_TEXT(WidgetEnc->combomenu), "6", "TWOFISH+SERPENT");
-   	gtk_combo_box_text_append(GTK_COMBO_BOX_TEXT(WidgetEnc->combomenu), "7", "AES+SERPENT+TWOFISH");*/
+   	gtk_combo_box_text_append(GTK_COMBO_BOX_TEXT(WidgetEnc->combomenu), "7", "AES+SERPENT+TWOFISH");
    	
-   	label = gtk_label_new(_("Type password"));
-   	labelAgain = gtk_label_new(_("Retype password"));
-   	labelcombo = gtk_label_new(_("Select Algo"));
+   	labelPwd = gtk_label_new(_("Type password"));
+   	labelRetypePwd = gtk_label_new(_("Retype password"));
+   	labelCombo = gtk_label_new(_("Select Algo"));
    	WidgetEnc->pwdEntry = gtk_entry_new();
    	WidgetEnc->pwdReEntry = gtk_entry_new();
    	gtk_entry_set_visibility(GTK_ENTRY(WidgetEnc->pwdEntry), FALSE); //input nascosto
@@ -207,7 +207,7 @@ static void type_pwd_enc(struct widget_t *WidgetEnc){
    	gtk_widget_set_size_request(WidgetEnc->dialog, 150, 100); // richiedo una grandezza minima
 	
    	WidgetEnc->infobar = gtk_info_bar_new();
-	WidgetEnc->infolabel = gtk_label_new(_("Encrypting and deleting the file can take some\n minutes depending on the file size..."));
+	WidgetEnc->infolabel = gtk_label_new(_("Encrypting and deleting the file can take some minutes depending on the file size..."));
 	gtk_label_set_justify(GTK_LABEL(WidgetEnc->infolabel), GTK_JUSTIFY_CENTER);
 	gtk_info_bar_set_message_type(GTK_INFO_BAR(WidgetEnc->infobar), GTK_MESSAGE_INFO);
 	infoarea = gtk_info_bar_get_content_area(GTK_INFO_BAR(WidgetEnc->infobar));
@@ -217,18 +217,27 @@ static void type_pwd_enc(struct widget_t *WidgetEnc){
 	gtk_grid_set_column_homogeneous(GTK_GRID(grid2), TRUE); // colonne stessa larghezza
 	gtk_grid_set_row_spacing(GTK_GRID(grid2), 5); // spazio fra le righe
 	
-	GValue bottomMargin = G_VALUE_INIT;
-	g_value_init (&bottomMargin, G_TYPE_UINT);
-	g_value_set_uint(&bottomMargin, 10);
-	g_object_set_property(G_OBJECT(WidgetEnc->pwdEntry), "margin-bottom", &bottomMargin);
+	GValue marginTop = G_VALUE_INIT;
+	g_value_init (&marginTop, G_TYPE_UINT);
+	g_value_set_uint(&marginTop, 10);
+	g_object_set_property(G_OBJECT(labelCombo), "margin-top", &marginTop);
+	g_object_set_property(G_OBJECT(WidgetEnc->combomenu), "margin-top", &marginTop);
+
+	GValue marginLeft = G_VALUE_INIT;
+	g_value_init (&marginLeft, G_TYPE_UINT);
+	g_value_set_uint(&marginLeft, 2);
+	g_object_set_property(G_OBJECT(WidgetEnc->combomenu), "margin-left", &marginLeft);
+	g_object_set_property(G_OBJECT(WidgetEnc->pwdEntry), "margin-left", &marginLeft);
+	g_object_set_property(G_OBJECT(WidgetEnc->pwdReEntry), "margin-left", &marginLeft);
 	
-	gtk_grid_attach(GTK_GRID(grid2), labelcombo, 0, 0, 1, 1);
+	
+	gtk_grid_attach(GTK_GRID(grid2), labelCombo, 0, 0, 1, 1);
 	gtk_grid_attach(GTK_GRID(grid2), WidgetEnc->combomenu, 1, 0, 2, 1);
-	gtk_grid_attach(GTK_GRID(grid2), label, 0, 1, 3, 1);
-	gtk_grid_attach(GTK_GRID(grid2), WidgetEnc->pwdEntry, 0, 2, 3, 1);
-	gtk_grid_attach(GTK_GRID(grid2), labelAgain, 0, 3, 3, 1);
-	gtk_grid_attach(GTK_GRID(grid2), WidgetEnc->pwdReEntry, 0, 4, 3, 1);
-	gtk_grid_attach(GTK_GRID(grid2), WidgetEnc->infobar, 0, 5, 3, 1);
+	gtk_grid_attach(GTK_GRID(grid2), labelPwd, 0, 1, 1, 1);
+	gtk_grid_attach(GTK_GRID(grid2), WidgetEnc->pwdEntry, 1, 1, 2, 1);
+	gtk_grid_attach(GTK_GRID(grid2), labelRetypePwd, 0, 2, 1, 1);
+	gtk_grid_attach(GTK_GRID(grid2), WidgetEnc->pwdReEntry, 1, 2, 2, 1);
+	gtk_grid_attach(GTK_GRID(grid2), WidgetEnc->infobar, 0, 3, 3, 1);
 
    	/* Add the grid, and show everything we've added to the dialog */
    	gtk_container_add (GTK_CONTAINER (content_area), grid2);
@@ -250,7 +259,7 @@ static void type_pwd_enc(struct widget_t *WidgetEnc){
 static void type_pwd_dec(struct widget_t *WidgetDec){
 	gtk_widget_hide(GTK_WIDGET(WidgetDec->file_dialog));
 	GtkWidget *content_area, *grid2, *label, *infoarea;
-   	WidgetDec->dialog = gtk_dialog_new_with_buttons ("Password", NULL, GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT, _("_Quit"), GTK_RESPONSE_CLOSE, _("_Ok"), GTK_RESPONSE_OK, NULL);
+   	WidgetDec->dialog = gtk_dialog_new_with_buttons (_("Decryption Password"), NULL, GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT, _("_Quit"), GTK_RESPONSE_CLOSE, _("_Ok"), GTK_RESPONSE_OK, NULL);
    	content_area = gtk_dialog_get_content_area (GTK_DIALOG (WidgetDec->dialog));
    	
    	label = gtk_label_new(_("Type password"));
@@ -260,19 +269,30 @@ static void type_pwd_dec(struct widget_t *WidgetDec){
    	gtk_widget_set_size_request(WidgetDec->dialog, 150, 100); // richiedo una grandezza minima
    
    	WidgetDec->infobar = gtk_info_bar_new();
-	WidgetDec->infolabel = gtk_label_new(_("Decrypting the file can take some\nminutes depending on the file size..."));
+	WidgetDec->infolabel = gtk_label_new(_("Decrypting the file can take some minutes depending on the file size..."));
 	gtk_label_set_justify(GTK_LABEL(WidgetDec->infolabel), GTK_JUSTIFY_CENTER);
 	gtk_info_bar_set_message_type(GTK_INFO_BAR(WidgetDec->infobar), GTK_MESSAGE_INFO);
 	infoarea = gtk_info_bar_get_content_area(GTK_INFO_BAR(WidgetDec->infobar));
 	gtk_container_add(GTK_CONTAINER(infoarea), WidgetDec->infolabel);
+	
+	GValue marginLeft = G_VALUE_INIT;
+	g_value_init (&marginLeft, G_TYPE_UINT);
+	g_value_set_uint(&marginLeft, 2);
+	g_object_set_property(G_OBJECT(WidgetDec->pwdEntry), "margin-left", &marginLeft);
+	
+	GValue marginTop = G_VALUE_INIT;
+	g_value_init (&marginTop, G_TYPE_UINT);
+	g_value_set_uint(&marginTop, 10);
+	g_object_set_property(G_OBJECT(label), "margin-top", &marginTop);
+	g_object_set_property(G_OBJECT(WidgetDec->pwdEntry), "margin-top", &marginTop);
    	
    	grid2 = gtk_grid_new();
 	gtk_grid_set_column_homogeneous(GTK_GRID(grid2), TRUE); // colonne stessa larghezza
 	gtk_grid_set_row_spacing(GTK_GRID(grid2), 5); // spazio fra le righe
 	
-	gtk_grid_attach(GTK_GRID(grid2), label, 0, 0, 3, 1);
-	gtk_grid_attach(GTK_GRID(grid2), WidgetDec->pwdEntry, 0, 1, 3, 1);
-	gtk_grid_attach(GTK_GRID(grid2), WidgetDec->infobar, 0, 2, 3, 1);
+	gtk_grid_attach(GTK_GRID(grid2), label, 0, 0, 1, 1);
+	gtk_grid_attach(GTK_GRID(grid2), WidgetDec->pwdEntry, 1, 0, 2, 1);
+	gtk_grid_attach(GTK_GRID(grid2), WidgetDec->infobar, 0, 1, 3, 1);
 
    	/* Add the grid, and show everything we've added to the dialog */
    	gtk_container_add (GTK_CONTAINER (content_area), grid2);
