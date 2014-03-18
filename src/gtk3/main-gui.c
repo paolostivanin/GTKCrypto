@@ -182,12 +182,23 @@ static void file_dialog(struct widget_t *Widget){
 
 static void type_pwd_enc(struct widget_t *WidgetEnc){
 	gtk_widget_hide(GTK_WIDGET(WidgetEnc->file_dialog));
-	GtkWidget *content_area, *grid2, *label, *labelAgain, *infoarea;
+	GtkWidget *content_area, *grid2, *label, *labelAgain, *infoarea, *labelcombo;
    	WidgetEnc->dialog = gtk_dialog_new_with_buttons ("Password", NULL, GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT, _("_Quit"), GTK_RESPONSE_CLOSE, _("_Ok"), GTK_RESPONSE_OK, NULL);
    	content_area = gtk_dialog_get_content_area (GTK_DIALOG (WidgetEnc->dialog));
    	
+   	WidgetEnc->combomenu = gtk_combo_box_text_new();
+   	gtk_combo_box_text_append(GTK_COMBO_BOX_TEXT(WidgetEnc->combomenu), "0", "AES-256");
+   	gtk_combo_box_text_append(GTK_COMBO_BOX_TEXT(WidgetEnc->combomenu), "1", "SERPENT-256");
+   	gtk_combo_box_text_append(GTK_COMBO_BOX_TEXT(WidgetEnc->combomenu), "2", "TWOFISH-256");
+   	gtk_combo_box_text_append(GTK_COMBO_BOX_TEXT(WidgetEnc->combomenu), "3", "CAMELLIA-256");
+   	/*gtk_combo_box_text_append(GTK_COMBO_BOX_TEXT(WidgetEnc->combomenu), "4", "AES+TWOFISH");
+   	gtk_combo_box_text_append(GTK_COMBO_BOX_TEXT(WidgetEnc->combomenu), "5", "AES+SERPENT");
+   	gtk_combo_box_text_append(GTK_COMBO_BOX_TEXT(WidgetEnc->combomenu), "6", "TWOFISH+SERPENT");
+   	gtk_combo_box_text_append(GTK_COMBO_BOX_TEXT(WidgetEnc->combomenu), "7", "AES+SERPENT+TWOFISH");*/
+   	
    	label = gtk_label_new(_("Type password"));
    	labelAgain = gtk_label_new(_("Retype password"));
+   	labelcombo = gtk_label_new(_("Select Algo"));
    	WidgetEnc->pwdEntry = gtk_entry_new();
    	WidgetEnc->pwdReEntry = gtk_entry_new();
    	gtk_entry_set_visibility(GTK_ENTRY(WidgetEnc->pwdEntry), FALSE); //input nascosto
@@ -211,11 +222,13 @@ static void type_pwd_enc(struct widget_t *WidgetEnc){
 	g_value_set_uint(&bottomMargin, 10);
 	g_object_set_property(G_OBJECT(WidgetEnc->pwdEntry), "margin-bottom", &bottomMargin);
 	
-	gtk_grid_attach(GTK_GRID(grid2), label, 0, 0, 3, 1);
-	gtk_grid_attach(GTK_GRID(grid2), WidgetEnc->pwdEntry, 0, 1, 3, 1);
-	gtk_grid_attach(GTK_GRID(grid2), labelAgain, 0, 2, 3, 1);
-	gtk_grid_attach(GTK_GRID(grid2), WidgetEnc->pwdReEntry, 0, 3, 3, 1);
-	gtk_grid_attach(GTK_GRID(grid2), WidgetEnc->infobar, 0, 4, 3, 1);
+	gtk_grid_attach(GTK_GRID(grid2), labelcombo, 0, 0, 1, 1);
+	gtk_grid_attach(GTK_GRID(grid2), WidgetEnc->combomenu, 1, 0, 2, 1);
+	gtk_grid_attach(GTK_GRID(grid2), label, 0, 1, 3, 1);
+	gtk_grid_attach(GTK_GRID(grid2), WidgetEnc->pwdEntry, 0, 2, 3, 1);
+	gtk_grid_attach(GTK_GRID(grid2), labelAgain, 0, 3, 3, 1);
+	gtk_grid_attach(GTK_GRID(grid2), WidgetEnc->pwdReEntry, 0, 4, 3, 1);
+	gtk_grid_attach(GTK_GRID(grid2), WidgetEnc->infobar, 0, 5, 3, 1);
 
    	/* Add the grid, and show everything we've added to the dialog */
    	gtk_container_add (GTK_CONTAINER (content_area), grid2);
@@ -226,7 +239,7 @@ static void type_pwd_enc(struct widget_t *WidgetEnc){
 		case GTK_RESPONSE_OK:
 			do_enc(WidgetEnc);
 			gtk_widget_destroy(WidgetEnc->dialog);
-			if(WidgetEnc->toEnc == -1) show_error(WidgetEnc, "Password are different, try again!");
+			if(WidgetEnc->toEnc == -1) show_error(WidgetEnc, _("Password are different, try again!"));
 			break;
 		case GTK_RESPONSE_CLOSE:
 			gtk_widget_destroy(WidgetEnc->dialog);
@@ -306,8 +319,8 @@ static void select_hash_type(struct widget_t *WidgetHash){
    	HashWidget.checkS256 = gtk_check_button_new_with_label("SHA-256");
    	HashWidget.checkS512 = gtk_check_button_new_with_label("SHA-512");
    	HashWidget.checkWhir = gtk_check_button_new_with_label("Whirlpool");
-   	HashWidget.checkGOSTR = gtk_check_button_new_with_label("GOSTR3411_94");
-   	HashWidget.checkSTRIBOG512 = gtk_check_button_new_with_label("STRIBOG512");
+   	HashWidget.checkGOSTR = gtk_check_button_new_with_label("GOSTR");
+   	HashWidget.checkSTRIBOG512 = gtk_check_button_new_with_label("STRIBOG-512");
    	
    	HashWidget.entryMD5 = gtk_entry_new();
    	HashWidget.entryS1 = gtk_entry_new();

@@ -27,14 +27,10 @@ gint decrypt_file_gui(struct widget_t *WidgetMain){
 	guchar hex[15] = { 0x01,0x02,0x03,0x04,0x05,0x06,0x07,0x08,0x09,0x0A,0x0B,0x0C,0x0D,0x0E,0x0F}, cipher_text[16], mac_of_file[64] ={0};
 	gchar *inputKey = NULL;
 	off_t fsize = 0;
-	const gchar *name = "aes256";
-	size_t blkLength, keyLength, txtLenght = 16, retval = 0, pwd_len;
+	size_t blkLength = 0, keyLength = 0, txtLenght = 16, retval = 0, pwd_len = 0;
 	glong current_file_offset, bytes_before_mac;
 	FILE *fp, *fpout;
-
-	blkLength = gcry_cipher_get_algo_blklen(GCRY_CIPHER_AES256);
-	keyLength = gcry_cipher_get_algo_keylen(GCRY_CIPHER_AES256);
-	algo = gcry_cipher_map_name(name);
+	
 	decBuffer = gcry_malloc(txtLenght);
 	
 	gchar *outFilename = NULL, *extBuf = NULL;
@@ -81,8 +77,8 @@ gint decrypt_file_gui(struct widget_t *WidgetMain){
   	fsize = fileStat.st_size;
   	close(fd);
 	
-	number_of_block = (fsize / 16)-8; //8=algo_type+salt+iv+hmac (1 blocco = 128bit)
-	bytes_before_mac = (number_of_block+4)*16; //4=algo_type+salt+iv
+	number_of_block = (fsize - sizeof(struct metadata_t) - 64)/16;
+	bytes_before_mac = (number_of_block*16)+sizeof(struct metadata_t);
 	
 	fp = fopen(WidgetMain->filename, "r");
 	if(fp == NULL){
@@ -101,6 +97,31 @@ gint decrypt_file_gui(struct widget_t *WidgetMain){
 		fprintf(stderr, _("decrypt_file: cannot read file metadata_t\n"));
 		gcry_free(inputKey);
 		return -1;
+	}
+	
+	if(Metadata.algo_type == 0){
+		algo = gcry_cipher_map_name("aes256");
+		blkLength = gcry_cipher_get_algo_blklen(algo);
+		keyLength = gcry_cipher_get_algo_keylen(algo);
+		
+	}
+	else if(Metadata.algo_type == 1){
+		algo = gcry_cipher_map_name("serpent256");
+		blkLength = gcry_cipher_get_algo_blklen(algo);
+		keyLength = gcry_cipher_get_algo_keylen(algo);
+		
+	}
+	else if(Metadata.algo_type == 2){
+		algo = gcry_cipher_map_name("twofish");
+		blkLength = gcry_cipher_get_algo_blklen(algo);
+		keyLength = gcry_cipher_get_algo_keylen(algo);
+		
+	}
+	else if(Metadata.algo_type == 3){
+		algo = gcry_cipher_map_name("camellia256");
+		blkLength = gcry_cipher_get_algo_blklen(algo);
+		keyLength = gcry_cipher_get_algo_keylen(algo);
+		
 	}
 
 	gcry_cipher_hd_t hd;

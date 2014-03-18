@@ -8,18 +8,19 @@
 #define LOCALE_DIR "/usr/share/locale" // or your specification
 #define PACKAGE    "polcrypt-cli"          // mo file name in LOCALE
 
+#include <glib.h>
+
 struct metadata_t{
-	unsigned char algo_type[16]; //aes,twofish,serpent,aes-two,aes-ser,aes-two-ser
-	unsigned char salt[32];
-	unsigned char iv[16];
+	gint8 algo_type; //(NULL|0=aes),(1=serpent),(2=twofish),(3=camelia),(4=aes+two),(5=aes+serp),(6=two+serp),(7=aes+serp+two)
+	guchar salt[32];
+	guchar iv[16];
 };
 extern struct metadata_t Metadata;
 
 struct argvArgs_t{
-	char *inputFilePath;
-	char *outputFilePath;
-	char *algo;
-	int check; //1 encrypt, 2 decrypt, 3 hash
+	gchar *inputFilePath;
+	gchar *algo;
+	gint check; //1 encrypt, 2 decrypt, 3 hash
 };
 extern struct argvArgs_t Args;
 

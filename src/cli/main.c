@@ -14,8 +14,8 @@
 #include <libintl.h>
 #include "polcrypt.h"
 
-int encrypt_file(const char *, const char *);
-int decrypt_file(const char *, const char *);
+int encrypt_file(struct argvArgs_t *);
+int decrypt_file(struct argvArgs_t *);
 void *compute_sha1(struct argvArgs_t *);
 void *compute_sha256(struct argvArgs_t *);
 void *compute_sha512(struct argvArgs_t *);
@@ -31,7 +31,8 @@ GCRY_THREAD_OPTION_PTHREAD_IMPL;
 
 int main(int argc, char **argv){
 	if(argc == 1){
-		printf(_("To encrypt|decrypt a file: %s [--encrypt] | [--decrypt] <path-to-input_file> --output <path_to_output_file>\n"), argv[0]);
+		printf(_("To encrypt a file: %s [--encrypt] <path-to-input_file> --algo <aes,twofish,serpent,camellia>\n"), argv[0]);
+		printf(_("To decrypt a file: %s [--decrypt] <path-to-input_file>\n"), argv[0]);
 		printf(_("To calculate one or more file hash: %s --hash <path-to-input_file> --algo [md5|sha1|sha256|sha512|whirlpool|all]\n"), argv[0]);
 	}
 	
@@ -47,7 +48,7 @@ int main(int argc, char **argv){
 
 	const gchar *glibVer = glib_check_version(2, 32, 0);
 	if(glibVer != NULL){
-		show_error(NULL, "The required version of GLib is 2.32.0 or greater.");
+		g_print("The required version of GLib is 2.32.0 or greater.\n");
 		return -1;
 	}
 	
@@ -67,9 +68,9 @@ int main(int argc, char **argv){
 		{"version", no_argument, NULL, 'v'},
 		{"encrypt", required_argument, NULL, 'e'},
 		{"decrypt", required_argument, NULL, 'd'},
-		{"output", required_argument, NULL, 'o'},
-		{"hash", required_argument, NULL, 's'},
 		{"algo", required_argument, NULL, 'a'},
+		{"hash", required_argument, NULL, 's'},
+		{"type", required_argument, NULL, 't'},
 		{NULL, 0, NULL, 0}
 	};
 
@@ -80,8 +81,8 @@ int main(int argc, char **argv){
 				return 0;
 			
 			case 'h':
-				printf(_("To encrypt|decrypt a file: %s [--encrypt] | [--decrypt] <path-to-input_file> --output <path_to_output_file>\n"), argv[0]);
-				printf(_("To calculate one or more file hash: %s --hash <path-to-input_file> --algo [md5|sha1|sha256|sha512|whirlpool|all]\n"), argv[0]);
+				printf(_("To encrypt|decrypt a file: %s [--encrypt] | [--decrypt] <path-to-input_file> --algo <aes,twofish,serpent,camellia>\n"), argv[0]);
+				printf(_("To calculate one or more file hash: %s --hash <path-to-input_file> --type [md5|sha1|sha256|sha512|whirlpool|all]\n"), argv[0]);
 				return 0;
 			
 			case '?':
@@ -89,7 +90,7 @@ int main(int argc, char **argv){
 			}
 	}
 	optind = 1;
-	while ((ch = getopt_long(argc, argv, "e:d:s:a:o:", long_options, NULL)) != -1){
+	while ((ch = getopt_long(argc, argv, "e:d:s:t:o:", long_options, NULL)) != -1){
 		switch (ch){
 			case 'e':
 				nameLen = strlen(optarg)+1;
@@ -111,6 +112,8 @@ int main(int argc, char **argv){
 				}
 				strcpy(Args.inputFilePath, optarg);
 				Args.check = 2;
+				do_action();
+				free(Args.inputFilePath);
 				break;
 			
 			case 's':
@@ -128,9 +131,26 @@ int main(int argc, char **argv){
 				}
 				break;
 			
-			case 'a':
+			case 't':
 				if(Args.check != 3){
 					printf(_("You must use the option --hash to use the option --algo\n"));
+					return -1;
+				}
+				nameLen = strlen(optarg)+1;
+				Args.algo = malloc(nameLen);
+				if(Args.algo == NULL){
+					fprintf(stderr, _("main (case t): error during memory allocation\n"));
+					return -1;
+				}
+				strcpy(Args.algo, optarg);
+				do_action();
+				free(Args.inputFilePath);
+				free(Args.algo);
+				return 0;
+				
+			case 'a':
+				if(Args.check != 1){
+					printf(_("You must use the option --encrypt to use the option --algo\n"));
 					return -1;
 				}
 				nameLen = strlen(optarg)+1;
@@ -144,23 +164,6 @@ int main(int argc, char **argv){
 				free(Args.inputFilePath);
 				free(Args.algo);
 				return 0;
-				
-			case 'o':
-				if(Args.check != 1 && Args.check != 2){
-					printf(_("You must use the option --encrypt || --decrypt to use the option --output\n"));
-					return -1;
-				}
-				nameLen = strlen(optarg)+1;
-				Args.outputFilePath = malloc(nameLen);
-				if(Args.outputFilePath == NULL){
-					fprintf(stderr, _("main (case o): error during memory allocation\n"));
-					return -1;
-				}
-				strcpy(Args.outputFilePath, optarg);
-				do_action();
-				free(Args.inputFilePath);
-				free(Args.outputFilePath);
-				return 0;
 			
 			case '?':
 				fprintf(stderr, _("Unknown option\n"));
@@ -171,52 +174,11 @@ int main(int argc, char **argv){
 }
 
 int do_action(){
-	int retval, fd_input, fd_output;
-	char *output_file;
-	size_t output_len;
-	const char *ext=".enc";
-	
 	if(Args.check == 1){
-		output_len = strlen(Args.outputFilePath)+1;
-		output_file = malloc(output_len);
-		strcpy(output_file, Args.outputFilePath);
-		output_file = (char *)realloc(output_file, output_len+5);
-		strcat(output_file, ext);
-		const char *path_to_output_file = (const char *)output_file;
-
-		fd_input = open(Args.inputFilePath, O_RDONLY | O_NOFOLLOW);
-		fd_output = open(path_to_output_file, O_WRONLY | O_NOFOLLOW | O_CREAT, 0644);
-		if(fd_input == -1 || fd_output == -1){
-			fprintf(stderr, _("main (encrypt): %s\n"), strerror(errno));
-			free(output_file);
-			return -1;
-		}
-		close(fd_input);
-		close(fd_output);
-		retval = encrypt_file(Args.inputFilePath, path_to_output_file);
-		if(retval == -1){
-			fprintf(stderr, _("main: error during file encryption\n"));
-			remove(path_to_output_file);
-			free(output_file);
-			return -1;
-		}
-		free(output_file);
+		encrypt_file(&Args);
 	}
 	else if(Args.check == 2){
-		fd_input = open(Args.inputFilePath, O_RDONLY | O_NOFOLLOW);
-		fd_output = open(Args.outputFilePath, O_WRONLY | O_NOFOLLOW | O_CREAT, 0644);
-		if(fd_input == -1 || fd_output == -1){
-			fprintf(stderr, _("main (decrypt): %s\n"), strerror(errno));
-			return -1;
-		}
-		close(fd_input);
-		close(fd_output);
-		retval = decrypt_file(Args.inputFilePath, Args.outputFilePath);
-		if(retval == -1){
-			printf(_("main: error during file decryption\n"));
-			remove(Args.outputFilePath);
-			return -1;
-		}
+		decrypt_file(&Args);
 	}
 	else if(Args.check == 3){
 		if(strcmp(Args.algo, "md5") == 0){

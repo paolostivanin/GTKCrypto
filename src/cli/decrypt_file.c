@@ -16,7 +16,7 @@
 int check_pkcs7(unsigned char *, unsigned char *);
 unsigned char *calculate_hmac(const char *, const unsigned char *, size_t, int);
 
-int decrypt_file(const char *input_file_path, const char *output_file_path){
+int decrypt_file(struct argvArgs_t *Args){
 	int algo = -1, fd, number_of_block, block_done = 0, number_of_pkcs7_byte;	
 	struct metadata_t Metadata;
 	struct termios oldt, newt;
@@ -26,15 +26,34 @@ int decrypt_file(const char *input_file_path, const char *output_file_path){
 	unsigned char hex[15] = { 0x01,0x02,0x03,0x04,0x05,0x06,0x07,0x08,0x09,0x0A,0x0B,0x0C,0x0D,0x0E,0x0F}, cipher_text[16], mac_of_file[64] ={0};
 	char *input_key = NULL, *tmp_key = NULL;
 	off_t fsize = 0;
-	const char *name = "aes256";
-	size_t blkLength, keyLength, txtLenght = 16, retval = 0, pwd_len;
+	size_t blkLength=0, keyLength=0, txtLenght = 16, retval = 0, pwd_len;
 	long current_file_offset, bytes_before_mac;
 	FILE *fp, *fpout;
 
-	blkLength = gcry_cipher_get_algo_blklen(GCRY_CIPHER_AES256);
-	keyLength = gcry_cipher_get_algo_keylen(GCRY_CIPHER_AES256);
-	algo = gcry_cipher_map_name(name);
 	decBuffer = gcry_malloc(txtLenght);
+
+	gchar *outFilename = NULL, *extBuf = NULL;
+	size_t lenFilename = strlen(Args->inputFilePath);
+	extBuf = malloc(5);
+	if(extBuf == NULL){
+		fprintf(stderr, _("decrypt_file: error during memory allocation"));
+		return -1;
+	}
+	memcpy(extBuf, (Args->inputFilePath)+lenFilename-4, 4);
+	extBuf[4] = '\0';
+	if(strcmp(extBuf, ".enc") == 0){
+		outFilename = malloc(lenFilename-3);
+		strncpy(outFilename, Args->inputFilePath, lenFilename-4);
+		outFilename[lenFilename-4] = '\0';
+		free(extBuf);
+	}
+	else{
+		outFilename = malloc(lenFilename+5);
+		strncpy(outFilename, Args->inputFilePath, lenFilename);
+		memcpy(outFilename+lenFilename, ".dec", 4);
+		outFilename[lenFilename+4] = '\0';
+		free(extBuf);
+	}
 
  	if(((tmp_key = gcry_malloc_secure(256)) == NULL)){
 		fprintf(stderr, _("decrypt_file: memory allocation error\n"));
@@ -61,7 +80,7 @@ int decrypt_file(const char *input_file_path, const char *output_file_path){
 	input_key[pwd_len-1] = '\0';
 	gcry_free(tmp_key);
 
-	fd = open(input_file_path, O_RDONLY | O_NOFOLLOW);
+	fd = open(Args->inputFilePath, O_RDONLY | O_NOFOLLOW);
 	if(fd == -1){
 		fprintf(stderr, "decrypt_file: %s\n", strerror(errno));
 		return -1;
@@ -74,9 +93,11 @@ int decrypt_file(const char *input_file_path, const char *output_file_path){
   	}
   	fsize = fileStat.st_size;
   	close(fd);
-	number_of_block = (fsize / 16)-8; //8=algo_type+salt+iv+hmac (1 blocco = 128bit)
-	bytes_before_mac = (number_of_block+4)*16; //4=algo_type+salt+iv
-	fp = fopen(input_file_path, "r");
+  	
+	number_of_block = (fsize - sizeof(struct metadata_t) - 64)/16;
+	bytes_before_mac = (number_of_block*16)+sizeof(struct metadata_t);
+	
+	fp = fopen(Args->inputFilePath, "r");
 	if(fp == NULL){
 		fprintf(stderr, "decrypt_file: %s\n", strerror(errno));
 		gcry_free(input_key);
@@ -93,6 +114,31 @@ int decrypt_file(const char *input_file_path, const char *output_file_path){
 		fprintf(stderr, "decrypt_file: cannot read file metadata\n");
 		gcry_free(input_key);
 		return -1;
+	}
+	
+	if(Metadata.algo_type == 0){
+		algo = gcry_cipher_map_name("aes256");
+		blkLength = gcry_cipher_get_algo_blklen(algo);
+		keyLength = gcry_cipher_get_algo_keylen(algo);
+		
+	}
+	else if(Metadata.algo_type == 1){
+		algo = gcry_cipher_map_name("serpent256");
+		blkLength = gcry_cipher_get_algo_blklen(algo);
+		keyLength = gcry_cipher_get_algo_keylen(algo);
+		
+	}
+	else if(Metadata.algo_type == 2){
+		algo = gcry_cipher_map_name("twofish");
+		blkLength = gcry_cipher_get_algo_blklen(algo);
+		keyLength = gcry_cipher_get_algo_keylen(algo);
+		
+	}
+	else if(Metadata.algo_type == 3){
+		algo = gcry_cipher_map_name("camellia256");
+		blkLength = gcry_cipher_get_algo_blklen(algo);
+		keyLength = gcry_cipher_get_algo_keylen(algo);
+		
 	}
 
 	gcry_cipher_hd_t hd;
@@ -140,7 +186,7 @@ int decrypt_file(const char *input_file_path, const char *output_file_path){
 		gcry_free(input_key);
 		return -1;
 	}
-	unsigned char *hmac = calculate_hmac(input_file_path, mac_key, keyLength, 1);
+	unsigned char *hmac = calculate_hmac(Args->inputFilePath, mac_key, keyLength, 1);
 	if(hmac == (unsigned char *)1){
 		fprintf(stderr, _("decrypt_file: error during HMAC calculation\n"));
 		gcry_free(derived_key);
@@ -167,7 +213,7 @@ int decrypt_file(const char *input_file_path, const char *output_file_path){
 		return -1;		
 	}
 
-	fpout = fopen(output_file_path, "w");
+	fpout = fopen(outFilename, "w");
 	if(fpout == NULL){
 		fprintf(stderr, "decrypt_file: %s\n", strerror(errno));
 		gcry_free(derived_key);

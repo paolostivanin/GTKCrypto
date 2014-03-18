@@ -18,16 +18,16 @@ gint delete_input_file(struct widget_t *, size_t);
 static void show_error(struct widget_t *, const gchar *);
 
 gint encrypt_file_gui(struct widget_t *WidgetMain){
+	const gchar *algoID = gtk_combo_box_get_active_id(GTK_COMBO_BOX(WidgetMain->combomenu));
 	gint algo = -1, fd, number_of_block, block_done = 0, retcode, counterForGoto = 0;
 	struct metadata_t Metadata;
 	struct stat fileStat;
 	memset(&Metadata, 0, sizeof(struct metadata_t));
 	guchar hex[15] = { 0x01,0x02,0x03,0x04,0x05,0x06,0x07,0x08,0x09,0x0A,0x0B,0x0C,0x0D,0x0E,0x0F}, plain_text[16];
 	guchar *derived_key = NULL, *crypto_key = NULL, *mac_key = NULL, *encBuffer = NULL;
-	gchar *inputKey = NULL;
+	gchar *inputKey = NULL, *name = NULL;
 	gfloat result_of_division_by_16, fsize_float;
 	off_t fsize = 0;
-	const gchar *name = "aes256";
 	size_t blkLength, keyLength, txtLenght = 16, retval = 0, i;
 	
 	const gchar *inputWidKey = gtk_entry_get_text(GTK_ENTRY(WidgetMain->pwdEntry));
@@ -43,9 +43,34 @@ gint encrypt_file_gui(struct widget_t *WidgetMain){
 	memcpy(outFilename+lenFilename, ".enc", 4);
 	outFilename[lenFilename+4] = '\0';
 
-	blkLength = gcry_cipher_get_algo_blklen(GCRY_CIPHER_AES256);
-	keyLength = gcry_cipher_get_algo_keylen(GCRY_CIPHER_AES256);
+	if(strcmp(algoID, "0") == 0 || algoID == NULL){
+		name = malloc(7);
+		strcpy(name, "aes256");
+		Metadata.algo_type = 0;
+	}
+	else if(strcmp(algoID, "1") == 0){
+		name = malloc(11);
+		strcpy(name, "serpent256");
+		Metadata.algo_type = 1;
+	}
+	else if(strcmp(algoID, "2") == 0){
+		name = malloc(8);
+		strcpy(name, "twofish");
+		Metadata.algo_type = 2;
+	}
+	else if(strcmp(algoID, "3") == 0){
+		name = malloc(12);
+		strcpy(name, "camellia256");
+		Metadata.algo_type = 3;
+	}
+	
 	algo = gcry_cipher_map_name(name);
+	
+	blkLength = gcry_cipher_get_algo_blklen(algo);
+	keyLength = gcry_cipher_get_algo_keylen(algo);
+	
+	free(name);
+	
 	encBuffer = gcry_malloc(txtLenght);
 
 	gcry_create_nonce(Metadata.iv, 16);
@@ -83,7 +108,7 @@ gint encrypt_file_gui(struct widget_t *WidgetMain){
 		gcry_free(inputKey);
 		return -1;
 	}
-
+	
 	gcry_cipher_hd_t hd;
 	gcry_cipher_open(&hd, algo, GCRY_CIPHER_MODE_CBC, 0);
 	if((derived_key = gcry_malloc_secure(64)) == NULL){

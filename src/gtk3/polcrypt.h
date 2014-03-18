@@ -12,16 +12,16 @@
 #include <gtk/gtk.h>
 
 struct metadata_t{
-	gint8 algo_type; //(1=aes),(2=twofish),(3=serpent),(4=aes-two),(5=aes-ser),(6=two-ser),(7=aes-two-ser)
-	unsigned char salt[32];
-	unsigned char iv[16];
+	gint8 algo_type; //(NULL|0=aes),(1=serpent),(2=twofish),(3=camellia),(4=aes+two),(5=aes+serp),(6=two+serp),(7=aes+serp+two)
+	guchar salt[32];
+	guchar iv[16];
 };
 extern struct metadata_t Metadata;
 
 struct widget_t{
 	gint mode, toEnc;
 	gchar *filename;
-	GtkWidget *pwdEntry, *pwdReEntry, *mainwin, *dialog, *file_dialog, *infobar, *infolabel;
+	GtkWidget *pwdEntry, *pwdReEntry, *mainwin, *dialog, *file_dialog, *infobar, *infolabel, *combomenu;
 };
 extern struct widget_t Widget;
 

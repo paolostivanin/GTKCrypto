@@ -7,6 +7,7 @@
 #include <unistd.h>
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <glib.h>
 #include <glib/gi18n.h>
 #include <locale.h>
 #include <libintl.h>
@@ -16,24 +17,54 @@
 unsigned char *calculate_hmac(const char *, const unsigned char *, size_t, int);
 int delete_input_file(const char *, size_t);
 
-int encrypt_file(const char *input_file_path, const char *output_file_path){
-	int algo = -1, fd, number_of_block, block_done = 0, retcode;
+int encrypt_file(struct argvArgs_t *Args){
+	gint algo = -1, fd, number_of_block, block_done = 0, retcode;
 	struct metadata_t Metadata;
 	struct termios oldt, newt;
 	struct stat fileStat;
 	memset(&Metadata, 0, sizeof(struct metadata_t));
-	unsigned char hex[15] = { 0x01,0x02,0x03,0x04,0x05,0x06,0x07,0x08,0x09,0x0A,0x0B,0x0C,0x0D,0x0E,0x0F}, plain_text[16];
-	unsigned char *derived_key = NULL, *crypto_key = NULL, *mac_key = NULL, *encBuffer = NULL;
-	char *input_key = NULL, *compare_key = NULL;
-	float result_of_division_by_16, fsize_float;
+	guchar hex[15] = { 0x01,0x02,0x03,0x04,0x05,0x06,0x07,0x08,0x09,0x0A,0x0B,0x0C,0x0D,0x0E,0x0F}, plain_text[16];
+	guchar *derived_key = NULL, *crypto_key = NULL, *mac_key = NULL, *encBuffer = NULL;
+	gchar *input_key = NULL, *compare_key = NULL, *name = NULL;
+	gfloat result_of_division_by_16, fsize_float;
 	off_t fsize = 0;
-	const char *name = "aes256";
 	size_t blkLength, keyLength, txtLenght = 16, retval = 0, i, pwd_len;
 
-	blkLength = gcry_cipher_get_algo_blklen(GCRY_CIPHER_AES256);
-	keyLength = gcry_cipher_get_algo_keylen(GCRY_CIPHER_AES256);
+	gchar *outFilename = NULL;
+	size_t lenFilename = strlen(Args->inputFilePath);
+	outFilename = malloc(lenFilename+5); // ".enc\0" sono 5 chars
+	strncpy(outFilename, Args->inputFilePath, lenFilename);
+	memcpy(outFilename+lenFilename, ".enc", 4);
+	outFilename[lenFilename+4] = '\0';
+
+	if(strcmp(Args->algo, "aes") == 0){
+		name = malloc(7);
+		strcpy(name, "aes256");
+		Metadata.algo_type = 0;
+	}
+	else if(strcmp(Args->algo, "serpent") == 0){
+		name = malloc(11);
+		strcpy(name, "serpent256");
+		Metadata.algo_type = 1;
+	}
+	else if(strcmp(Args->algo, "twofish") == 0){
+		name = malloc(8);
+		strcpy(name, "twofish");
+		Metadata.algo_type = 2;
+	}
+	else if(strcmp(Args->algo, "camellia") == 0){
+		name = malloc(12);
+		strcpy(name, "camellia256");
+		Metadata.algo_type = 3;
+	}
+	
 	algo = gcry_cipher_map_name(name);
 	encBuffer = gcry_malloc(txtLenght);
+	
+	blkLength = gcry_cipher_get_algo_blklen(algo);
+	keyLength = gcry_cipher_get_algo_keylen(algo);
+	
+	free(name);
 
 	gcry_create_nonce(Metadata.iv, 16);
 	gcry_create_nonce(Metadata.salt, 32);
@@ -79,7 +110,7 @@ int encrypt_file(const char *input_file_path, const char *output_file_path){
 	input_key[pwd_len-1] = '\0';
 	gcry_free(compare_key);
 
-	fd = open(input_file_path, O_RDONLY | O_NOFOLLOW);
+	fd = open(Args->inputFilePath, O_RDONLY | O_NOFOLLOW);
 	if(fd == -1){
 		fprintf(stderr, "encrypt_file: %s\n", strerror(errno));
 		gcry_free(input_key);
@@ -99,8 +130,8 @@ int encrypt_file(const char *input_file_path, const char *output_file_path){
 	number_of_block = (int)result_of_division_by_16;
 	if(result_of_division_by_16 > number_of_block) number_of_block += 1;
 	
-	FILE *fp = fopen(input_file_path, "r");
-	FILE *fpout = fopen(output_file_path, "w");
+	FILE *fp = fopen(Args->inputFilePath, "r");
+	FILE *fpout = fopen(outFilename, "w");
 	if(fp == NULL || fpout == NULL){
 		fprintf(stderr, _("encrypt_file: file opening error\n"));
 		gcry_free(input_key);
@@ -132,7 +163,7 @@ int encrypt_file(const char *input_file_path, const char *output_file_path){
 	fseek(fp, 0, SEEK_SET);
 	
 	fwrite(&Metadata, sizeof(struct metadata_t), 1, fpout);
-	
+
 	while(number_of_block > block_done){
 		memset(plain_text, 0, sizeof(plain_text));
 		retval = fread(plain_text, 1, 16, fp);
@@ -163,16 +194,16 @@ int encrypt_file(const char *input_file_path, const char *output_file_path){
 	fclose(fpout);
 	fclose(fp);
 
-	unsigned char *hmac = calculate_hmac(output_file_path, mac_key, keyLength, 0);
+	unsigned char *hmac = calculate_hmac(outFilename, mac_key, keyLength, 0);
 	if(hmac == (unsigned char *)1){
 		fprintf(stderr, _("encrypt_file: error during HMAC calculation\n"));
 		return -1;
 	}
-	fpout = fopen(output_file_path, "a");
+	fpout = fopen(outFilename, "a");
 	fwrite(hmac, 1, 64, fpout);
 	free(hmac);
 	
-	retcode = delete_input_file(input_file_path, fsize);
+	retcode = delete_input_file(Args->inputFilePath, fsize);
 	if(retcode == -1)
 		fprintf(stderr, _("encrypt_file: secure file deletion failed\n"));
 	if(retcode == -1)

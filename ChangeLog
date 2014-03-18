@@ -38,9 +38,13 @@
 	* ADDED: STRIBOG512
 	* IMPROVED: hash are computed using threads
 	* ADDED: support for single or multiple encryption (aes, twofish, serpent, aes+twofish, aes+serpent, aes+twofish+serpent)
-	* EVALUATING: aes256-ctr/aes256-gcm instead of aes256-cbc
 
-??/??/2014 - v2.2.0
+??/05/2014 - v2.2.0
 	* ADDED: asymmetric encryption support (with RSA or with a ECC algo)
 	* ADDED: data compression using zlib
 	* ADDED: multiple file selection for en/de/cryption
+
+?????????? - EVALUATING FEATURES
+	* migration from libgcrypt to openssl
+	* aes256-ctr as default instead of aes256-cbc
+	* possibility to choose different aes mode like aes-cbc, aes-ctr, aes-gcm, etc
