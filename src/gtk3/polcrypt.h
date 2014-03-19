@@ -27,8 +27,8 @@ extern struct widget_t Widget;
 
 struct hashWidget_t{
 	gchar *filename;
-	GtkWidget *entryMD5, *entryS1, *entryS256, *entryS512, *entryWhir, *entryGOSTR, *entrySTRIBOG512;
-	GtkWidget *checkMD5, *checkS1, *checkS256, *checkS512, *checkWhir, *checkGOSTR, *checkSTRIBOG512;
+	GtkWidget *entryMD5, *entryS1, *entryS256, *entryS3_256, *entryS512, *entryS3_512, *entryWhir, *entryGOSTR, *entrySTRIBOG512;
+	GtkWidget *checkMD5, *checkS1, *checkS256, *checkS3_256, *checkS512, *checkS3_512, *checkWhir, *checkGOSTR, *checkSTRIBOG512;
 };
 extern struct hashWidget_t HashWidget;
 

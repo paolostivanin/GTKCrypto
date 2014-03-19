@@ -25,7 +25,9 @@ gint decrypt_file_gui(struct widget_t *);
 void *compute_md5(struct hashWidget_t *);
 void *compute_sha1(struct hashWidget_t *);
 void *compute_sha256(struct hashWidget_t *);
+void *compute_sha3_256(struct hashWidget_t *);
 void *compute_sha512(struct hashWidget_t *);
+void *compute_sha3_512(struct hashWidget_t *);
 void *compute_whirlpool(struct hashWidget_t *);
 void *compute_gostr(struct hashWidget_t *);
 void *compute_stribog512(struct hashWidget_t *);
@@ -33,7 +35,9 @@ void *compute_stribog512(struct hashWidget_t *);
 static void *threadMD5(struct hashWidget_t *);
 static void *threadSHA1(struct hashWidget_t *);
 static void *threadSHA256(struct hashWidget_t *);
+static void *threadSHA3_256(struct hashWidget_t *);
 static void *threadSHA512(struct hashWidget_t *);
+static void *threadSHA3_512(struct hashWidget_t *);
 static void *threadWHIRLPOOL(struct hashWidget_t *);
 static void *threadGOSTR(struct hashWidget_t *);
 static void *threadSTRIBOG512(struct hashWidget_t *);
@@ -337,7 +341,9 @@ static void select_hash_type(struct widget_t *WidgetHash){
    	HashWidget.checkMD5 = gtk_check_button_new_with_label("MD5");
    	HashWidget.checkS1 = gtk_check_button_new_with_label("SHA-1");
    	HashWidget.checkS256 = gtk_check_button_new_with_label("SHA-256");
+   	HashWidget.checkS3_256 = gtk_check_button_new_with_label("SHA3-256");
    	HashWidget.checkS512 = gtk_check_button_new_with_label("SHA-512");
+   	HashWidget.checkS3_512 = gtk_check_button_new_with_label("SHA3-512");
    	HashWidget.checkWhir = gtk_check_button_new_with_label("Whirlpool");
    	HashWidget.checkGOSTR = gtk_check_button_new_with_label("GOSTR");
    	HashWidget.checkSTRIBOG512 = gtk_check_button_new_with_label("STRIBOG-512");
@@ -345,7 +351,9 @@ static void select_hash_type(struct widget_t *WidgetHash){
    	HashWidget.entryMD5 = gtk_entry_new();
    	HashWidget.entryS1 = gtk_entry_new();
    	HashWidget.entryS256 = gtk_entry_new();
+   	HashWidget.entryS3_256 = gtk_entry_new();
    	HashWidget.entryS512 = gtk_entry_new();
+   	HashWidget.entryS3_512 = gtk_entry_new();
    	HashWidget.entryWhir = gtk_entry_new();
    	HashWidget.entryGOSTR = gtk_entry_new();
    	HashWidget.entrySTRIBOG512 = gtk_entry_new();
@@ -375,17 +383,24 @@ static void select_hash_type(struct widget_t *WidgetHash){
 	gtk_grid_attach(GTK_GRID(grid2), HashWidget.checkS256, 0, 2, 1, 1);
 	gtk_grid_attach(GTK_GRID(grid2), HashWidget.entryS256, 2, 2, 6, 1);
 	
-	gtk_grid_attach(GTK_GRID(grid2), HashWidget.checkS512, 0, 3, 1, 1);
-	gtk_grid_attach(GTK_GRID(grid2), HashWidget.entryS512, 2, 3, 6, 1);
+	gtk_grid_attach(GTK_GRID(grid2), HashWidget.checkS3_256, 0, 3, 1, 1);
+	gtk_grid_attach(GTK_GRID(grid2), HashWidget.entryS3_256, 2, 3, 6, 1);
 	
-	gtk_grid_attach(GTK_GRID(grid2), HashWidget.checkWhir, 0, 4, 1, 1);
-	gtk_grid_attach(GTK_GRID(grid2), HashWidget.entryWhir, 2, 4, 6, 1);
+	gtk_grid_attach(GTK_GRID(grid2), HashWidget.checkS512, 0, 4, 1, 1);
+	gtk_grid_attach(GTK_GRID(grid2), HashWidget.entryS512, 2, 4, 6, 1);
 	
-	gtk_grid_attach(GTK_GRID(grid2), HashWidget.checkGOSTR, 0, 5, 1, 1);
-	gtk_grid_attach(GTK_GRID(grid2), HashWidget.entryGOSTR, 2, 5, 6, 1);
+	gtk_grid_attach(GTK_GRID(grid2), HashWidget.checkS3_512, 0, 5, 1, 1);
+	gtk_grid_attach(GTK_GRID(grid2), HashWidget.entryS3_512, 2, 5, 6, 1);
 
-	gtk_grid_attach(GTK_GRID(grid2), HashWidget.checkSTRIBOG512, 0, 6, 1, 1);
-	gtk_grid_attach(GTK_GRID(grid2), HashWidget.entrySTRIBOG512, 2, 6, 6, 1);
+	gtk_grid_attach(GTK_GRID(grid2), HashWidget.checkWhir, 0, 6, 1, 1);
+	gtk_grid_attach(GTK_GRID(grid2), HashWidget.entryWhir, 2, 6, 6, 1);
+	
+	gtk_grid_attach(GTK_GRID(grid2), HashWidget.checkGOSTR, 0, 7, 1, 1);
+	gtk_grid_attach(GTK_GRID(grid2), HashWidget.entryGOSTR, 2, 7, 6, 1);
+
+	gtk_grid_attach(GTK_GRID(grid2), HashWidget.checkSTRIBOG512, 0, 8, 1, 1);
+	gtk_grid_attach(GTK_GRID(grid2), HashWidget.entrySTRIBOG512, 2, 8, 6, 1);
+
 
    	/* Add the grid, and show everything we've added to the dialog */
    	gtk_container_add (GTK_CONTAINER (content_area), grid2);
@@ -397,7 +412,9 @@ static void select_hash_type(struct widget_t *WidgetHash){
    	g_signal_connect_swapped(HashWidget.checkMD5, "clicked", G_CALLBACK(threadMD5), &HashWidget);
    	g_signal_connect_swapped(HashWidget.checkS1, "clicked", G_CALLBACK(threadSHA1), &HashWidget);
    	g_signal_connect_swapped(HashWidget.checkS256, "clicked", G_CALLBACK(threadSHA256), &HashWidget);
-   	g_signal_connect_swapped(HashWidget.checkS512, "clicked", G_CALLBACK(threadSHA512), &HashWidget);
+   	g_signal_connect_swapped(HashWidget.checkS3_256, "clicked", G_CALLBACK(threadSHA3_256), &HashWidget);
+   	g_signal_connect_swapped(HashWidget.checkS512, "clicked", G_CALLBACK(threadSHA512), &HashWidget);   	
+   	g_signal_connect_swapped(HashWidget.checkS3_512, "clicked", G_CALLBACK(threadSHA3_512), &HashWidget);
    	g_signal_connect_swapped(HashWidget.checkWhir, "clicked", G_CALLBACK(threadWHIRLPOOL), &HashWidget);
    	g_signal_connect_swapped(HashWidget.checkGOSTR, "clicked", G_CALLBACK(threadGOSTR), &HashWidget);
    	g_signal_connect_swapped(HashWidget.checkSTRIBOG512, "clicked", G_CALLBACK(threadSTRIBOG512), &HashWidget);
@@ -428,7 +445,7 @@ static void about (GSimpleAction *action __attribute__ ((unused)), GVariant *par
         gtk_about_dialog_set_logo(GTK_ABOUT_DIALOG(a_dialog), logo_about);
         gtk_about_dialog_set_version (GTK_ABOUT_DIALOG (a_dialog), VERSION);
         gtk_about_dialog_set_copyright (GTK_ABOUT_DIALOG (a_dialog), "Copyright (C) 2014");
-        gtk_about_dialog_set_comments (GTK_ABOUT_DIALOG (a_dialog), _("With this software you can encrypt and decrypt file with AES-256 CBC using HMAC-SHA512 for message authentication or you can compute various type of hashes"));
+        gtk_about_dialog_set_comments (GTK_ABOUT_DIALOG (a_dialog), _("Encrypt files using single or multiple encryption and compute different type of hash"));
         gtk_about_dialog_set_license(GTK_ABOUT_DIALOG(a_dialog),
 "This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.\n"
 "\n"
@@ -487,18 +504,26 @@ static void *threadSHA256(struct hashWidget_t *HashWidget){
 	g_thread_new("t3", (GThreadFunc)compute_sha256, HashWidget);
 }
 
+static void *threadSHA3_256(struct hashWidget_t *HashWidget){
+	g_thread_new("t4", (GThreadFunc)compute_sha3_256, HashWidget);
+}
+
 static void *threadSHA512(struct hashWidget_t *HashWidget){
-	g_thread_new("t4", (GThreadFunc)compute_sha512, HashWidget);
+	g_thread_new("t5", (GThreadFunc)compute_sha512, HashWidget);
+}
+
+static void *threadSHA3_512(struct hashWidget_t *HashWidget){
+	g_thread_new("t6", (GThreadFunc)compute_sha3_512, HashWidget);
 }
 
 static void *threadWHIRLPOOL(struct hashWidget_t *HashWidget){
-	g_thread_new("t5", (GThreadFunc)compute_whirlpool, HashWidget);
+	g_thread_new("t7", (GThreadFunc)compute_whirlpool, HashWidget);
 }
 
 static void *threadGOSTR(struct hashWidget_t *HashWidget){
-	g_thread_new("t6", (GThreadFunc)compute_gostr, HashWidget);
+	g_thread_new("t8", (GThreadFunc)compute_gostr, HashWidget);
 }
 
 static void *threadSTRIBOG512(struct hashWidget_t *HashWidget){
-	g_thread_new("t7", (GThreadFunc)compute_stribog512, HashWidget);
+	g_thread_new("t9", (GThreadFunc)compute_stribog512, HashWidget);
 }
