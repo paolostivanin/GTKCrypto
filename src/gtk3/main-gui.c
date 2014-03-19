@@ -345,7 +345,7 @@ static void select_hash_type(struct widget_t *WidgetHash){
    	HashWidget.checkS512 = gtk_check_button_new_with_label("SHA-512");
    	HashWidget.checkS3_512 = gtk_check_button_new_with_label("SHA3-512");
    	HashWidget.checkWhir = gtk_check_button_new_with_label("Whirlpool");
-   	HashWidget.checkGOSTR = gtk_check_button_new_with_label("GOSTR");
+   	HashWidget.checkGOSTR = gtk_check_button_new_with_label("GOST94");
    	HashWidget.checkSTRIBOG512 = gtk_check_button_new_with_label("STRIBOG-512");
    	
    	HashWidget.entryMD5 = gtk_entry_new();
