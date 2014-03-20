@@ -3,7 +3,7 @@ PolCrypt
 
 This software let you to:
 * Encrypt and decrypt files using AES, Twofish, Serpent or Camellia (all with a 256bit key) in CBC mode;
-* Compute the hash of a given file (supported hashes are MD5, GOST, Stribog-512, SHA-1, SHA-256, SHA-512 and Whirlpool);
+* Compute the hash of a given file (supported hashes are MD5, GOST94, SHA-1, SHA-256, SHA3-256, SHA-512, SHA3-512 and Whirlpool);
 
 This software is developed by Paolo Stivanin (a.k.a Polslinux)
 
@@ -25,16 +25,10 @@ The latest (v2.1.0-dev) release can be found in the '-dev' branch, just clone it
 Requirements
 ------------
 * GCC or Clang	: required version of Clang **>= 3.1**, of GCC **>= 4.4.0**;
-* Gcrypt	: required version **>=1.6.0**;
+* Gcrypt	: required version **>=1.5.0**;
+* Nettle	: required version **>=2.7.0**;
 * GTK+		: required version **>=3.4.0**;
-* Glib		: for CLI **>=2.32.0**, for GUI **>=2.36.0**;
-
-
-How to use (CLI)
----------------
-`./polcrypt-cli --encrypt <path-to-input-file> --algo <aes,twofish,serpent,camellia>` to encrypt a file<br>
-`./polcrypt-cli --decrypt <path-to-input-file>` to decrypt a file<br>
-`./polcrypt-cli --hash <path-to-input-file> --algo <md5|sha1|sha256|sha512|gostr|stribog|whirlpool|all>` to compute one or more file hash<br>
+* Glib		: required version **>=2.36.0**;
 
 
 How to compile
@@ -44,17 +38,9 @@ How to compile
 * move inside the directory you've just downloaded:<br>
 `cd /path/to/PolCrypt`<br>
 * run:<br>
-`make all` to build the cli and gui version<br>
-`make cli` to build only the cli version<br>
-`make gui` to build only the gui version<br>
+`make` to build the cli and gui version<br>
 `make install` to install the software<br>
-After you have successfully compiled the software, you will find the `polcrypt-{cli,gui}` binary into the project root directory.
-
-
-Extra options
--------------
-`./polcrypt-cli --version` to see the current software version<br>
-`./polcrypt-cli --help` to display a small help<br>
+After you have successfully compiled the software, you will find the `polcrypt` binary into the project root directory.
 
 
 Notes

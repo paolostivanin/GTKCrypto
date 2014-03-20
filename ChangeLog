@@ -34,10 +34,12 @@
 	* FIXED: various bugs;
 
 ??/03/2014 - v2.1.0
-	* ADDED: GOST R 34.11-94
-	* ADDED: STRIBOG512
+	* ADDED: GOST94
+	* ADDED: SHA3-256
+	* ADDED: SHA3-512
 	* IMPROVED: hash are computed using threads
 	* ADDED: support for single or multiple encryption (aes, twofish, serpent, aes+twofish, aes+serpent, aes+twofish+serpent)
+	* REMOVED: cli
 
 ??/05/2014 - v2.2.0
 	* ADDED: asymmetric encryption support (with RSA or with a ECC algo)

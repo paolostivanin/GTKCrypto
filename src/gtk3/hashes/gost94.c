@@ -1,57 +1,57 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <gcrypt.h>
+#include <unistd.h>
 #include <fcntl.h>
 #include <gtk/gtk.h>
 #include <glib.h>
 #include <errno.h>
-#include <unistd.h>
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <nettle/gosthash94.h>
 #include <sys/mman.h>
 #include "../polcrypt.h"
 
 static void show_error(const gchar *);
 
-void *compute_stribog512(struct hashWidget_t *HashWidget){
-   	if(!gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(HashWidget->checkSTRIBOG512))){
-		gtk_entry_set_text(GTK_ENTRY(HashWidget->entrySTRIBOG512), "");
+void *compute_gost94(struct hashWidget_t *HashWidget){
+   	if(!gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(HashWidget->checkGOSTR))){
+		gtk_entry_set_text(GTK_ENTRY(HashWidget->entryGOSTR), "");
 		goto fine;
 	}
-	else if(strlen(gtk_entry_get_text(GTK_ENTRY(HashWidget->entrySTRIBOG512))) == 128){
+	else if(strlen(gtk_entry_get_text(GTK_ENTRY(HashWidget->entryGOSTR))) == 32){
 		goto fine;
 	}
-	gint algo, i, fd, retVal;
-	gchar stribog512hash[129];
-	struct stat fileStat;
-	gchar *fAddr;
-	const gchar *name = gcry_md_algo_name(GCRY_MD_STRIBOG512);
-	algo = gcry_md_map_name(name);
-	off_t fsize = 0, donesize = 0, diff = 0, offset = 0;
 
+	struct stat fileStat;
+	struct gosthash94_ctx ctx;
+	uint8_t digest[GOSTHASH94_DIGEST_SIZE];
+	gint fd, i, retVal;
+	off_t fsize = 0, donesize = 0, diff = 0, offset = 0;
+	gchar hash[33];
+	uint8_t *fAddr;
+	
 	fd = open(HashWidget->filename, O_RDONLY | O_NOFOLLOW);
 	if(fd == -1){
 		show_error(strerror(errno));
 		return NULL;
 	}
   	if(fstat(fd, &fileStat) < 0){
-  		fprintf(stderr, "compute_stribog512: %s\n", strerror(errno));
+  		fprintf(stderr, "compute_gosthash94: %s\n", strerror(errno));
     	close(fd);
     	return NULL;
   	}
   	fsize = fileStat.st_size;
-
-	gcry_md_hd_t hd;
-	gcry_md_open(&hd, algo, 0);
+       
+	gosthash94_init(&ctx);
 
 	if(fsize < BUF_FILE){
 		fAddr = mmap(NULL, fsize, PROT_READ, MAP_FILE | MAP_SHARED, fd, 0);
 		if(fAddr == MAP_FAILED){
-			printf("%d - %s\n", errno, strerror(errno));
+			show_error(strerror(errno));
 			return NULL;
 		}
-		gcry_md_write(hd, fAddr, fsize);
+		gosthash94_update(&ctx, fsize, fAddr);
 		retVal = munmap(fAddr, fsize);
 		if(retVal == -1){
 			perror("--> munmap ");
@@ -63,20 +63,20 @@ void *compute_stribog512(struct hashWidget_t *HashWidget){
 	while(fsize > donesize){
 		fAddr = mmap(NULL, BUF_FILE, PROT_READ, MAP_FILE | MAP_SHARED, fd, offset);
 		if(fAddr == MAP_FAILED){
-			printf("%d - %s\n", errno, strerror(errno));
+			show_error(strerror(errno));
 			return NULL;
 		}
-		gcry_md_write(hd, fAddr, BUF_FILE);
+		gosthash94_update(&ctx, BUF_FILE, fAddr);
 		donesize+=BUF_FILE;
 		diff=fsize-donesize;
 		offset += BUF_FILE;
 		if(diff < BUF_FILE && diff > 0){
 			fAddr = mmap(NULL, diff, PROT_READ, MAP_FILE | MAP_SHARED, fd, offset);
 			if(fAddr == MAP_FAILED){
-				printf("%d - %s\n", errno, strerror(errno));
+				show_error(strerror(errno));
 				return NULL;
 			}
-			gcry_md_write(hd, fAddr, diff);
+			gosthash94_update(&ctx, diff, fAddr);
 			retVal = munmap(fAddr, BUF_FILE);
 			if(retVal == -1){
 				perror("--> munmap ");
@@ -91,15 +91,15 @@ void *compute_stribog512(struct hashWidget_t *HashWidget){
 		}
 	}
 	
-	nowhile:
-	gcry_md_final(hd);
-	guchar *stribog512 = gcry_md_read(hd, algo);
- 	for(i=0; i<64; i++){
- 		sprintf(stribog512hash+(i*2), "%02x", stribog512[i]);
+	nowhile:	
+	gosthash94_digest(&ctx, GOSTHASH94_DIGEST_SIZE, digest);
+ 	for(i=0; i<16; i++){
+ 		sprintf(hash+(i*2), "%02x", digest[i]);
  	}
- 	stribog512hash[128] = '\0';
- 	gtk_entry_set_text(GTK_ENTRY(HashWidget->entrySTRIBOG512), stribog512hash);
-	gcry_md_close(hd);
+ 	hash[32] = '\0';
+ 	gtk_entry_set_text(GTK_ENTRY(HashWidget->entryGOSTR), hash);
+ 	
+	close(fd);
 	fine:
 	return NULL;
 }

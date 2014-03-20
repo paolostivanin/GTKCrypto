@@ -29,8 +29,7 @@ void *compute_sha3_256(struct hashWidget_t *);
 void *compute_sha512(struct hashWidget_t *);
 void *compute_sha3_512(struct hashWidget_t *);
 void *compute_whirlpool(struct hashWidget_t *);
-void *compute_gostr(struct hashWidget_t *);
-void *compute_stribog512(struct hashWidget_t *);
+void *compute_gost94(struct hashWidget_t *);
 
 static void *threadMD5(struct hashWidget_t *);
 static void *threadSHA1(struct hashWidget_t *);
@@ -39,8 +38,7 @@ static void *threadSHA3_256(struct hashWidget_t *);
 static void *threadSHA512(struct hashWidget_t *);
 static void *threadSHA3_512(struct hashWidget_t *);
 static void *threadWHIRLPOOL(struct hashWidget_t *);
-static void *threadGOSTR(struct hashWidget_t *);
-static void *threadSTRIBOG512(struct hashWidget_t *);
+static void *threadGOST94(struct hashWidget_t *);
 
 struct widget_t Widget;
 const gchar *icon = "/usr/share/icons/hicolor/128x128/apps/polcrypt.png";
@@ -50,7 +48,7 @@ GCRY_THREAD_OPTION_PTHREAD_IMPL;
 gint main(int argc, char **argv){
 	gcry_control(GCRYCTL_SET_THREAD_CBS, &gcry_threads_pthread);
 	if(!gcry_check_version(GCRYPT_MIN_VER)){
-		fputs("libgcrypt min version required: 1.6.0\n", stderr);
+		fputs("libgcrypt min version required: 1.5.0\n", stderr);
 		return -1;
 	}
 	gcry_control(GCRYCTL_INIT_SECMEM, 16384, 0);
@@ -346,7 +344,6 @@ static void select_hash_type(struct widget_t *WidgetHash){
    	HashWidget.checkS3_512 = gtk_check_button_new_with_label("SHA3-512");
    	HashWidget.checkWhir = gtk_check_button_new_with_label("Whirlpool");
    	HashWidget.checkGOSTR = gtk_check_button_new_with_label("GOST94");
-   	HashWidget.checkSTRIBOG512 = gtk_check_button_new_with_label("STRIBOG-512");
    	
    	HashWidget.entryMD5 = gtk_entry_new();
    	HashWidget.entryS1 = gtk_entry_new();
@@ -356,15 +353,15 @@ static void select_hash_type(struct widget_t *WidgetHash){
    	HashWidget.entryS3_512 = gtk_entry_new();
    	HashWidget.entryWhir = gtk_entry_new();
    	HashWidget.entryGOSTR = gtk_entry_new();
-   	HashWidget.entrySTRIBOG512 = gtk_entry_new();
    	
    	gtk_editable_set_editable(GTK_EDITABLE(HashWidget.entryMD5), FALSE);
    	gtk_editable_set_editable(GTK_EDITABLE(HashWidget.entryS1), FALSE);
    	gtk_editable_set_editable(GTK_EDITABLE(HashWidget.entryS256), FALSE);
+   	gtk_editable_set_editable(GTK_EDITABLE(HashWidget.entryS3_256), FALSE);
    	gtk_editable_set_editable(GTK_EDITABLE(HashWidget.entryS512), FALSE);
+   	gtk_editable_set_editable(GTK_EDITABLE(HashWidget.entryS3_512), FALSE);
    	gtk_editable_set_editable(GTK_EDITABLE(HashWidget.entryWhir), FALSE);
    	gtk_editable_set_editable(GTK_EDITABLE(HashWidget.entryGOSTR), FALSE);
-   	gtk_editable_set_editable(GTK_EDITABLE(HashWidget.entrySTRIBOG512), FALSE);
 
    	gtk_widget_set_size_request(WidgetHash->dialog, 250, 150); // richiedo una grandezza minima
    	
@@ -398,11 +395,6 @@ static void select_hash_type(struct widget_t *WidgetHash){
 	gtk_grid_attach(GTK_GRID(grid2), HashWidget.checkGOSTR, 0, 7, 1, 1);
 	gtk_grid_attach(GTK_GRID(grid2), HashWidget.entryGOSTR, 2, 7, 6, 1);
 
-	gtk_grid_attach(GTK_GRID(grid2), HashWidget.checkSTRIBOG512, 0, 8, 1, 1);
-	gtk_grid_attach(GTK_GRID(grid2), HashWidget.entrySTRIBOG512, 2, 8, 6, 1);
-
-
-   	/* Add the grid, and show everything we've added to the dialog */
    	gtk_container_add (GTK_CONTAINER (content_area), grid2);
    	gtk_widget_show_all (WidgetHash->dialog);
    	
@@ -416,8 +408,7 @@ static void select_hash_type(struct widget_t *WidgetHash){
    	g_signal_connect_swapped(HashWidget.checkS512, "clicked", G_CALLBACK(threadSHA512), &HashWidget);   	
    	g_signal_connect_swapped(HashWidget.checkS3_512, "clicked", G_CALLBACK(threadSHA3_512), &HashWidget);
    	g_signal_connect_swapped(HashWidget.checkWhir, "clicked", G_CALLBACK(threadWHIRLPOOL), &HashWidget);
-   	g_signal_connect_swapped(HashWidget.checkGOSTR, "clicked", G_CALLBACK(threadGOSTR), &HashWidget);
-   	g_signal_connect_swapped(HashWidget.checkSTRIBOG512, "clicked", G_CALLBACK(threadSTRIBOG512), &HashWidget);
+   	g_signal_connect_swapped(HashWidget.checkGOSTR, "clicked", G_CALLBACK(threadGOST94), &HashWidget);
    	
    	gint result = gtk_dialog_run(GTK_DIALOG(WidgetHash->dialog));
 	switch(result){
@@ -520,10 +511,6 @@ static void *threadWHIRLPOOL(struct hashWidget_t *HashWidget){
 	g_thread_new("t7", (GThreadFunc)compute_whirlpool, HashWidget);
 }
 
-static void *threadGOSTR(struct hashWidget_t *HashWidget){
-	g_thread_new("t8", (GThreadFunc)compute_gostr, HashWidget);
-}
-
-static void *threadSTRIBOG512(struct hashWidget_t *HashWidget){
-	g_thread_new("t9", (GThreadFunc)compute_stribog512, HashWidget);
+static void *threadGOST94(struct hashWidget_t *HashWidget){
+	g_thread_new("t8", (GThreadFunc)compute_gost94, HashWidget);
 }
