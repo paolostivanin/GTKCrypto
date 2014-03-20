@@ -33,7 +33,7 @@
 	* REMOVED: tiger1, tiger2, sha224, sha384, rmd160
 	* FIXED: various bugs;
 
-??/03/2014 - v2.1.0
+20/03/2014 - v2.1.0-beta
 	* ADDED: GOST94
 	* ADDED: SHA3-256
 	* ADDED: SHA3-512

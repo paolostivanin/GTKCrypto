@@ -19,10 +19,7 @@ gint check_pkcs7(guchar *, guchar *);
 static void show_error(struct widget_t *, const gchar *);
 
 gint decrypt_file_gui(struct widget_t *WidgetMain){
-	gint algo = -1, fd, number_of_block, block_done = 0, number_of_pkcs7_byte, counterForGoto = 0;	
-	struct metadata_t Metadata;
-	struct stat fileStat;
-	memset(&Metadata, 0, sizeof(struct metadata_t));
+	gint algo = -1, algo2 = -1, algo3 = -1, fd, number_of_block, block_done = 0, number_of_pkcs7_byte, counterForGoto = 0;	
 	guchar *derived_key = NULL, *crypto_key = NULL, *mac_key = NULL, *decBuffer = NULL;
 	guchar hex[15] = { 0x01,0x02,0x03,0x04,0x05,0x06,0x07,0x08,0x09,0x0A,0x0B,0x0C,0x0D,0x0E,0x0F}, cipher_text[16], mac_of_file[64] ={0};
 	gchar *inputKey = NULL;
@@ -30,6 +27,10 @@ gint decrypt_file_gui(struct widget_t *WidgetMain){
 	size_t blkLength = 0, keyLength = 0, txtLenght = 16, retval = 0, pwd_len = 0;
 	glong current_file_offset, bytes_before_mac;
 	FILE *fp, *fpout;
+	
+	struct metadata_t Metadata;
+	struct stat fileStat;
+	gcry_cipher_hd_t hd, hd2, hd3;
 	
 	decBuffer = gcry_malloc(txtLenght);
 	
@@ -101,31 +102,42 @@ gint decrypt_file_gui(struct widget_t *WidgetMain){
 	
 	if(Metadata.algo_type == 0){
 		algo = gcry_cipher_map_name("aes256");
-		blkLength = gcry_cipher_get_algo_blklen(algo);
-		keyLength = gcry_cipher_get_algo_keylen(algo);
-		
 	}
 	else if(Metadata.algo_type == 1){
 		algo = gcry_cipher_map_name("serpent256");
-		blkLength = gcry_cipher_get_algo_blklen(algo);
-		keyLength = gcry_cipher_get_algo_keylen(algo);
-		
 	}
 	else if(Metadata.algo_type == 2){
 		algo = gcry_cipher_map_name("twofish");
-		blkLength = gcry_cipher_get_algo_blklen(algo);
-		keyLength = gcry_cipher_get_algo_keylen(algo);
 		
 	}
 	else if(Metadata.algo_type == 3){
 		algo = gcry_cipher_map_name("camellia256");
-		blkLength = gcry_cipher_get_algo_blklen(algo);
-		keyLength = gcry_cipher_get_algo_keylen(algo);
-		
+	}
+	else if(Metadata.algo_type == 4){
+		algo = gcry_cipher_map_name("aes256");
+		algo2 = gcry_cipher_map_name("twofish");
+	}
+	else if(Metadata.algo_type == 5){
+		algo = gcry_cipher_map_name("aes256");
+		algo2 = gcry_cipher_map_name("serpent256");
+	}
+	else if(Metadata.algo_type == 6){
+		algo = gcry_cipher_map_name("twofish");
+		algo2 = gcry_cipher_map_name("serpent256");
+	}
+	else if(Metadata.algo_type == 7){
+		algo = gcry_cipher_map_name("aes256");
+		algo2 = gcry_cipher_map_name("twofish");
+		algo3 = gcry_cipher_map_name("serpent256");
 	}
 
-	gcry_cipher_hd_t hd;
+	blkLength = gcry_cipher_get_algo_blklen(algo);
+	keyLength = gcry_cipher_get_algo_keylen(algo);
+	
 	gcry_cipher_open(&hd, algo, GCRY_CIPHER_MODE_CBC, 0);
+	if(Metadata.algo_type > 3) gcry_cipher_open(&hd2, algo2, GCRY_CIPHER_MODE_CBC, 0);
+	if(Metadata.algo_type == 7) gcry_cipher_open(&hd3, algo3, GCRY_CIPHER_MODE_CBC, 0);
+	
 	if((derived_key = gcry_malloc_secure(64)) == NULL){
 		fprintf(stderr, _("decrypt_file: gcry_malloc_secure failed at line 108\n"));
 		gcry_free(inputKey);
@@ -160,8 +172,14 @@ gint decrypt_file_gui(struct widget_t *WidgetMain){
 	memcpy(crypto_key, derived_key, 32);
 	memcpy(mac_key, derived_key + 32, 32);
 	
+	//DA CAMBIARE LA CHIAVE PER HD2 E HD3
 	gcry_cipher_setkey(hd, crypto_key, keyLength);
+	if(Metadata.algo_type > 3) gcry_cipher_setkey(hd2, crypto_key, keyLength);
+	if(Metadata.algo_type == 7) gcry_cipher_setkey(hd3, crypto_key, keyLength);
+	
 	gcry_cipher_setiv(hd, Metadata.iv, blkLength);
+	if(Metadata.algo_type > 3) gcry_cipher_setiv(hd2, Metadata.iv, blkLength);
+	if(Metadata.algo_type == 7) gcry_cipher_setiv(hd3, Metadata.iv, blkLength);
 
 	if((current_file_offset = ftell(fp)) == -1){
 		fprintf(stderr, "decrypt_file: %s\n", strerror(errno));
@@ -228,23 +246,43 @@ gint decrypt_file_gui(struct widget_t *WidgetMain){
 		memset(cipher_text, 0, sizeof(cipher_text));
 		retval = fread(cipher_text, 1, 16, fp);
 		if(!retval) break;
-		gcry_cipher_decrypt(hd, decBuffer, txtLenght, cipher_text, txtLenght);
+		
+		if(Metadata.algo_type == 7){
+			gcry_cipher_decrypt(hd3, decBuffer, txtLenght, cipher_text, txtLenght);
+			gcry_cipher_decrypt(hd2, decBuffer, txtLenght, decBuffer, txtLenght);
+			gcry_cipher_decrypt(hd, decBuffer, txtLenght, decBuffer, txtLenght);
+		}
+		else if(Metadata.algo_type > 3 && Metadata.algo_type < 7){
+			gcry_cipher_decrypt(hd2, decBuffer, txtLenght, cipher_text, txtLenght);
+			gcry_cipher_decrypt(hd, decBuffer, txtLenght, decBuffer, txtLenght);
+		}
+		else{
+			gcry_cipher_decrypt(hd, decBuffer, txtLenght, cipher_text, txtLenght);
+		}
+		
 		if(block_done == (number_of_block-1)){
 			number_of_pkcs7_byte = check_pkcs7(decBuffer, hex);
 			fwrite(decBuffer, 1, number_of_pkcs7_byte, fpout);	
 			goto end;
 		}
+		
 		fwrite(decBuffer, 1, 16, fpout);
 		block_done++;
 	}
+	
 	end:
+	
 	gcry_cipher_close(hd);
+	if(Metadata.algo_type > 3) gcry_cipher_close(hd2);
+	if(Metadata.algo_type == 7) gcry_cipher_close(hd3);
+	
 	gcry_free(inputKey);
 	gcry_free(derived_key);
 	gcry_free(crypto_key);
 	gcry_free(mac_key);
 	gcry_free(decBuffer);
 	free(outFilename);
+	
 	fclose(fp);
 	fclose(fpout);
 

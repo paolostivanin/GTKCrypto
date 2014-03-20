@@ -19,16 +19,17 @@ static void show_error(struct widget_t *, const gchar *);
 
 gint encrypt_file_gui(struct widget_t *WidgetMain){
 	const gchar *algoID = gtk_combo_box_get_active_id(GTK_COMBO_BOX(WidgetMain->combomenu));
-	gint algo = -1, fd, number_of_block, block_done = 0, retcode, counterForGoto = 0;
-	struct metadata_t Metadata;
-	struct stat fileStat;
-	memset(&Metadata, 0, sizeof(struct metadata_t));
+	gint algo = -1, algo2 = -1, algo3 = -1,fd, number_of_block, block_done = 0, retcode, counterForGoto = 0;
 	guchar hex[15] = { 0x01,0x02,0x03,0x04,0x05,0x06,0x07,0x08,0x09,0x0A,0x0B,0x0C,0x0D,0x0E,0x0F}, plain_text[16];
 	guchar *derived_key = NULL, *crypto_key = NULL, *mac_key = NULL, *encBuffer = NULL;
-	gchar *inputKey = NULL, *name = NULL;
+	gchar *inputKey = NULL;
 	gfloat result_of_division_by_16, fsize_float;
 	off_t fsize = 0;
 	size_t blkLength, keyLength, txtLenght = 16, retval = 0, i;
+	
+	struct metadata_t Metadata;
+	struct stat fileStat;
+	gcry_cipher_hd_t hd, hd2, hd3;
 	
 	const gchar *inputWidKey = gtk_entry_get_text(GTK_ENTRY(WidgetMain->pwdEntry));
 	size_t len = strlen(inputWidKey);
@@ -38,39 +39,52 @@ gint encrypt_file_gui(struct widget_t *WidgetMain){
 
 	gchar *outFilename;
 	size_t lenFilename = strlen(WidgetMain->filename);
-	outFilename = malloc(lenFilename+5); // ".enc\0" sono 5 chars
+	outFilename = malloc(lenFilename+5); // ".enc\0" are 5 char
 	strncpy(outFilename, WidgetMain->filename, lenFilename);
 	memcpy(outFilename+lenFilename, ".enc", 4);
 	outFilename[lenFilename+4] = '\0';
 
 	if(strcmp(algoID, "0") == 0 || algoID == NULL){
-		name = malloc(7);
-		strcpy(name, "aes256");
+		algo = gcry_cipher_map_name("aes256");
 		Metadata.algo_type = 0;
 	}
 	else if(strcmp(algoID, "1") == 0){
-		name = malloc(11);
-		strcpy(name, "serpent256");
+		algo = gcry_cipher_map_name("serpent256");
 		Metadata.algo_type = 1;
 	}
 	else if(strcmp(algoID, "2") == 0){
-		name = malloc(8);
-		strcpy(name, "twofish");
+		algo = gcry_cipher_map_name( "twofish");
 		Metadata.algo_type = 2;
 	}
 	else if(strcmp(algoID, "3") == 0){
-		name = malloc(12);
-		strcpy(name, "camellia256");
+		algo = gcry_cipher_map_name("camellia256");
 		Metadata.algo_type = 3;
 	}
-	
-	algo = gcry_cipher_map_name(name);
-	
+	else if(strcmp(algoID, "4") == 0){
+		algo = gcry_cipher_map_name("aes256");
+		algo2 = gcry_cipher_map_name("twofish");
+		Metadata.algo_type = 4;
+	}
+	else if(strcmp(algoID, "5") == 0){
+		algo = gcry_cipher_map_name("aes256");
+		algo2 = gcry_cipher_map_name("serpent256");
+		Metadata.algo_type = 5;
+	}
+	else if(strcmp(algoID, "6") == 0){
+		algo = gcry_cipher_map_name("twofish");
+		algo2 = gcry_cipher_map_name("serpent256");
+		Metadata.algo_type = 6;
+	}
+	else if(strcmp(algoID, "7") == 0){
+		algo = gcry_cipher_map_name("aes256");
+		algo2 = gcry_cipher_map_name("twofish");
+		algo3 = gcry_cipher_map_name("serpent256");
+		Metadata.algo_type = 7;
+	}
+
 	blkLength = gcry_cipher_get_algo_blklen(algo);
-	keyLength = gcry_cipher_get_algo_keylen(algo);
-	
-	free(name);
-	
+	keyLength = gcry_cipher_get_algo_keylen(algo);	
+		
 	encBuffer = gcry_malloc(txtLenght);
 
 	gcry_create_nonce(Metadata.iv, 16);
@@ -109,8 +123,10 @@ gint encrypt_file_gui(struct widget_t *WidgetMain){
 		return -1;
 	}
 	
-	gcry_cipher_hd_t hd;
 	gcry_cipher_open(&hd, algo, GCRY_CIPHER_MODE_CBC, 0);
+	if(Metadata.algo_type > 3) gcry_cipher_open(&hd2, algo2, GCRY_CIPHER_MODE_CBC, 0);
+	if(Metadata.algo_type == 7) gcry_cipher_open(&hd3, algo3, GCRY_CIPHER_MODE_CBC, 0);
+	
 	if((derived_key = gcry_malloc_secure(64)) == NULL){
 		fprintf(stderr, _("encrypt_file: gcry_malloc_secure failed at line 86\n"));
 		gcry_free(inputKey);
@@ -147,8 +163,14 @@ gint encrypt_file_gui(struct widget_t *WidgetMain){
 	memcpy(crypto_key, derived_key, 32);
 	memcpy(mac_key, derived_key + 32, 32);
 
+	//DA CAMBIARE LA CHIAVE PER HD2 E HD3
 	gcry_cipher_setkey(hd, crypto_key, keyLength);
+	if(Metadata.algo_type > 3) gcry_cipher_setkey(hd2, crypto_key, keyLength);
+	if(Metadata.algo_type == 7) gcry_cipher_setkey(hd3, crypto_key, keyLength);
+	
 	gcry_cipher_setiv(hd, Metadata.iv, blkLength);
+	if(Metadata.algo_type > 3) gcry_cipher_setiv(hd2, Metadata.iv, blkLength);
+	if(Metadata.algo_type == 7) gcry_cipher_setiv(hd3, Metadata.iv, blkLength);
 
 	fseek(fp, 0, SEEK_SET);
 	
@@ -178,6 +200,8 @@ gint encrypt_file_gui(struct widget_t *WidgetMain){
 			}
 		}
 		gcry_cipher_encrypt(hd, encBuffer, txtLenght, plain_text, txtLenght);
+		if(Metadata.algo_type > 3) gcry_cipher_encrypt(hd2, encBuffer, txtLenght, encBuffer, txtLenght);
+		if(Metadata.algo_type == 7) gcry_cipher_encrypt(hd3, encBuffer, txtLenght, encBuffer, txtLenght);
 		
 		fwrite(encBuffer, 1, 16, fpout);
 		block_done++;
@@ -205,12 +229,16 @@ gint encrypt_file_gui(struct widget_t *WidgetMain){
 		show_error(WidgetMain, _("File unlink failed, remove it manually"));
 
 	gcry_cipher_close(hd);
+	if(Metadata.algo_type > 3) gcry_cipher_close(hd2);
+	if(Metadata.algo_type == 7) gcry_cipher_close(hd3);
+	
 	gcry_free(derived_key);
 	gcry_free(crypto_key);
 	gcry_free(mac_key);
 	gcry_free(encBuffer);
 	gcry_free(inputKey);
 	free(outFilename);
+	
 	fclose(fpout);
 
 	return 0;

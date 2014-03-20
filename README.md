@@ -2,7 +2,7 @@ PolCrypt
 ========
 
 This software let you to:
-* Encrypt and decrypt files using AES, Twofish, Serpent or Camellia (all with a 256bit key) in CBC mode;
+* Encrypt and decrypt files using AES, Twofish, Serpent, Camellia, AES+Twofish, AES+Serpent, Twofish+Serpent, AES+Twofish+Serpent (all with a 256bit key and in CBC mode);
 * Compute the hash of a given file (supported hashes are MD5, GOST94, SHA-1, SHA-256, SHA3-256, SHA-512, SHA3-512 and Whirlpool);
 
 This software is developed by Paolo Stivanin (a.k.a Polslinux)
@@ -19,14 +19,14 @@ Security
 
 Latest release
 --------------
-The latest (v2.1.0-dev) release can be found in the '-dev' branch, just clone it :)
+The latest (v2.1.0-beta) release can be found in the '-dev' branch, just clone it :)
 
 
 Requirements
 ------------
 * GCC or Clang	: required version of Clang **>= 3.1**, of GCC **>= 4.4.0**;
 * Gcrypt	: required version **>=1.5.0**;
-* Nettle	: required version **>=2.7.0**;
+* Nettle	: required version **>=2.6.0**;
 * GTK+		: required version **>=3.4.0**;
 * Glib		: required version **>=2.36.0**;
 

@@ -137,7 +137,6 @@ static void activate (GtkApplication *app, gpointer user_data __attribute__ ((un
 	gtk_grid_set_row_spacing(GTK_GRID(grid), 5);
 	gtk_grid_set_column_spacing(GTK_GRID(grid), 5);
 	
-	//numero colonna, numero riga, colonne da occupare, righe da occupare. Colonne e righe sono aggiunte automaticamente
 	gtk_grid_attach(GTK_GRID(grid), label, 0, 0, 5, 1);
 	g_object_set (label, "margin-bottom", 12, NULL);
 	gtk_grid_attach(GTK_GRID(grid), butEn, 1, 1, 3, 1);
@@ -241,7 +240,6 @@ static void type_pwd_enc(struct widget_t *WidgetEnc){
 	gtk_grid_attach(GTK_GRID(grid2), WidgetEnc->pwdReEntry, 1, 2, 2, 1);
 	gtk_grid_attach(GTK_GRID(grid2), WidgetEnc->infobar, 0, 3, 3, 1);
 
-   	/* Add the grid, and show everything we've added to the dialog */
    	gtk_container_add (GTK_CONTAINER (content_area), grid2);
    	gtk_widget_show_all (WidgetEnc->dialog);
    	
@@ -251,6 +249,7 @@ static void type_pwd_enc(struct widget_t *WidgetEnc){
 			do_enc(WidgetEnc);
 			gtk_widget_destroy(WidgetEnc->dialog);
 			if(WidgetEnc->toEnc == -1) show_error(WidgetEnc, _("Password are different, try again!"));
+			if(WidgetEnc->toEnc == -2) show_error(WidgetEnc, _("Your password is too short (less than 8 chars)"));
 			break;
 		case GTK_RESPONSE_CLOSE:
 			gtk_widget_destroy(WidgetEnc->dialog);
@@ -266,9 +265,9 @@ static void type_pwd_dec(struct widget_t *WidgetDec){
    	
    	label = gtk_label_new(_("Type password"));
    	WidgetDec->pwdEntry = gtk_entry_new();
-   	gtk_entry_set_visibility(GTK_ENTRY(WidgetDec->pwdEntry), FALSE); //input nascosto
+   	gtk_entry_set_visibility(GTK_ENTRY(WidgetDec->pwdEntry), FALSE);
    	
-   	gtk_widget_set_size_request(WidgetDec->dialog, 150, 100); // richiedo una grandezza minima
+   	gtk_widget_set_size_request(WidgetDec->dialog, 150, 100);
    
    	WidgetDec->infobar = gtk_info_bar_new();
 	WidgetDec->infolabel = gtk_label_new(_("Decrypting the file can take some minutes depending on the file size..."));
@@ -289,14 +288,13 @@ static void type_pwd_dec(struct widget_t *WidgetDec){
 	g_object_set_property(G_OBJECT(WidgetDec->pwdEntry), "margin-top", &marginTop);
    	
    	grid2 = gtk_grid_new();
-	gtk_grid_set_column_homogeneous(GTK_GRID(grid2), TRUE); // colonne stessa larghezza
-	gtk_grid_set_row_spacing(GTK_GRID(grid2), 5); // spazio fra le righe
+	gtk_grid_set_column_homogeneous(GTK_GRID(grid2), TRUE);
+	gtk_grid_set_row_spacing(GTK_GRID(grid2), 5);
 	
 	gtk_grid_attach(GTK_GRID(grid2), label, 0, 0, 1, 1);
 	gtk_grid_attach(GTK_GRID(grid2), WidgetDec->pwdEntry, 1, 0, 2, 1);
 	gtk_grid_attach(GTK_GRID(grid2), WidgetDec->infobar, 0, 1, 3, 1);
 
-   	/* Add the grid, and show everything we've added to the dialog */
    	gtk_container_add (GTK_CONTAINER (content_area), grid2);
    	gtk_widget_show_all (WidgetDec->dialog);
    	
@@ -322,6 +320,9 @@ static void do_enc(struct widget_t *WidgetCheckPwd){
 	
 	if(g_strcmp0(pw1, pw2) != 0){
 		WidgetCheckPwd->toEnc = -1;
+	}
+	else if(g_utf8_strlen(pw1, -1) < 8){
+		WidgetCheckPwd->toEnc = -2;
 	}
 
 	if(WidgetCheckPwd->toEnc == 0){
@@ -363,37 +364,36 @@ static void select_hash_type(struct widget_t *WidgetHash){
    	gtk_editable_set_editable(GTK_EDITABLE(HashWidget.entryWhir), FALSE);
    	gtk_editable_set_editable(GTK_EDITABLE(HashWidget.entryGOSTR), FALSE);
 
-   	gtk_widget_set_size_request(WidgetHash->dialog, 250, 150); // richiedo una grandezza minima
+   	gtk_widget_set_size_request(WidgetHash->dialog, 250, 150);
    	
    	grid2 = gtk_grid_new();
-	gtk_grid_set_row_homogeneous(GTK_GRID(grid2), TRUE); // righe stessa altezza
-	gtk_grid_set_column_homogeneous(GTK_GRID(grid2), TRUE); // colonne stessa larghezza
-	gtk_grid_set_row_spacing(GTK_GRID(grid2), 5); // spazio fra le righe
+	gtk_grid_set_row_homogeneous(GTK_GRID(grid2), TRUE);
+	gtk_grid_set_column_homogeneous(GTK_GRID(grid2), TRUE);
+	gtk_grid_set_row_spacing(GTK_GRID(grid2), 5);
 	
-	// numero colonna, numero riga, colonne da occupare, righe da occupare
 	gtk_grid_attach(GTK_GRID(grid2), HashWidget.checkMD5, 0, 0, 1, 1);
 	gtk_grid_attach(GTK_GRID(grid2), HashWidget.entryMD5, 2, 0, 6, 1);
 	
-	gtk_grid_attach(GTK_GRID(grid2), HashWidget.checkS1, 0, 1, 1, 1);
-	gtk_grid_attach(GTK_GRID(grid2), HashWidget.entryS1, 2, 1, 6, 1);
+	gtk_grid_attach(GTK_GRID(grid2), HashWidget.checkGOSTR, 0, 1, 1, 1);
+	gtk_grid_attach(GTK_GRID(grid2), HashWidget.entryGOSTR, 2, 1, 6, 1);
 	
-	gtk_grid_attach(GTK_GRID(grid2), HashWidget.checkS256, 0, 2, 1, 1);
-	gtk_grid_attach(GTK_GRID(grid2), HashWidget.entryS256, 2, 2, 6, 1);
+	gtk_grid_attach(GTK_GRID(grid2), HashWidget.checkS1, 0, 2, 1, 1);
+	gtk_grid_attach(GTK_GRID(grid2), HashWidget.entryS1, 2, 2, 6, 1);
 	
-	gtk_grid_attach(GTK_GRID(grid2), HashWidget.checkS3_256, 0, 3, 1, 1);
-	gtk_grid_attach(GTK_GRID(grid2), HashWidget.entryS3_256, 2, 3, 6, 1);
+	gtk_grid_attach(GTK_GRID(grid2), HashWidget.checkS256, 0, 3, 1, 1);
+	gtk_grid_attach(GTK_GRID(grid2), HashWidget.entryS256, 2, 3, 6, 1);
 	
-	gtk_grid_attach(GTK_GRID(grid2), HashWidget.checkS512, 0, 4, 1, 1);
-	gtk_grid_attach(GTK_GRID(grid2), HashWidget.entryS512, 2, 4, 6, 1);
+	gtk_grid_attach(GTK_GRID(grid2), HashWidget.checkS3_256, 0, 4, 1, 1);
+	gtk_grid_attach(GTK_GRID(grid2), HashWidget.entryS3_256, 2, 4, 6, 1);
 	
-	gtk_grid_attach(GTK_GRID(grid2), HashWidget.checkS3_512, 0, 5, 1, 1);
-	gtk_grid_attach(GTK_GRID(grid2), HashWidget.entryS3_512, 2, 5, 6, 1);
+	gtk_grid_attach(GTK_GRID(grid2), HashWidget.checkS512, 0, 5, 1, 1);
+	gtk_grid_attach(GTK_GRID(grid2), HashWidget.entryS512, 2, 5, 6, 1);
+	
+	gtk_grid_attach(GTK_GRID(grid2), HashWidget.checkS3_512, 0, 6, 1, 1);
+	gtk_grid_attach(GTK_GRID(grid2), HashWidget.entryS3_512, 2, 6, 6, 1);
 
-	gtk_grid_attach(GTK_GRID(grid2), HashWidget.checkWhir, 0, 6, 1, 1);
-	gtk_grid_attach(GTK_GRID(grid2), HashWidget.entryWhir, 2, 6, 6, 1);
-	
-	gtk_grid_attach(GTK_GRID(grid2), HashWidget.checkGOSTR, 0, 7, 1, 1);
-	gtk_grid_attach(GTK_GRID(grid2), HashWidget.entryGOSTR, 2, 7, 6, 1);
+	gtk_grid_attach(GTK_GRID(grid2), HashWidget.checkWhir, 0, 7, 1, 1);
+	gtk_grid_attach(GTK_GRID(grid2), HashWidget.entryWhir, 2, 7, 6, 1);
 
    	gtk_container_add (GTK_CONTAINER (content_area), grid2);
    	gtk_widget_show_all (WidgetHash->dialog);
@@ -447,7 +447,7 @@ static void about (GSimpleAction *action __attribute__ ((unused)), GVariant *par
 "\n"
 "PolCrypt is Copyright (C) 2014 by Paolo Stivanin.\n");
         gtk_about_dialog_set_wrap_license(GTK_ABOUT_DIALOG(a_dialog), TRUE);
-        gtk_about_dialog_set_website (GTK_ABOUT_DIALOG (a_dialog), "https://github.com/polslinux/PolCrypt");
+        gtk_about_dialog_set_website (GTK_ABOUT_DIALOG (a_dialog), "http://www.paolostivanin.com");
         gtk_about_dialog_set_authors (GTK_ABOUT_DIALOG (a_dialog), authors);
 
         gtk_dialog_run(GTK_DIALOG (a_dialog));
@@ -477,7 +477,7 @@ static void show_error(struct widget_t *s_Error, const gchar *message){
 			"%s", message);
 		gtk_window_set_position(GTK_WINDOW(dialog), GTK_WIN_POS_CENTER);
 	}		
-	gtk_window_set_title(GTK_WINDOW(dialog), "Error");
+	gtk_window_set_title(GTK_WINDOW(dialog), _("Error"));
 	gtk_dialog_run(GTK_DIALOG(dialog));
 	gtk_widget_destroy(dialog);
 	if(s_Error != NULL) type_pwd_enc(s_Error);
