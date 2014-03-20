@@ -1,8 +1,8 @@
 CFLAGS = -Wall -Wextra -D_FILE_OFFSET_BITS=64 -U_FORTIFY_SOURCE -D_FORTIFY_SOURCE=2 -O2 -Wformat -Wformat-security -fstack-protector-all -fPIE -Wno-unused-result -Wno-return-type -Wno-missing-field-initializers
 LDFLAGS = -Wl,-z,now -Wl,-z,relro -lgcrypt -lnettle
 
-GUI_HASH_SOURCES = src/gtk3/hashes/md5.c src/gtk3/hashes/sha1.c src/gtk3/hashes/sha256.c src/gtk3/hashes/sha3-256.c src/gtk3/hashes/sha512.c src/gtk3/hashes/sha3-512.c src/gtk3/hashes/whirlpool.c src/gtk3/hashes/gost94.c
-GUI_SOURCES = src/gtk3/main-gui.c src/gtk3/check_pkcs7.c src/gtk3/encrypt_file_gui.c src/gtk3/decrypt_file_gui.c src/gtk3/hmac-gui.c src/gtk3/delete_input_file.c src/gtk3/random_write.c src/gtk3/zero_write.c
+GUI_HASH_SOURCES = src/hashes/md5.c src/hashes/sha1.c src/hashes/sha256.c src/hashes/sha3-256.c src/hashes/sha512.c src/hashes/sha3-512.c src/hashes/whirlpool.c src/hashes/gost94.c
+GUI_SOURCES = src/main.c src/check_pkcs7.c src/encrypt_file.c src/decrypt_file.c src/hmac.c src/delete_input_file.c src/random_write.c src/zero_write.c
 
 all: polcrypt
 install:
