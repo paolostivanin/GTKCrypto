@@ -15,6 +15,8 @@ struct metadata_t{
 	gint8 algo_type; //(NULL|0=aes),(1=serpent),(2=twofish),(3=camellia),(4=aes+two),(5=aes+serp),(6=two+serp),(7=aes+serp+two)
 	guchar salt[32];
 	guchar iv[16];
+	guchar iv2[16];
+	guchar iv3[16];
 };
 extern struct metadata_t Metadata;
 
