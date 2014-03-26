@@ -202,6 +202,7 @@ gint encrypt_file_gui(struct widget_t *WidgetMain){
 	counterForGoto = 0;
 	
 	if(Metadata.algo_type > 3){
+		tryAgainDerive2:
 		if(gcry_kdf_derive (derived_key, len+1, GCRY_KDF_PBKDF2, GCRY_MD_SHA512, Metadata.salt, 32, 150000, 64, second_derived_key) != 0){
 			if(counterForGoto == 3){
 				fprintf(stderr, _("encrypt_file: Key derivation error\n"));
@@ -215,7 +216,7 @@ gint encrypt_file_gui(struct widget_t *WidgetMain){
 				return -1;
 			}
 			counterForGoto += 1;
-			goto tryAgainDerive;
+			goto tryAgainDerive2;
 		}
 		memcpy(crypto_key2, second_derived_key, 32);
 		if(Metadata.algo_type == 7) memcpy(crypto_key3, second_derived_key + 32, 32);
