@@ -4,7 +4,7 @@
 #define BUF_FILE 16777216 /* 16 MiB memory buffer (hash) */
 #define BUFSIZE 1048576  /* 1 MiB memory buffer (delete_input_file) */
 #define GCRYPT_MIN_VER "1.5.0"
-#define VERSION "2.1.0"
+#define VERSION "2.1.1"
 #define LOCALE_DIR "/usr/share/locale" // or your specification
 #define PACKAGE    "polcrypt"          // mo file name in LOCALE
 
@@ -15,8 +15,6 @@ struct metadata_t{
 	gint8 algo_type; //(NULL|0=aes),(1=serpent),(2=twofish),(3=camellia),(4=aes+two),(5=aes+serp),(6=two+serp),(7=aes+serp+two)
 	guchar salt[32];
 	guchar iv[16];
-	guchar iv2[16];
-	guchar iv3[16];
 };
 extern struct metadata_t Metadata;
 

@@ -19,8 +19,8 @@ gint check_pkcs7(guchar *, guchar *);
 static void show_error(struct widget_t *, const gchar *);
 
 gint decrypt_file_gui(struct widget_t *WidgetMain){
-	gint algo = -1, algo2 = -1, algo3 = -1, fd, number_of_block, block_done = 0, number_of_pkcs7_byte, counterForGoto = 0;	
-	guchar *derived_key = NULL, *second_derived_key = NULL, *crypto_key = NULL, *crypto_key2 = NULL, *crypto_key3 = NULL, *mac_key = NULL, *decBuffer = NULL;
+	gint algo = -1, fd, number_of_block, block_done = 0, number_of_pkcs7_byte, counterForGoto = 0;	
+	guchar *derived_key = NULL, *crypto_key = NULL, *mac_key = NULL, *decBuffer = NULL;
 	guchar hex[15] = { 0x01,0x02,0x03,0x04,0x05,0x06,0x07,0x08,0x09,0x0A,0x0B,0x0C,0x0D,0x0E,0x0F}, cipher_text[16], mac_of_file[64] ={0};
 	gchar *inputKey = NULL;
 	off_t fsize = 0;
@@ -30,7 +30,7 @@ gint decrypt_file_gui(struct widget_t *WidgetMain){
 	
 	struct metadata_t Metadata;
 	struct stat fileStat;
-	gcry_cipher_hd_t hd, hd2, hd3;
+	gcry_cipher_hd_t hd;
 	
 	decBuffer = gcry_malloc(txtLenght);
 	
@@ -113,38 +113,14 @@ gint decrypt_file_gui(struct widget_t *WidgetMain){
 	else if(Metadata.algo_type == 3){
 		algo = gcry_cipher_map_name("camellia256");
 	}
-	else if(Metadata.algo_type == 4){
-		algo = gcry_cipher_map_name("aes256");
-		algo2 = gcry_cipher_map_name("twofish");
-	}
-	else if(Metadata.algo_type == 5){
-		algo = gcry_cipher_map_name("aes256");
-		algo2 = gcry_cipher_map_name("serpent256");
-	}
-	else if(Metadata.algo_type == 6){
-		algo = gcry_cipher_map_name("twofish");
-		algo2 = gcry_cipher_map_name("serpent256");
-	}
-	else if(Metadata.algo_type == 7){
-		algo = gcry_cipher_map_name("aes256");
-		algo2 = gcry_cipher_map_name("twofish");
-		algo3 = gcry_cipher_map_name("serpent256");
-	}
 
 	blkLength = gcry_cipher_get_algo_blklen(algo);
 	keyLength = gcry_cipher_get_algo_keylen(algo);
 	
 	gcry_cipher_open(&hd, algo, GCRY_CIPHER_MODE_CBC, 0);
-	if(Metadata.algo_type > 3) gcry_cipher_open(&hd2, algo2, GCRY_CIPHER_MODE_CBC, 0);
-	if(Metadata.algo_type == 7) gcry_cipher_open(&hd3, algo3, GCRY_CIPHER_MODE_CBC, 0);
 	
 	if((derived_key = gcry_malloc_secure(64)) == NULL){
 		fprintf(stderr, _("decrypt_file: gcry_malloc_secure failed (derived)\n"));
-		gcry_free(inputKey);
-		return -1;
-	}
-	if((second_derived_key = gcry_malloc_secure(64)) == NULL){
-		fprintf(stderr, _("decrypt_file: gcry_malloc_secure failed (second_derived)\n"));
 		gcry_free(inputKey);
 		return -1;
 	}
@@ -153,39 +129,14 @@ gint decrypt_file_gui(struct widget_t *WidgetMain){
 		fprintf(stderr, _("decrypt_file: gcry_malloc_secure failed (crypto)\n"));
 		gcry_free(inputKey);
 		gcry_free(derived_key);
-		gcry_free(second_derived_key);
 		return -1;
-	}
-	if(Metadata.algo_type > 3){
-		if((crypto_key2 = gcry_malloc_secure(32)) == NULL){
-			fprintf(stderr, _("decrypt_file: gcry_malloc_secure failed (crypto2)\n"));
-			gcry_free(crypto_key);
-			gcry_free(inputKey);
-			gcry_free(derived_key);
-			gcry_free(second_derived_key);
-			return -1;
-		}
-	}
-	if(Metadata.algo_type == 7){
-		if((crypto_key3 = gcry_malloc_secure(32)) == NULL){
-			fprintf(stderr, _("decrypt_file: gcry_malloc_secure failed (crypto2)\n"));
-			gcry_free(crypto_key);
-			gcry_free(crypto_key2);
-			gcry_free(inputKey);
-			gcry_free(derived_key);
-			gcry_free(second_derived_key);
-			return -1;
-		}
 	}
 	
 	if((mac_key = gcry_malloc_secure(32)) == NULL){
 		fprintf(stderr, _("decrypt_file: gcry_malloc_secure failed (mac)\n"));
 		gcry_free(crypto_key);
-		if(Metadata.algo_type > 3) gcry_free(crypto_key2);
-		if(Metadata.algo_type == 7) gcry_free(crypto_key3);
 		gcry_free(inputKey);
 		gcry_free(derived_key);
-		gcry_free(second_derived_key);
 		return -1;
 	}
 
@@ -194,10 +145,7 @@ gint decrypt_file_gui(struct widget_t *WidgetMain){
 		if(counterForGoto == 3){
 			fprintf(stderr, _("decrypt_file: Key derivation error\n"));
 			gcry_free(derived_key);
-			gcry_free(second_derived_key);
 			gcry_free(crypto_key);
-			if(Metadata.algo_type > 3) gcry_free(crypto_key2);
-			if(Metadata.algo_type == 7) gcry_free(crypto_key3);
 			gcry_free(mac_key);
 			gcry_free(inputKey);
 			return -1;
@@ -207,36 +155,9 @@ gint decrypt_file_gui(struct widget_t *WidgetMain){
 	}
 	memcpy(crypto_key, derived_key, 32);
 	memcpy(mac_key, derived_key + 32, 32);
-	
-	counterForGoto = 0;
-	
-	if(Metadata.algo_type > 3){
-		if(gcry_kdf_derive (derived_key, pwd_len+1, GCRY_KDF_PBKDF2, GCRY_MD_SHA512, Metadata.salt, 32, 150000, 64, second_derived_key) != 0){
-			if(counterForGoto == 3){
-				fprintf(stderr, _("decrypt_file: Key derivation error\n"));
-				gcry_free(derived_key);
-				gcry_free(second_derived_key);
-				gcry_free(crypto_key);
-				if(Metadata.algo_type > 3) gcry_free(crypto_key2);
-				if(Metadata.algo_type == 7) gcry_free(crypto_key3);
-				gcry_free(mac_key);
-				gcry_free(inputKey);
-				return -1;
-			}
-			counterForGoto += 1;
-			goto tryAgainDerive;
-		}
-		memcpy(crypto_key2, second_derived_key, 32);
-		if(Metadata.algo_type == 7) memcpy(crypto_key3, second_derived_key + 32, 32);
-	}
-	
+		
 	gcry_cipher_setkey(hd, crypto_key, keyLength);
-	if(Metadata.algo_type > 3) gcry_cipher_setkey(hd2, crypto_key2, keyLength);
-	if(Metadata.algo_type == 7) gcry_cipher_setkey(hd3, crypto_key3, keyLength);
-	
 	gcry_cipher_setiv(hd, Metadata.iv, blkLength);
-	if(Metadata.algo_type > 3) gcry_cipher_setiv(hd2, Metadata.iv2, blkLength);
-	if(Metadata.algo_type == 7) gcry_cipher_setiv(hd3, Metadata.iv3, blkLength);
 
 	if((current_file_offset = ftell(fp)) == -1){
 		fprintf(stderr, "decrypt_file: %s\n", strerror(errno));
@@ -304,19 +225,7 @@ gint decrypt_file_gui(struct widget_t *WidgetMain){
 		retval = fread(cipher_text, 1, 16, fp);
 		if(!retval) break;
 		
-		if(Metadata.algo_type == 7){
-			gcry_cipher_decrypt(hd3, decBuffer, txtLenght, cipher_text, txtLenght);
-			gcry_cipher_decrypt(hd2, decBuffer, txtLenght, decBuffer, txtLenght);
-			gcry_cipher_decrypt(hd, decBuffer, txtLenght, decBuffer, txtLenght);
-		}
-		else if(Metadata.algo_type > 3 && Metadata.algo_type < 7){
-			gcry_cipher_decrypt(hd2, decBuffer, txtLenght, cipher_text, txtLenght);
-			gcry_cipher_decrypt(hd, decBuffer, txtLenght, decBuffer, txtLenght);
-		}
-		else{
-			gcry_cipher_decrypt(hd, decBuffer, txtLenght, cipher_text, txtLenght);
-		}
-		
+		gcry_cipher_decrypt(hd, decBuffer, txtLenght, cipher_text, txtLenght);
 		if(block_done == (number_of_block-1)){
 			number_of_pkcs7_byte = check_pkcs7(decBuffer, hex);
 			fwrite(decBuffer, 1, number_of_pkcs7_byte, fpout);	
@@ -330,18 +239,9 @@ gint decrypt_file_gui(struct widget_t *WidgetMain){
 	end:
 	
 	gcry_cipher_close(hd);
-	if(Metadata.algo_type > 3) gcry_cipher_close(hd2);
-	if(Metadata.algo_type == 7) gcry_cipher_close(hd3);
-	
 	gcry_free(inputKey);
-	
 	gcry_free(derived_key);
-	gcry_free(second_derived_key);
-	
 	gcry_free(crypto_key);
-	if(Metadata.algo_type > 3) gcry_free(crypto_key2);
-	if(Metadata.algo_type == 7) gcry_free(crypto_key3);
-	
 	gcry_free(mac_key);
 	gcry_free(decBuffer);
 	free(outFilename);

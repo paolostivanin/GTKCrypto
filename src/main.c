@@ -192,10 +192,6 @@ static void type_pwd_enc(struct widget_t *WidgetEnc){
    	gtk_combo_box_text_append(GTK_COMBO_BOX_TEXT(WidgetEnc->combomenu), "1", "SERPENT-256");
    	gtk_combo_box_text_append(GTK_COMBO_BOX_TEXT(WidgetEnc->combomenu), "2", "TWOFISH-256");
    	gtk_combo_box_text_append(GTK_COMBO_BOX_TEXT(WidgetEnc->combomenu), "3", "CAMELLIA-256");
-   	gtk_combo_box_text_append(GTK_COMBO_BOX_TEXT(WidgetEnc->combomenu), "4", "AES+TWOFISH");
-   	gtk_combo_box_text_append(GTK_COMBO_BOX_TEXT(WidgetEnc->combomenu), "5", "AES+SERPENT");
-   	gtk_combo_box_text_append(GTK_COMBO_BOX_TEXT(WidgetEnc->combomenu), "6", "TWOFISH+SERPENT");
-   	gtk_combo_box_text_append(GTK_COMBO_BOX_TEXT(WidgetEnc->combomenu), "7", "AES+SERPENT+TWOFISH");
    	
    	labelPwd = gtk_label_new(_("Type password"));
    	labelRetypePwd = gtk_label_new(_("Retype password"));

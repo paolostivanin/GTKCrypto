@@ -2,7 +2,7 @@ PolCrypt
 ========
 
 This software let you to:
-* Encrypt and decrypt files using AES, Twofish, Serpent, Camellia, AES+Twofish, AES+Serpent, Twofish+Serpent, AES+Twofish+Serpent (all with a 256bit key and in CBC mode);
+* Encrypt and decrypt files using AES, Twofish, Serpent or Camellia (all with a 256bit key and in CBC mode);
 * Compute the hash of a given file (supported hashes are MD5, GOST94, SHA-1, SHA-256, SHA3-256, SHA-512, SHA3-512 and Whirlpool);
 
 This software is developed by Paolo Stivanin (a.k.a Polslinux)

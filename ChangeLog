@@ -41,6 +41,9 @@
 	* ADDED: support for single or multiple encryption (aes, twofish, serpent, aes+twofish, aes+serpent, aes+twofish+serpent)
 	* REMOVED: cli
 
+27/03/2014 - v2.1.1
+	* REMOVED: multiple encryption (it isn't really useful)
+
 ??/05/2014 - v2.2.0
 	* ADDED: asymmetric encryption support (with RSA or with a ECC algo)
 	* ADDED: data compression using zlib

@@ -19,9 +19,9 @@ static void show_error(struct widget_t *, const gchar *);
 
 gint encrypt_file_gui(struct widget_t *WidgetMain){
 	const gchar *algoID = gtk_combo_box_get_active_id(GTK_COMBO_BOX(WidgetMain->combomenu));
-	gint algo = -1, algo2 = -1, algo3 = -1,fd, number_of_block, block_done = 0, retcode, counterForGoto = 0;
+	gint algo = -1,fd, number_of_block, block_done = 0, retcode, counterForGoto = 0;
 	guchar hex[15] = { 0x01,0x02,0x03,0x04,0x05,0x06,0x07,0x08,0x09,0x0A,0x0B,0x0C,0x0D,0x0E,0x0F}, plain_text[16];
-	guchar *derived_key = NULL, *second_derived_key = NULL, *crypto_key = NULL, *crypto_key2 = NULL, *crypto_key3 = NULL, *mac_key = NULL, *encBuffer = NULL;
+	guchar *derived_key = NULL, *crypto_key = NULL, *mac_key = NULL, *encBuffer = NULL;
 	gchar *inputKey = NULL;
 	gfloat result_of_division_by_16, fsize_float;
 	off_t fsize = 0;
@@ -29,7 +29,7 @@ gint encrypt_file_gui(struct widget_t *WidgetMain){
 	
 	struct metadata_t Metadata;
 	struct stat fileStat;
-	gcry_cipher_hd_t hd, hd2, hd3;
+	gcry_cipher_hd_t hd;
 	
 	const gchar *inputWidKey = gtk_entry_get_text(GTK_ENTRY(WidgetMain->pwdEntry));
 	size_t len = strlen(inputWidKey);
@@ -60,27 +60,6 @@ gint encrypt_file_gui(struct widget_t *WidgetMain){
 		algo = gcry_cipher_map_name("camellia256");
 		Metadata.algo_type = 3;
 	}
-	else if(strcmp(algoID, "4") == 0){
-		algo = gcry_cipher_map_name("aes256");
-		algo2 = gcry_cipher_map_name("twofish");
-		Metadata.algo_type = 4;
-	}
-	else if(strcmp(algoID, "5") == 0){
-		algo = gcry_cipher_map_name("aes256");
-		algo2 = gcry_cipher_map_name("serpent256");
-		Metadata.algo_type = 5;
-	}
-	else if(strcmp(algoID, "6") == 0){
-		algo = gcry_cipher_map_name("twofish");
-		algo2 = gcry_cipher_map_name("serpent256");
-		Metadata.algo_type = 6;
-	}
-	else if(strcmp(algoID, "7") == 0){
-		algo = gcry_cipher_map_name("aes256");
-		algo2 = gcry_cipher_map_name("twofish");
-		algo3 = gcry_cipher_map_name("serpent256");
-		Metadata.algo_type = 7;
-	}
 
 	blkLength = gcry_cipher_get_algo_blklen(algo);
 	keyLength = gcry_cipher_get_algo_keylen(algo);	
@@ -88,8 +67,6 @@ gint encrypt_file_gui(struct widget_t *WidgetMain){
 	encBuffer = gcry_malloc(txtLenght);
 
 	gcry_create_nonce(Metadata.iv, 16);
-	gcry_create_nonce(Metadata.iv2, 16);
-	gcry_create_nonce(Metadata.iv3, 16);
 	gcry_create_nonce(Metadata.salt, 32);
 
 	fd = open(WidgetMain->filename, O_RDONLY | O_NOFOLLOW);
@@ -126,16 +103,9 @@ gint encrypt_file_gui(struct widget_t *WidgetMain){
 	}
 	
 	gcry_cipher_open(&hd, algo, GCRY_CIPHER_MODE_CBC, 0);
-	if(Metadata.algo_type > 3) gcry_cipher_open(&hd2, algo2, GCRY_CIPHER_MODE_CBC, 0);
-	if(Metadata.algo_type == 7) gcry_cipher_open(&hd3, algo3, GCRY_CIPHER_MODE_CBC, 0);
 	
 	if((derived_key = gcry_malloc_secure(64)) == NULL){
 		fprintf(stderr, _("encrypt_file: gcry_malloc_secure failed (derived)\n"));
-		gcry_free(inputKey);
-		return -1;
-	}
-	if((second_derived_key = gcry_malloc_secure(64)) == NULL){
-		fprintf(stderr, _("encrypt_file: gcry_malloc_secure failed (second_derived)\n"));
 		gcry_free(inputKey);
 		return -1;
 	}
@@ -144,39 +114,14 @@ gint encrypt_file_gui(struct widget_t *WidgetMain){
 		fprintf(stderr, _("encrypt_file: gcry_malloc_secure failed (crypto)\n"));
 		gcry_free(inputKey);
 		gcry_free(derived_key);
-		gcry_free(second_derived_key);
 		return -1;
-	}
-	if(Metadata.algo_type > 3){
-		if((crypto_key2 = gcry_malloc_secure(32)) == NULL){
-			fprintf(stderr, _("encrypt_file: gcry_malloc_secure failed (crypto2)\n"));
-			gcry_free(crypto_key);
-			gcry_free(inputKey);
-			gcry_free(derived_key);
-			gcry_free(second_derived_key);
-			return -1;
-		}
-	}
-	if(Metadata.algo_type == 7){
-		if((crypto_key3 = gcry_malloc_secure(32)) == NULL){
-			fprintf(stderr, _("encrypt_file: gcry_malloc_secure failed (crypto2)\n"));
-			gcry_free(crypto_key);
-			gcry_free(crypto_key2);
-			gcry_free(inputKey);
-			gcry_free(derived_key);
-			gcry_free(second_derived_key);
-			return -1;
-		}
 	}
 	
 	if((mac_key = gcry_malloc_secure(32)) == NULL){
 		fprintf(stderr, _("encrypt_file: gcry_malloc_secure failed (mac)\n"));
 		gcry_free(crypto_key);
-		if(Metadata.algo_type > 3) gcry_free(crypto_key2);
-		if(Metadata.algo_type == 7) gcry_free(crypto_key3);
 		gcry_free(inputKey);
 		gcry_free(derived_key);
-		gcry_free(second_derived_key);
 		return -1;
 	}
 
@@ -185,10 +130,7 @@ gint encrypt_file_gui(struct widget_t *WidgetMain){
 		if(counterForGoto == 3){
 			fprintf(stderr, _("encrypt_file: Key derivation error\n"));
 			gcry_free(derived_key);
-			gcry_free(second_derived_key);
 			gcry_free(crypto_key);
-			if(Metadata.algo_type > 3) gcry_free(crypto_key2);
-			if(Metadata.algo_type == 7) gcry_free(crypto_key3);
 			gcry_free(mac_key);
 			gcry_free(inputKey);
 			return -1;
@@ -198,37 +140,9 @@ gint encrypt_file_gui(struct widget_t *WidgetMain){
 	}
 	memcpy(crypto_key, derived_key, 32);
 	memcpy(mac_key, derived_key + 32, 32);
-	
-	counterForGoto = 0;
-	
-	if(Metadata.algo_type > 3){
-		tryAgainDerive2:
-		if(gcry_kdf_derive (derived_key, len+1, GCRY_KDF_PBKDF2, GCRY_MD_SHA512, Metadata.salt, 32, 150000, 64, second_derived_key) != 0){
-			if(counterForGoto == 3){
-				fprintf(stderr, _("encrypt_file: Key derivation error\n"));
-				gcry_free(derived_key);
-				gcry_free(second_derived_key);
-				gcry_free(crypto_key);
-				if(Metadata.algo_type > 3) gcry_free(crypto_key2);
-				if(Metadata.algo_type == 7) gcry_free(crypto_key3);
-				gcry_free(mac_key);
-				gcry_free(inputKey);
-				return -1;
-			}
-			counterForGoto += 1;
-			goto tryAgainDerive2;
-		}
-		memcpy(crypto_key2, second_derived_key, 32);
-		if(Metadata.algo_type == 7) memcpy(crypto_key3, second_derived_key + 32, 32);
-	}
 
 	gcry_cipher_setkey(hd, crypto_key, keyLength);
-	if(Metadata.algo_type > 3) gcry_cipher_setkey(hd2, crypto_key2, keyLength);
-	if(Metadata.algo_type == 7) gcry_cipher_setkey(hd3, crypto_key3, keyLength);
-	
 	gcry_cipher_setiv(hd, Metadata.iv, blkLength);
-	if(Metadata.algo_type > 3) gcry_cipher_setiv(hd2, Metadata.iv2, blkLength);
-	if(Metadata.algo_type == 7) gcry_cipher_setiv(hd3, Metadata.iv3, blkLength);
 
 	fseek(fp, 0, SEEK_SET);
 	
@@ -258,8 +172,6 @@ gint encrypt_file_gui(struct widget_t *WidgetMain){
 			}
 		}
 		gcry_cipher_encrypt(hd, encBuffer, txtLenght, plain_text, txtLenght);
-		if(Metadata.algo_type > 3) gcry_cipher_encrypt(hd2, encBuffer, txtLenght, encBuffer, txtLenght);
-		if(Metadata.algo_type == 7) gcry_cipher_encrypt(hd3, encBuffer, txtLenght, encBuffer, txtLenght);
 		
 		fwrite(encBuffer, 1, 16, fpout);
 		block_done++;
@@ -272,8 +184,6 @@ gint encrypt_file_gui(struct widget_t *WidgetMain){
 		show_error(WidgetMain, _("Error during HMAC calculation"));
 		gcry_free(derived_key);
 		gcry_free(crypto_key);
-		if(Metadata.algo_type > 3) gcry_free(crypto_key2);
-		if(Metadata.algo_type == 7) gcry_free(crypto_key3);
 		gcry_free(mac_key);
 		gcry_free(inputKey);
 		return -1;
@@ -289,16 +199,8 @@ gint encrypt_file_gui(struct widget_t *WidgetMain){
 		show_error(WidgetMain, _("File unlink failed, remove it manually"));
 
 	gcry_cipher_close(hd);
-	if(Metadata.algo_type > 3) gcry_cipher_close(hd2);
-	if(Metadata.algo_type == 7) gcry_cipher_close(hd3);
-	
 	gcry_free(derived_key);
-	gcry_free(second_derived_key);
-	
 	gcry_free(crypto_key);
-	if(Metadata.algo_type > 3) gcry_free(crypto_key2);
-	if(Metadata.algo_type == 7) gcry_free(crypto_key3);
-	
 	gcry_free(mac_key);
 	gcry_free(encBuffer);
 	gcry_free(inputKey);
