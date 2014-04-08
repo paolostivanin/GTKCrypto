@@ -4,7 +4,7 @@
 #define BUF_FILE 16777216 /* 16 MiB memory buffer (hash) */
 #define BUFSIZE 1048576  /* 1 MiB memory buffer (delete_input_file) */
 #define GCRYPT_MIN_VER "1.5.0"
-#define VERSION "2.1.1"
+#define VERSION "2.2.0-dev"
 #define LOCALE_DIR "/usr/share/locale" // or your specification
 #define PACKAGE    "polcrypt"          // mo file name in LOCALE
 
@@ -12,7 +12,7 @@
 #include <gtk/gtk.h>
 
 struct metadata_t{
-	gint8 algo_type; //(NULL|0=aes),(1=serpent),(2=twofish),(3=camellia),(4=aes+two),(5=aes+serp),(6=two+serp),(7=aes+serp+two)
+	gint8 algo_type; //(NULL|0=aes),(1=serpent),(2=twofish),(3=camellia)
 	guchar salt[32];
 	guchar iv[16];
 };

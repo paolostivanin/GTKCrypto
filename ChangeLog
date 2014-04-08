@@ -45,10 +45,13 @@
 	* REMOVED: multiple encryption (it isn't really useful)
 
 ??/05/2014 - v2.2.0
-	* ADDED: asymmetric encryption support (with RSA or with a ECC algo)
+	* ADDED: possibility to choose between file/text encryption
 	* ADDED: data compression using zlib
 	* ADDED: multiple file selection for en/de/cryption
 
+??/??/2014 - v2.3.0
+	* ADDED: asymmetric encryption support (with RSA or with a ECC algo)
+	* AES256-ctr as default instead of AES256-cbc
+
 ?????????? - EVALUATING FEATURES
-	* aes256-ctr as default instead of aes256-cbc
 	* possibility to choose different aes mode like aes-cbc, aes-ctr, aes-gcm, etc
