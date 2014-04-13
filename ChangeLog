@@ -46,7 +46,6 @@
 
 ??/05/2014 - v2.2.0
 	* ADDED: possibility to choose between file/text encryption
-	* ADDED: data compression using zlib
 	* ADDED: multiple file selection for en/de/cryption
 
 ??/??/2014 - v2.3.0
@@ -55,3 +54,4 @@
 
 ?????????? - EVALUATING FEATURES
 	* possibility to choose different aes mode like aes-cbc, aes-ctr, aes-gcm, etc
+	* compression using zlib
