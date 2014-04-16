@@ -92,7 +92,7 @@ static void startup (GtkApplication *application, gpointer user_data __attribute
 
 static void activate (GtkApplication *app, gpointer user_data __attribute__ ((unused)))
 {
-	GtkWidget *butEn, *butDe, *butHa, *grid;
+	GtkWidget *butEn, *butDe, *butEnText, *butDeText, *butHa, *butQ, *grid;
 	GtkWidget *label;
 	GError *err = NULL;
 	
@@ -125,10 +125,16 @@ static void activate (GtkApplication *app, gpointer user_data __attribute__ ((un
 	
 	butEn = gtk_button_new_with_label(_("Encrypt File"));
 	butDe = gtk_button_new_with_label(_("Decrypt File"));
+	butEnText = gtk_button_new_with_label(_("Encrypt Text"));
+	butDeText = gtk_button_new_with_label(_("Decrypt Text"));
 	butHa = gtk_button_new_with_label(_("Compute Hash"));
+	butQ = gtk_button_new_with_label(_("Quit"));
 	g_signal_connect(butEn, "clicked", G_CALLBACK (is_enc), &Widget);
 	g_signal_connect(butDe, "clicked", G_CALLBACK (is_dec), &Widget);
+	g_signal_connect(butEnText, "clicked", G_CALLBACK (quit), app); // CHANGE HERE
+	g_signal_connect(butDeText, "clicked", G_CALLBACK (quit), app); // CHANGE HERE
 	g_signal_connect(butHa, "clicked", G_CALLBACK (is_hash), &Widget);
+	g_signal_connect(butQ, "clicked", G_CALLBACK (quit), app);
 	
 	grid = gtk_grid_new();
 	gtk_container_add(GTK_CONTAINER(Widget.mainwin), grid);
@@ -139,9 +145,15 @@ static void activate (GtkApplication *app, gpointer user_data __attribute__ ((un
 	
 	gtk_grid_attach(GTK_GRID(grid), label, 0, 0, 5, 1);
 	g_object_set (label, "margin-bottom", 12, NULL);
-	gtk_grid_attach(GTK_GRID(grid), butEn, 1, 1, 3, 1);
-	gtk_grid_attach(GTK_GRID(grid), butDe, 1, 2, 3, 1);
-	gtk_grid_attach(GTK_GRID(grid), butHa, 1, 3, 3, 1);
+	
+	gtk_grid_attach(GTK_GRID(grid), butEn, 0, 1, 3, 1);
+	gtk_grid_attach(GTK_GRID(grid), butEnText, 3, 1, 3, 1);
+	
+	gtk_grid_attach(GTK_GRID(grid), butDe, 0, 2, 3, 1);
+	gtk_grid_attach(GTK_GRID(grid), butDeText, 3, 2, 3, 1);
+	
+	gtk_grid_attach(GTK_GRID(grid), butHa, 0, 3, 3, 1);
+	gtk_grid_attach(GTK_GRID(grid), butQ, 3, 3, 3, 1);
 
 	gtk_widget_show_all(Widget.mainwin);
 }
