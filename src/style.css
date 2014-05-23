@@ -1,0 +1,29 @@
+#butEn {
+	background-image: -gtk-gradient( linear, left top, left bottom, color-stop(0.05, #79bbff), color-stop(1, #378de5) );
+	background-color:#79bbff;
+	border-top-left-radius:10px;
+	border-top-right-radius:10px;
+	border-bottom-right-radius:10px;
+	border-bottom-left-radius:10px;
+	border:1px solid #84bbf3;
+	text-shadow:1px 1px 0px #528ecc;
+}
+#butEn:hover {
+	background-image:-gtk-gradient( linear, left top, left bottom, color-stop(0.05, #378de5), color-stop(1, #79bbff) );
+	background-color:#378de5;
+}
+
+#butQ {
+  background-image: -gtk-gradient( linear, left top, left bottom,  color-stop(0.05, #f24537), color-stop(1, #c62d1f) );
+  background-color:#f24537;
+  border-top-left-radius:10px;
+  border-top-right-radius:10px;
+  border-bottom-right-radius:10px;
+  border-bottom-left-radius:10px;
+  border:1px solid #d02718;
+  text-shadow:1px 1px 0px #810e05;
+}
+#butQ:hover {
+  background-image:-gtk-gradient( linear, left top, left bottom, color-stop(0.5, #c62d1f), color-stop(1, #f24537) );
+  background-color:#c62d1f;
+}

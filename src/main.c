@@ -94,6 +94,8 @@ static void startup (GtkApplication *application, gpointer user_data __attribute
 static void activate (GtkApplication *app, gpointer user_data __attribute__ ((unused)))
 {
 	GtkWidget *butEn, *butDe, *butEnText, *butDeText, *butHa, *butQ, *grid;
+	GError *err = NULL;
+	const gchar *path = "/home/polslinux/Documenti/Development/Progetti/4-PolCrypt/src/style.css";
 
 	const gchar *glibVer = glib_check_version(2, 36, 0);
 	if(glibVer != NULL){
@@ -108,27 +110,27 @@ static void activate (GtkApplication *app, gpointer user_data __attribute__ ((un
 
 	Widget.mainwin = do_header_and_mainwin(app);
 
-	GError *err = NULL;
 	GtkCssProvider *cs = gtk_css_provider_new ();
-	gtk_css_provider_load_from_data (GTK_CSS_PROVIDER (cs), //sostituire con file CSS
-                            " #boton {\n"
-                            "   border-image: none;\n"
-														"	 background-image: none;\n"
-														"	 background-color: #3399FF;\n"
-														"	 color: white;\n"
-														"}\n", -1, &err);
-	if(err != NULL) g_print(_("Error during CSS parsing"));
+	gtk_css_provider_load_from_path (GTK_CSS_PROVIDER (cs), path, &err);
+	if(err != NULL) g_print(_("Error during CSS parsing\n"));
 
 	butEn = gtk_button_new_with_label(_("Encrypt File"));
-	gtk_widget_set_name(GTK_WIDGET(butEn), "boton");
-	gtk_style_context_add_provider_for_screen(gdk_screen_get_default(), GTK_STYLE_PROVIDER(cs), GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
-	g_object_unref(cs);
-
 	butDe = gtk_button_new_with_label(_("Decrypt File"));
 	butEnText = gtk_button_new_with_label(_("Encrypt Text"));
 	butDeText = gtk_button_new_with_label(_("Decrypt Text"));
 	butHa = gtk_button_new_with_label(_("Compute Hash"));
 	butQ = gtk_button_new_with_label(_("Quit"));
+
+	gtk_widget_set_name(GTK_WIDGET(butEn), "butEn");
+	gtk_widget_set_name(GTK_WIDGET(butDe), "butDe");
+	gtk_widget_set_name(GTK_WIDGET(butEnText), "butEnText");
+	gtk_widget_set_name(GTK_WIDGET(butDeText), "butDeText");
+	gtk_widget_set_name(GTK_WIDGET(butHa), "butHa");
+	gtk_widget_set_name(GTK_WIDGET(butQ), "butQ");
+
+	gtk_style_context_add_provider_for_screen(gdk_screen_get_default(), GTK_STYLE_PROVIDER(cs), GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
+	g_object_unref(cs);
+
 	g_signal_connect(butEn, "clicked", G_CALLBACK (is_enc), &Widget);
 	g_signal_connect(butDe, "clicked", G_CALLBACK (is_dec), &Widget);
 	g_signal_connect(butEnText, "clicked", G_CALLBACK (quit), app); // CHANGE HERE
