@@ -97,18 +97,33 @@ static void activate (GtkApplication *app, gpointer user_data __attribute__ ((un
 
 	const gchar *glibVer = glib_check_version(2, 36, 0);
 	if(glibVer != NULL){
-		show_error(NULL, "The required version of GLib is 2.36.0 or greater.");
+		show_error(NULL, _("The required version of GLib is 2.36.0 or greater."));
 		return;
 	}
 	const gchar *gtkVer = gtk_check_version(3, 12, 0);
 	if(gtkVer != NULL){
-		show_error(NULL, "The required version of GTK+ is 3.12.0 or greater.");
+		show_error(NULL, _("The required version of GTK+ is 3.12.0 or greater."));
 		return;
 	}
 
 	Widget.mainwin = do_header_and_mainwin(app);
 
+	GError *err = NULL;
+	GtkCssProvider *cs = gtk_css_provider_new ();
+	gtk_css_provider_load_from_data (GTK_CSS_PROVIDER (cs), //sostituire con file CSS
+                            " #boton {\n"
+                            "   border-image: none;\n"
+														"	 background-image: none;\n"
+														"	 background-color: #3399FF;\n"
+														"	 color: white;\n"
+														"}\n", -1, &err);
+	if(err != NULL) g_print(_("Error during CSS parsing"));
+
 	butEn = gtk_button_new_with_label(_("Encrypt File"));
+	gtk_widget_set_name(GTK_WIDGET(butEn), "boton");
+	gtk_style_context_add_provider_for_screen(gdk_screen_get_default(), GTK_STYLE_PROVIDER(cs), GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
+	g_object_unref(cs);
+
 	butDe = gtk_button_new_with_label(_("Decrypt File"));
 	butEnText = gtk_button_new_with_label(_("Encrypt Text"));
 	butDeText = gtk_button_new_with_label(_("Decrypt Text"));
@@ -144,6 +159,9 @@ GtkWidget *do_header_and_mainwin(GtkApplication *app){
 	static GtkWidget *window = NULL;
 	GtkWidget *header;
 	GtkWidget *box;
+	GtkWidget *image;
+	GtkWidget *menu;
+	GIcon *icon;
 	GError *err = NULL;
 
 	window = gtk_application_window_new(app);
@@ -165,9 +183,13 @@ GtkWidget *do_header_and_mainwin(GtkApplication *app){
 	box = gtk_box_new (GTK_ORIENTATION_HORIZONTAL, 0);
 	gtk_style_context_add_class (gtk_widget_get_style_context (box), "linked");
 
-	GIcon *icon = g_themed_icon_new ("emblem-system-symbolic");
-	GtkWidget *image = gtk_image_new_from_gicon (icon, GTK_ICON_SIZE_BUTTON);
-	GtkToolItem *menu = gtk_menu_tool_button_new (image, NULL);
+	icon = g_themed_icon_new ("emblem-system-symbolic");
+	image = gtk_image_new_from_gicon (icon, GTK_ICON_SIZE_BUTTON);
+	g_object_unref(icon);
+	menu = gtk_button_new();
+	gtk_container_add(GTK_CONTAINER(menu), image);
+	gtk_widget_set_tooltip_text(GTK_WIDGET(menu), _("Settings"));
+	//collegare al menu la finestra impostazioni
   gtk_header_bar_pack_start(GTK_HEADER_BAR (header), GTK_WIDGET(menu));
 
 	gtk_window_set_titlebar (GTK_WINDOW (window), header);
