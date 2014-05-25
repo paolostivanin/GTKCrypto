@@ -8,6 +8,8 @@
 #include "polcrypt.h"
 
 GtkWidget *do_header_and_mainwin(GtkApplication *);
+static GtkWidget *create_popover(GtkWidget *, GtkPositionType);
+static void toggle_changed_cb (GtkToggleButton *, GtkWidget *);
 static void file_dialog(struct widget_t *);
 static void is_enc(GtkWidget *, struct widget_t *);
 static void is_dec(GtkWidget *, struct widget_t *);
@@ -94,16 +96,15 @@ static void startup (GtkApplication *application, gpointer user_data __attribute
 static void activate (GtkApplication *app, gpointer user_data __attribute__ ((unused)))
 {
 	GtkWidget *butEn, *butDe, *butEnText, *butDeText, *butHa, *butQ, *grid;
+	GtkWidget *boxFile, *boxText, *frameFile, *frameText;
 	GError *err = NULL;
 	const gchar *path = "/home/polslinux/Documenti/Development/Progetti/4-PolCrypt/src/style.css";
 
-	const gchar *glibVer = glib_check_version(2, 36, 0);
-	if(glibVer != NULL){
+	if(glib_check_version(2, 36, 0) != NULL){
 		show_error(NULL, _("The required version of GLib is 2.36.0 or greater."));
 		return;
 	}
-	const gchar *gtkVer = gtk_check_version(3, 12, 0);
-	if(gtkVer != NULL){
+	if(gtk_check_version(3, 12, 0) != NULL){
 		show_error(NULL, _("The required version of GTK+ is 3.12.0 or greater."));
 		return;
 	}
@@ -120,6 +121,18 @@ static void activate (GtkApplication *app, gpointer user_data __attribute__ ((un
 	butDeText = gtk_button_new_with_label(_("Decrypt Text"));
 	butHa = gtk_button_new_with_label(_("Compute Hash"));
 	butQ = gtk_button_new_with_label(_("Quit"));
+	
+	frameFile = gtk_frame_new("File");
+	boxFile = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 2);
+	gtk_box_pack_start (GTK_BOX (boxFile), butEn, TRUE, TRUE, 2);
+	gtk_box_pack_start (GTK_BOX (boxFile), butDe, TRUE, TRUE, 2);
+	gtk_container_add(GTK_CONTAINER(frameFile), boxFile);
+	
+	frameText = gtk_frame_new("Text");
+	boxText = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 2);
+	gtk_box_pack_start (GTK_BOX (boxText), butEnText, TRUE, TRUE, 2);
+	gtk_box_pack_start (GTK_BOX (boxText), butDeText, TRUE, TRUE, 2);
+	gtk_container_add(GTK_CONTAINER(frameText), boxText);
 
 	gtk_widget_set_name(GTK_WIDGET(butEn), "butEn");
 	gtk_widget_set_name(GTK_WIDGET(butDe), "butDe");
@@ -128,7 +141,7 @@ static void activate (GtkApplication *app, gpointer user_data __attribute__ ((un
 	gtk_widget_set_name(GTK_WIDGET(butHa), "butHa");
 	gtk_widget_set_name(GTK_WIDGET(butQ), "butQ");
 
-	gtk_style_context_add_provider_for_screen(gdk_screen_get_default(), GTK_STYLE_PROVIDER(cs), GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
+	//gtk_style_context_add_provider_for_screen(gdk_screen_get_default(), GTK_STYLE_PROVIDER(cs), GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
 	g_object_unref(cs);
 
 	g_signal_connect(butEn, "clicked", G_CALLBACK (is_enc), &Widget);
@@ -145,14 +158,10 @@ static void activate (GtkApplication *app, gpointer user_data __attribute__ ((un
 	gtk_grid_set_row_spacing(GTK_GRID(grid), 5);
 	gtk_grid_set_column_spacing(GTK_GRID(grid), 5);
 
-	gtk_grid_attach(GTK_GRID(grid), butEn, 0, 1, 3, 1);
-	gtk_grid_attach(GTK_GRID(grid), butEnText, 3, 1, 3, 1);
-
-	gtk_grid_attach(GTK_GRID(grid), butDe, 0, 2, 3, 1);
-	gtk_grid_attach(GTK_GRID(grid), butDeText, 3, 2, 3, 1);
-
-	gtk_grid_attach(GTK_GRID(grid), butHa, 0, 3, 3, 1);
-	gtk_grid_attach(GTK_GRID(grid), butQ, 3, 3, 3, 1);
+	gtk_grid_attach(GTK_GRID(grid), frameFile, 0, 0, 3, 2);
+	gtk_grid_attach(GTK_GRID(grid), frameText, 0, 2, 3, 2);
+	gtk_grid_attach(GTK_GRID(grid), butHa, 0, 5, 3, 1);
+	gtk_grid_attach(GTK_GRID(grid), butQ, 0, 6, 3, 1);
 
 	gtk_widget_show_all(Widget.mainwin);
 }
@@ -163,6 +172,7 @@ GtkWidget *do_header_and_mainwin(GtkApplication *app){
 	GtkWidget *box;
 	GtkWidget *image;
 	GtkWidget *menu;
+	GtkWidget *popover;
 	GIcon *icon;
 	GError *err = NULL;
 
@@ -188,15 +198,60 @@ GtkWidget *do_header_and_mainwin(GtkApplication *app){
 	icon = g_themed_icon_new ("emblem-system-symbolic");
 	image = gtk_image_new_from_gicon (icon, GTK_ICON_SIZE_BUTTON);
 	g_object_unref(icon);
-	menu = gtk_button_new();
+	menu = gtk_toggle_button_new();
 	gtk_container_add(GTK_CONTAINER(menu), image);
 	gtk_widget_set_tooltip_text(GTK_WIDGET(menu), _("Settings"));
-	//collegare al menu la finestra impostazioni
-  gtk_header_bar_pack_start(GTK_HEADER_BAR (header), GTK_WIDGET(menu));
+	
+	popover = create_popover(menu, GTK_POS_TOP);
+	gtk_popover_set_modal (GTK_POPOVER (popover), FALSE);
+	g_signal_connect (menu, "toggled", G_CALLBACK (toggle_changed_cb), popover);
+	
+	gtk_header_bar_pack_start(GTK_HEADER_BAR (header), GTK_WIDGET(menu));
 
 	gtk_window_set_titlebar (GTK_WINDOW (window), header);
 
 	return window;
+}
+
+static GtkWidget *create_popover (GtkWidget *parent, GtkPositionType pos){
+	
+	GtkWidget *popover, *box, *label, *hline, *r0, *r1, *r2, *r3, *r4;
+	
+	label = gtk_label_new(_("Cipher Algo"));
+	hline = gtk_separator_new(GTK_ORIENTATION_HORIZONTAL);
+	
+	box = gtk_box_new (GTK_ORIENTATION_VERTICAL, 4);
+	gtk_box_set_homogeneous (GTK_BOX (box), FALSE);
+	
+	popover = gtk_popover_new(parent);
+	gtk_popover_set_position (GTK_POPOVER (popover), pos);
+	
+	r0 = gtk_radio_button_new(NULL);
+	r1 = gtk_radio_button_new_with_label_from_widget(GTK_RADIO_BUTTON(r0), "AES-256");
+	r2 = gtk_radio_button_new_with_label_from_widget(GTK_RADIO_BUTTON(r0), "Serpent");
+	r3 = gtk_radio_button_new_with_label_from_widget(GTK_RADIO_BUTTON(r0), "Twofish");
+	r4 = gtk_radio_button_new_with_label_from_widget(GTK_RADIO_BUTTON(r0), "Camellia-256");
+	
+	gtk_box_pack_start (GTK_BOX (box), label, TRUE, TRUE, 0);
+	gtk_box_pack_start (GTK_BOX (box), hline, TRUE, TRUE, 0);
+	gtk_box_pack_start (GTK_BOX (box), r1, TRUE, TRUE, 2);
+	gtk_box_pack_start (GTK_BOX (box), r2, TRUE, TRUE, 2);
+	gtk_box_pack_start (GTK_BOX (box), r3, TRUE, TRUE, 2);
+	gtk_box_pack_start (GTK_BOX (box), r4, TRUE, TRUE, 2);
+	
+	g_object_set(r1, "active", TRUE, NULL);
+	
+	//connettere al segnale "cliccato sulla voce" la scomparsa del tutto
+	
+	gtk_container_add (GTK_CONTAINER (popover), box);
+	gtk_container_set_border_width (GTK_CONTAINER (popover), 6);
+	gtk_widget_show_all (box);
+
+	return popover; 
+}
+
+static void toggle_changed_cb (GtkToggleButton *button, GtkWidget *popover){
+	gtk_widget_set_visible (popover, gtk_toggle_button_get_active (button));
 }
 
 static void is_enc(GtkWidget *ignored __attribute__ ((unused)), struct widget_t *Widget){
@@ -237,24 +292,24 @@ static void file_dialog(struct widget_t *Widget){
 static void type_pwd_enc(struct widget_t *WidgetEnc){
 	gtk_widget_hide(GTK_WIDGET(WidgetEnc->file_dialog));
 	GtkWidget *content_area, *grid2, *labelPwd, *labelRetypePwd, *infoarea, *labelCombo;
-  WidgetEnc->dialog = gtk_dialog_new_with_buttons (_("Encryption Password"), NULL, GTK_DIALOG_MODAL, _("_Close"), GTK_RESPONSE_CLOSE, _("_OK"), GTK_RESPONSE_OK, NULL);
-  content_area = gtk_dialog_get_content_area (GTK_DIALOG (WidgetEnc->dialog));
+	WidgetEnc->dialog = gtk_dialog_new_with_buttons (_("Encryption Password"), NULL, GTK_DIALOG_MODAL, _("_Close"), GTK_RESPONSE_CLOSE, _("_OK"), GTK_RESPONSE_OK, NULL);
+	content_area = gtk_dialog_get_content_area (GTK_DIALOG (WidgetEnc->dialog));
 
-  WidgetEnc->combomenu = gtk_combo_box_text_new();
-  gtk_combo_box_text_append(GTK_COMBO_BOX_TEXT(WidgetEnc->combomenu), "0", "AES-256");
-  gtk_combo_box_text_append(GTK_COMBO_BOX_TEXT(WidgetEnc->combomenu), "1", "SERPENT-256");
-  gtk_combo_box_text_append(GTK_COMBO_BOX_TEXT(WidgetEnc->combomenu), "2", "TWOFISH-256");
-  gtk_combo_box_text_append(GTK_COMBO_BOX_TEXT(WidgetEnc->combomenu), "3", "CAMELLIA-256");
+	WidgetEnc->combomenu = gtk_combo_box_text_new();
+	gtk_combo_box_text_append(GTK_COMBO_BOX_TEXT(WidgetEnc->combomenu), "0", "AES-256");
+	gtk_combo_box_text_append(GTK_COMBO_BOX_TEXT(WidgetEnc->combomenu), "1", "SERPENT-256");
+	gtk_combo_box_text_append(GTK_COMBO_BOX_TEXT(WidgetEnc->combomenu), "2", "TWOFISH-256");
+	gtk_combo_box_text_append(GTK_COMBO_BOX_TEXT(WidgetEnc->combomenu), "3", "CAMELLIA-256");
 
-  labelPwd = gtk_label_new(_("Type password"));
-  labelRetypePwd = gtk_label_new(_("Retype password"));
-  labelCombo = gtk_label_new(_("Select Algo"));
-  WidgetEnc->pwdEntry = gtk_entry_new();
-  WidgetEnc->pwdReEntry = gtk_entry_new();
-  gtk_entry_set_visibility(GTK_ENTRY(WidgetEnc->pwdEntry), FALSE); //input nascosto
-  gtk_entry_set_visibility(GTK_ENTRY(WidgetEnc->pwdReEntry), FALSE);
+	labelPwd = gtk_label_new(_("Type password"));
+	labelRetypePwd = gtk_label_new(_("Retype password"));
+	labelCombo = gtk_label_new(_("Select Algo"));
+	WidgetEnc->pwdEntry = gtk_entry_new();
+	WidgetEnc->pwdReEntry = gtk_entry_new();
+	gtk_entry_set_visibility(GTK_ENTRY(WidgetEnc->pwdEntry), FALSE); //input nascosto
+	gtk_entry_set_visibility(GTK_ENTRY(WidgetEnc->pwdReEntry), FALSE);
 
-  gtk_widget_set_size_request(WidgetEnc->dialog, 150, 100); // richiedo una grandezza minima
+	gtk_widget_set_size_request(WidgetEnc->dialog, 150, 100); // richiedo una grandezza minima
 
 	WidgetEnc->infobar = gtk_info_bar_new();
 	WidgetEnc->infolabel = gtk_label_new(_("Encrypting and deleting the file can take some minutes depending on the file size..."));
@@ -263,7 +318,7 @@ static void type_pwd_enc(struct widget_t *WidgetEnc){
 	infoarea = gtk_info_bar_get_content_area(GTK_INFO_BAR(WidgetEnc->infobar));
 	gtk_container_add(GTK_CONTAINER(infoarea), WidgetEnc->infolabel);
 
-  grid2 = gtk_grid_new();
+	grid2 = gtk_grid_new();
 	gtk_grid_set_column_homogeneous(GTK_GRID(grid2), TRUE); // colonne stessa larghezza
 	gtk_grid_set_row_spacing(GTK_GRID(grid2), 5); // spazio fra le righe
 
@@ -289,10 +344,10 @@ static void type_pwd_enc(struct widget_t *WidgetEnc){
 	gtk_grid_attach(GTK_GRID(grid2), WidgetEnc->pwdReEntry, 1, 2, 2, 1);
 	gtk_grid_attach(GTK_GRID(grid2), WidgetEnc->infobar, 0, 3, 3, 1);
 
-  gtk_container_add (GTK_CONTAINER (content_area), grid2);
+	gtk_container_add (GTK_CONTAINER (content_area), grid2);
 	gtk_widget_show_all (WidgetEnc->dialog);
 
-  gint result = gtk_dialog_run(GTK_DIALOG(WidgetEnc->dialog));
+	gint result = gtk_dialog_run(GTK_DIALOG(WidgetEnc->dialog));
 	switch(result){
 		case GTK_RESPONSE_OK:
 			do_enc(WidgetEnc);
@@ -309,14 +364,14 @@ static void type_pwd_enc(struct widget_t *WidgetEnc){
 static void type_pwd_dec(struct widget_t *WidgetDec){
 	gtk_widget_hide(GTK_WIDGET(WidgetDec->file_dialog));
 	GtkWidget *content_area, *grid2, *label, *infoarea;
-  WidgetDec->dialog = gtk_dialog_new_with_buttons (_("Decryption Password"), NULL, GTK_DIALOG_MODAL, _("_Close"), GTK_RESPONSE_CLOSE, _("_OK"), GTK_RESPONSE_OK, NULL);
-  content_area = gtk_dialog_get_content_area (GTK_DIALOG (WidgetDec->dialog));
+	WidgetDec->dialog = gtk_dialog_new_with_buttons (_("Decryption Password"), NULL, GTK_DIALOG_MODAL, _("_Close"), GTK_RESPONSE_CLOSE, _("_OK"), GTK_RESPONSE_OK, NULL);
+	content_area = gtk_dialog_get_content_area (GTK_DIALOG (WidgetDec->dialog));
 
-  label = gtk_label_new(_("Type password"));
-  WidgetDec->pwdEntry = gtk_entry_new();
-  gtk_entry_set_visibility(GTK_ENTRY(WidgetDec->pwdEntry), FALSE);
+	label = gtk_label_new(_("Type password"));
+	WidgetDec->pwdEntry = gtk_entry_new();
+	gtk_entry_set_visibility(GTK_ENTRY(WidgetDec->pwdEntry), FALSE);
 
-  gtk_widget_set_size_request(WidgetDec->dialog, 150, 100);
+	gtk_widget_set_size_request(WidgetDec->dialog, 150, 100);
 
 	WidgetDec->infobar = gtk_info_bar_new();
 	WidgetDec->infolabel = gtk_label_new(_("Decrypting the file can take some minutes depending on the file size..."));
@@ -384,38 +439,51 @@ static void select_hash_type(struct widget_t *WidgetHash){
 	struct hashWidget_t HashWidget;
 	GtkWidget *content_area, *grid2;
 	WidgetHash->dialog = gtk_dialog_new_with_buttons (_("Select Hash"), NULL, GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT, _("_Quit"), GTK_RESPONSE_CLOSE, NULL);
-  content_area = gtk_dialog_get_content_area (GTK_DIALOG (WidgetHash->dialog));
+	content_area = gtk_dialog_get_content_area (GTK_DIALOG (WidgetHash->dialog));
 
-  HashWidget.checkMD5 = gtk_check_button_new_with_label("MD5");
-  HashWidget.checkS1 = gtk_check_button_new_with_label("SHA-1");
-  HashWidget.checkS256 = gtk_check_button_new_with_label("SHA-256");
-  HashWidget.checkS3_256 = gtk_check_button_new_with_label("SHA3-256");
-  HashWidget.checkS512 = gtk_check_button_new_with_label("SHA-512");
-  HashWidget.checkS3_512 = gtk_check_button_new_with_label("SHA3-512");
-  HashWidget.checkWhir = gtk_check_button_new_with_label("Whirlpool");
-  HashWidget.checkGOSTR = gtk_check_button_new_with_label("GOST94");
+	HashWidget.checkMD5 = gtk_check_button_new_with_label("MD5");
+	HashWidget.checkS1 = gtk_check_button_new_with_label("SHA-1");
+	HashWidget.checkS256 = gtk_check_button_new_with_label("SHA-256");
+	HashWidget.checkS3_256 = gtk_check_button_new_with_label("SHA3-256");
+	HashWidget.checkS512 = gtk_check_button_new_with_label("SHA-512");
+	HashWidget.checkS3_512 = gtk_check_button_new_with_label("SHA3-512");
+	HashWidget.checkWhir = gtk_check_button_new_with_label("Whirlpool");
+	HashWidget.checkGOSTR = gtk_check_button_new_with_label("GOST94");
 
-  HashWidget.entryMD5 = gtk_entry_new();
-  HashWidget.entryS1 = gtk_entry_new();
-  HashWidget.entryS256 = gtk_entry_new();
-  HashWidget.entryS3_256 = gtk_entry_new();
-  HashWidget.entryS512 = gtk_entry_new();
-  HashWidget.entryS3_512 = gtk_entry_new();
-  HashWidget.entryWhir = gtk_entry_new();
-  HashWidget.entryGOSTR = gtk_entry_new();
+	HashWidget.entryMD5 = gtk_entry_new();
+	HashWidget.entryS1 = gtk_entry_new();
+	HashWidget.entryS256 = gtk_entry_new();
+	HashWidget.entryS3_256 = gtk_entry_new();
+	HashWidget.entryS512 = gtk_entry_new();
+	HashWidget.entryS3_512 = gtk_entry_new();
+	HashWidget.entryWhir = gtk_entry_new();
+	HashWidget.entryGOSTR = gtk_entry_new();
 
-  gtk_editable_set_editable(GTK_EDITABLE(HashWidget.entryMD5), FALSE);
-  gtk_editable_set_editable(GTK_EDITABLE(HashWidget.entryS1), FALSE);
-  gtk_editable_set_editable(GTK_EDITABLE(HashWidget.entryS256), FALSE);
-  gtk_editable_set_editable(GTK_EDITABLE(HashWidget.entryS3_256), FALSE);
-  gtk_editable_set_editable(GTK_EDITABLE(HashWidget.entryS512), FALSE);
-  gtk_editable_set_editable(GTK_EDITABLE(HashWidget.entryS3_512), FALSE);
-  gtk_editable_set_editable(GTK_EDITABLE(HashWidget.entryWhir), FALSE);
-  gtk_editable_set_editable(GTK_EDITABLE(HashWidget.entryGOSTR), FALSE);
+	gtk_editable_set_editable(GTK_EDITABLE(HashWidget.entryMD5), FALSE);
+	gtk_editable_set_editable(GTK_EDITABLE(HashWidget.entryS1), FALSE);
+	gtk_editable_set_editable(GTK_EDITABLE(HashWidget.entryS256), FALSE);
+	gtk_editable_set_editable(GTK_EDITABLE(HashWidget.entryS3_256), FALSE);
+	gtk_editable_set_editable(GTK_EDITABLE(HashWidget.entryS512), FALSE);
+	gtk_editable_set_editable(GTK_EDITABLE(HashWidget.entryS3_512), FALSE);
+	gtk_editable_set_editable(GTK_EDITABLE(HashWidget.entryWhir), FALSE);
+	gtk_editable_set_editable(GTK_EDITABLE(HashWidget.entryGOSTR), FALSE);
+	
+	PangoFontDescription *newfont = pango_font_description_new();
+	pango_font_description_set_family(newfont, "monospace");
+	gtk_widget_override_font(GTK_WIDGET(HashWidget.entryMD5), newfont);
+	gtk_widget_override_font(GTK_WIDGET(HashWidget.entryS1), newfont);
+	gtk_widget_override_font(GTK_WIDGET(HashWidget.entryMD5), newfont);
+	gtk_widget_override_font(GTK_WIDGET(HashWidget.entryS256), newfont);
+	gtk_widget_override_font(GTK_WIDGET(HashWidget.entryS3_256), newfont);
+	gtk_widget_override_font(GTK_WIDGET(HashWidget.entryS512), newfont);
+	gtk_widget_override_font(GTK_WIDGET(HashWidget.entryS3_512), newfont);
+	gtk_widget_override_font(GTK_WIDGET(HashWidget.entryWhir), newfont);
+	gtk_widget_override_font(GTK_WIDGET(HashWidget.entryGOSTR), newfont);
+	pango_font_description_free(newfont);
 
-  gtk_widget_set_size_request(WidgetHash->dialog, 250, 150);
+	gtk_widget_set_size_request(WidgetHash->dialog, 250, 150);
 
-  grid2 = gtk_grid_new();
+	grid2 = gtk_grid_new();
 	gtk_grid_set_row_homogeneous(GTK_GRID(grid2), TRUE);
 	gtk_grid_set_column_homogeneous(GTK_GRID(grid2), TRUE);
 	gtk_grid_set_row_spacing(GTK_GRID(grid2), 5);
@@ -444,22 +512,22 @@ static void select_hash_type(struct widget_t *WidgetHash){
 	gtk_grid_attach(GTK_GRID(grid2), HashWidget.checkWhir, 0, 7, 1, 1);
 	gtk_grid_attach(GTK_GRID(grid2), HashWidget.entryWhir, 2, 7, 6, 1);
 
-  gtk_container_add (GTK_CONTAINER (content_area), grid2);
-  gtk_widget_show_all (WidgetHash->dialog);
+	gtk_container_add (GTK_CONTAINER (content_area), grid2);
+	gtk_widget_show_all (WidgetHash->dialog);
 
-  HashWidget.filename = malloc(strlen(WidgetHash->filename)+1);
-  strcpy(HashWidget.filename, WidgetHash->filename);
+	HashWidget.filename = malloc(g_utf8_strlen(WidgetHash->filename, -1)+1);
+	g_utf8_strncpy(HashWidget.filename, WidgetHash->filename, g_utf8_strlen(WidgetHash->filename, -1));
 
-  g_signal_connect_swapped(HashWidget.checkMD5, "clicked", G_CALLBACK(threadMD5), &HashWidget);
-  g_signal_connect_swapped(HashWidget.checkS1, "clicked", G_CALLBACK(threadSHA1), &HashWidget);
-  g_signal_connect_swapped(HashWidget.checkS256, "clicked", G_CALLBACK(threadSHA256), &HashWidget);
-  g_signal_connect_swapped(HashWidget.checkS3_256, "clicked", G_CALLBACK(threadSHA3_256), &HashWidget);
-  g_signal_connect_swapped(HashWidget.checkS512, "clicked", G_CALLBACK(threadSHA512), &HashWidget);
-  g_signal_connect_swapped(HashWidget.checkS3_512, "clicked", G_CALLBACK(threadSHA3_512), &HashWidget);
-  g_signal_connect_swapped(HashWidget.checkWhir, "clicked", G_CALLBACK(threadWHIRLPOOL), &HashWidget);
-  g_signal_connect_swapped(HashWidget.checkGOSTR, "clicked", G_CALLBACK(threadGOST94), &HashWidget);
+	g_signal_connect_swapped(HashWidget.checkMD5, "clicked", G_CALLBACK(threadMD5), &HashWidget);
+	g_signal_connect_swapped(HashWidget.checkS1, "clicked", G_CALLBACK(threadSHA1), &HashWidget);
+	g_signal_connect_swapped(HashWidget.checkS256, "clicked", G_CALLBACK(threadSHA256), &HashWidget);
+	g_signal_connect_swapped(HashWidget.checkS3_256, "clicked", G_CALLBACK(threadSHA3_256), &HashWidget);
+	g_signal_connect_swapped(HashWidget.checkS512, "clicked", G_CALLBACK(threadSHA512), &HashWidget);
+	g_signal_connect_swapped(HashWidget.checkS3_512, "clicked", G_CALLBACK(threadSHA3_512), &HashWidget);
+	g_signal_connect_swapped(HashWidget.checkWhir, "clicked", G_CALLBACK(threadWHIRLPOOL), &HashWidget);
+	g_signal_connect_swapped(HashWidget.checkGOSTR, "clicked", G_CALLBACK(threadGOST94), &HashWidget);
 
-  gint result = gtk_dialog_run(GTK_DIALOG(WidgetHash->dialog));
+	gint result = gtk_dialog_run(GTK_DIALOG(WidgetHash->dialog));
 	switch(result){
 		case GTK_RESPONSE_CLOSE:
 			g_signal_connect_swapped (WidgetHash->dialog, "response", G_CALLBACK(gtk_widget_destroy), WidgetHash->dialog);
@@ -503,10 +571,9 @@ static void about (GSimpleAction *action __attribute__ ((unused)), GVariant *par
         gtk_widget_destroy(a_dialog);
 }
 
-static void quit (GSimpleAction *action __attribute__ ((unused)), GVariant *parameter __attribute__ ((unused)), gpointer user_data __attribute__ ((unused)))
-{
-   GApplication *application = user_data;
-   g_application_quit (application);
+static void quit (GSimpleAction *action __attribute__ ((unused)), GVariant *parameter __attribute__ ((unused)), gpointer user_data __attribute__ ((unused))){
+	GApplication *application = user_data;
+	g_application_quit (application);
 }
 
 static void show_error(struct widget_t *s_Error, const gchar *message){
