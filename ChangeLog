@@ -44,11 +44,12 @@
 27/03/2014 - v2.1.1
 	* REMOVED: multiple encryption (it isn't really useful)
 
-??/05/2014 - v2.2.0
+??/06/2014 - v2.2.0
 	* ADDED: possibility to choose between file/text encryption
-	* ADDED: multiple file selection for en/de/cryption
+	* IMPROVED: gui improvement
 
 ??/??/2014 - v2.3.0
+	* ADDED: multiple file selection for en/de/cryption
 	* ADDED: asymmetric encryption support (with RSA or with a ECC algo)
 	* AES256-ctr as default instead of AES256-cbc
 
