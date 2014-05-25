@@ -21,7 +21,10 @@ extern struct metadata_t Metadata;
 struct widget_t{
 	gint mode, toEnc;
 	gchar *filename;
-	GtkWidget *pwdEntry, *pwdReEntry, *mainwin, *dialog, *file_dialog, *infobar, *infolabel, *combomenu;
+	GtkWidget *pwdEntry, *pwdReEntry, *mainwin, *dialog, *file_dialog, *infobar, *infolabel;
+	GtkWidget *menu;
+	GtkWidget *popover;
+	GtkWidget *r0, *r1, *r2, *r3, *r4;
 };
 extern struct widget_t Widget;
 

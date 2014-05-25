@@ -18,7 +18,7 @@ gint delete_input_file(struct widget_t *, size_t);
 static void show_error(struct widget_t *, const gchar *);
 
 gint encrypt_file_gui(struct widget_t *WidgetMain){
-	const gchar *algoID = gtk_combo_box_get_active_id(GTK_COMBO_BOX(WidgetMain->combomenu));
+	struct metadata_t Metadata;
 	gint algo = -1,fd, number_of_block, block_done = 0, retcode, counterForGoto = 0;
 	guchar hex[15] = { 0x01,0x02,0x03,0x04,0x05,0x06,0x07,0x08,0x09,0x0A,0x0B,0x0C,0x0D,0x0E,0x0F}, plain_text[16];
 	guchar *derived_key = NULL, *crypto_key = NULL, *mac_key = NULL, *encBuffer = NULL;
@@ -27,10 +27,26 @@ gint encrypt_file_gui(struct widget_t *WidgetMain){
 	off_t fsize = 0;
 	size_t blkLength, keyLength, txtLenght = 16, retval = 0, i;
 	
-	struct metadata_t Metadata;
 	struct stat fileStat;
 	gcry_cipher_hd_t hd;
 	
+	if(gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(Widget.r1))){
+		algo = gcry_cipher_map_name("aes256");
+		Metadata.algo_type = 0;
+	}
+	else if(gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(Widget.r2))){
+		algo = gcry_cipher_map_name("serpent256");
+		Metadata.algo_type = 1;
+	}
+	else if(gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(Widget.r3))){
+		algo = gcry_cipher_map_name("twofish");
+		Metadata.algo_type = 2;
+	}
+	else if(gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(Widget.r4))){
+		algo = gcry_cipher_map_name("camellia256");
+		Metadata.algo_type = 3;
+	}
+	g_print("%d\n", algo);
 	const gchar *inputWidKey = gtk_entry_get_text(GTK_ENTRY(WidgetMain->pwdEntry));
 	size_t len = strlen(inputWidKey);
 	inputKey = gcry_malloc_secure(len+1);
@@ -43,23 +59,6 @@ gint encrypt_file_gui(struct widget_t *WidgetMain){
 	strncpy(outFilename, WidgetMain->filename, lenFilename);
 	memcpy(outFilename+lenFilename, ".enc", 4);
 	outFilename[lenFilename+4] = '\0';
-
-	if(strcmp(algoID, "0") == 0 || algoID == NULL){
-		algo = gcry_cipher_map_name("aes256");
-		Metadata.algo_type = 0;
-	}
-	else if(strcmp(algoID, "1") == 0){
-		algo = gcry_cipher_map_name("serpent256");
-		Metadata.algo_type = 1;
-	}
-	else if(strcmp(algoID, "2") == 0){
-		algo = gcry_cipher_map_name( "twofish");
-		Metadata.algo_type = 2;
-	}
-	else if(strcmp(algoID, "3") == 0){
-		algo = gcry_cipher_map_name("camellia256");
-		Metadata.algo_type = 3;
-	}
 
 	blkLength = gcry_cipher_get_algo_blklen(algo);
 	keyLength = gcry_cipher_get_algo_keylen(algo);	

@@ -7,9 +7,12 @@
 #include <libintl.h>
 #include "polcrypt.h"
 
+struct widget_t Widget;
+
 GtkWidget *do_header_and_mainwin(GtkApplication *);
 static GtkWidget *create_popover(GtkWidget *, GtkPositionType);
 static void toggle_changed_cb (GtkToggleButton *, GtkWidget *);
+static void toggle_changed_cb2 (struct widget_t *);
 static void file_dialog(struct widget_t *);
 static void is_enc(GtkWidget *, struct widget_t *);
 static void is_dec(GtkWidget *, struct widget_t *);
@@ -43,14 +46,8 @@ static void *threadSHA3_512(struct hashWidget_t *);
 static void *threadWHIRLPOOL(struct hashWidget_t *);
 static void *threadGOST94(struct hashWidget_t *);
 
-struct widget_t Widget;
-const gchar *my_icon = "/usr/share/icons/hicolor/128x128/apps/polcrypt.png";
 
-struct Menu_t{
-	GtkWidget *menu;
-	GtkWidget *popover;
-} Menu;
-static void toggle_changed_cb2 (struct Menu_t *);
+const gchar *my_icon = "/usr/share/icons/hicolor/128x128/apps/polcrypt.png";
 
 GCRY_THREAD_OPTION_PTHREAD_IMPL;
 
@@ -177,8 +174,6 @@ GtkWidget *do_header_and_mainwin(GtkApplication *app){
 	GtkWidget *header;
 	GtkWidget *box;
 	GtkWidget *image;
-	//GtkWidget *menu;
-	//GtkWidget *popover;
 	GIcon *icon;
 	GError *err = NULL;
 
@@ -204,15 +199,15 @@ GtkWidget *do_header_and_mainwin(GtkApplication *app){
 	icon = g_themed_icon_new ("emblem-system-symbolic");
 	image = gtk_image_new_from_gicon (icon, GTK_ICON_SIZE_BUTTON);
 	g_object_unref(icon);
-	Menu.menu = gtk_toggle_button_new();
-	gtk_container_add(GTK_CONTAINER(Menu.menu), image);
-	gtk_widget_set_tooltip_text(GTK_WIDGET(Menu.menu), _("Settings"));
+	Widget.menu = gtk_toggle_button_new();
+	gtk_container_add(GTK_CONTAINER(Widget.menu), image);
+	gtk_widget_set_tooltip_text(GTK_WIDGET(Widget.menu), _("Settings"));
 	
-	Menu.popover = create_popover(Menu.menu, GTK_POS_TOP);
-	gtk_popover_set_modal (GTK_POPOVER (Menu.popover), FALSE);
-	g_signal_connect (Menu.menu, "toggled", G_CALLBACK (toggle_changed_cb), Menu.popover);
+	Widget.popover = create_popover(Widget.menu, GTK_POS_TOP);
+	gtk_popover_set_modal (GTK_POPOVER (Widget.popover), FALSE);
+	g_signal_connect (Widget.menu, "toggled", G_CALLBACK (toggle_changed_cb), Widget.popover);
 	
-	gtk_header_bar_pack_start(GTK_HEADER_BAR (header), GTK_WIDGET(Menu.menu));
+	gtk_header_bar_pack_start(GTK_HEADER_BAR (header), GTK_WIDGET(Widget.menu));
 
 	gtk_window_set_titlebar (GTK_WINDOW (window), header);
 
@@ -221,7 +216,7 @@ GtkWidget *do_header_and_mainwin(GtkApplication *app){
 
 static GtkWidget *create_popover (GtkWidget *parent, GtkPositionType pos){
 	
-	GtkWidget *popover, *box, *label, *hline, *r0, *r1, *r2, *r3, *r4;
+	GtkWidget *popover, *box, *label, *hline;
 	
 	label = gtk_label_new(_("Cipher Algo"));
 	hline = gtk_separator_new(GTK_ORIENTATION_HORIZONTAL);
@@ -232,25 +227,25 @@ static GtkWidget *create_popover (GtkWidget *parent, GtkPositionType pos){
 	popover = gtk_popover_new(parent);
 	gtk_popover_set_position (GTK_POPOVER (popover), pos);
 	
-	r0 = gtk_radio_button_new(NULL);
-	r1 = gtk_radio_button_new_with_label_from_widget(GTK_RADIO_BUTTON(r0), "AES-256");
-	r2 = gtk_radio_button_new_with_label_from_widget(GTK_RADIO_BUTTON(r0), "Serpent");
-	r3 = gtk_radio_button_new_with_label_from_widget(GTK_RADIO_BUTTON(r0), "Twofish");
-	r4 = gtk_radio_button_new_with_label_from_widget(GTK_RADIO_BUTTON(r0), "Camellia-256");
+	Widget.r0 = gtk_radio_button_new(NULL);
+	Widget.r1 = gtk_radio_button_new_with_label_from_widget(GTK_RADIO_BUTTON(Widget.r0), "AES-256");
+	Widget.r2 = gtk_radio_button_new_with_label_from_widget(GTK_RADIO_BUTTON(Widget.r0), "Serpent");
+	Widget.r3 = gtk_radio_button_new_with_label_from_widget(GTK_RADIO_BUTTON(Widget.r0), "Twofish");
+	Widget.r4 = gtk_radio_button_new_with_label_from_widget(GTK_RADIO_BUTTON(Widget.r0), "Camellia-256");
 	
 	gtk_box_pack_start (GTK_BOX (box), label, TRUE, TRUE, 0);
 	gtk_box_pack_start (GTK_BOX (box), hline, TRUE, TRUE, 0);
-	gtk_box_pack_start (GTK_BOX (box), r1, TRUE, TRUE, 2);
-	gtk_box_pack_start (GTK_BOX (box), r2, TRUE, TRUE, 2);
-	gtk_box_pack_start (GTK_BOX (box), r3, TRUE, TRUE, 2);
-	gtk_box_pack_start (GTK_BOX (box), r4, TRUE, TRUE, 2);
+	gtk_box_pack_start (GTK_BOX (box), Widget.r1, TRUE, TRUE, 2);
+	gtk_box_pack_start (GTK_BOX (box), Widget.r2, TRUE, TRUE, 2);
+	gtk_box_pack_start (GTK_BOX (box), Widget.r3, TRUE, TRUE, 2);
+	gtk_box_pack_start (GTK_BOX (box), Widget.r4, TRUE, TRUE, 2);
 	
-	g_object_set(r1, "active", TRUE, NULL);
+	g_object_set(Widget.r1, "active", TRUE, NULL);
 	
-	g_signal_connect_swapped (r1, "toggled", G_CALLBACK (toggle_changed_cb2), &Menu);
-	g_signal_connect_swapped (r2, "toggled", G_CALLBACK (toggle_changed_cb2), &Menu);
-	g_signal_connect_swapped (r3, "toggled", G_CALLBACK (toggle_changed_cb2), &Menu);
-	g_signal_connect_swapped (r4, "toggled", G_CALLBACK (toggle_changed_cb2), &Menu);
+	g_signal_connect_swapped (Widget.r1, "toggled", G_CALLBACK (toggle_changed_cb2), &Widget);
+	g_signal_connect_swapped (Widget.r2, "toggled", G_CALLBACK (toggle_changed_cb2), &Widget);
+	g_signal_connect_swapped (Widget.r3, "toggled", G_CALLBACK (toggle_changed_cb2), &Widget);
+	g_signal_connect_swapped (Widget.r4, "toggled", G_CALLBACK (toggle_changed_cb2), &Widget);
 	
 	gtk_container_add (GTK_CONTAINER (popover), box);
 	gtk_container_set_border_width (GTK_CONTAINER (popover), 6);
@@ -263,7 +258,7 @@ static void toggle_changed_cb (GtkToggleButton *button, GtkWidget *popover){
 	gtk_widget_set_visible (popover, gtk_toggle_button_get_active (button));
 }
 
-static void toggle_changed_cb2 (struct Menu_t *Menu){
+static void toggle_changed_cb2 (struct widget_t *Menu){
 	gtk_widget_set_visible (Menu->popover, FALSE);
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(Menu->menu), FALSE);
 }
@@ -304,20 +299,16 @@ static void file_dialog(struct widget_t *Widget){
 }
 
 static void type_pwd_enc(struct widget_t *WidgetEnc){
+	if(gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(Widget.r2))){
+		//impostare algoritmo o da qui oppure passando la struttura alla routine di cifratura
+	}
 	gtk_widget_hide(GTK_WIDGET(WidgetEnc->file_dialog));
-	GtkWidget *content_area, *grid2, *labelPwd, *labelRetypePwd, *infoarea, *labelCombo;
+	GtkWidget *content_area, *grid2, *labelPwd, *labelRetypePwd, *infoarea;
 	WidgetEnc->dialog = gtk_dialog_new_with_buttons (_("Encryption Password"), NULL, GTK_DIALOG_MODAL, _("_Close"), GTK_RESPONSE_CLOSE, _("_OK"), GTK_RESPONSE_OK, NULL);
 	content_area = gtk_dialog_get_content_area (GTK_DIALOG (WidgetEnc->dialog));
 
-	WidgetEnc->combomenu = gtk_combo_box_text_new();
-	gtk_combo_box_text_append(GTK_COMBO_BOX_TEXT(WidgetEnc->combomenu), "0", "AES-256");
-	gtk_combo_box_text_append(GTK_COMBO_BOX_TEXT(WidgetEnc->combomenu), "1", "SERPENT-256");
-	gtk_combo_box_text_append(GTK_COMBO_BOX_TEXT(WidgetEnc->combomenu), "2", "TWOFISH-256");
-	gtk_combo_box_text_append(GTK_COMBO_BOX_TEXT(WidgetEnc->combomenu), "3", "CAMELLIA-256");
-
 	labelPwd = gtk_label_new(_("Type password"));
 	labelRetypePwd = gtk_label_new(_("Retype password"));
-	labelCombo = gtk_label_new(_("Select Algo"));
 	WidgetEnc->pwdEntry = gtk_entry_new();
 	WidgetEnc->pwdReEntry = gtk_entry_new();
 	gtk_entry_set_visibility(GTK_ENTRY(WidgetEnc->pwdEntry), FALSE); //input nascosto
@@ -336,27 +327,17 @@ static void type_pwd_enc(struct widget_t *WidgetEnc){
 	gtk_grid_set_column_homogeneous(GTK_GRID(grid2), TRUE); // colonne stessa larghezza
 	gtk_grid_set_row_spacing(GTK_GRID(grid2), 5); // spazio fra le righe
 
-	GValue marginTop = G_VALUE_INIT;
-	g_value_init (&marginTop, G_TYPE_UINT);
-	g_value_set_uint(&marginTop, 10);
-	g_object_set_property(G_OBJECT(labelCombo), "margin-top", &marginTop);
-	g_object_set_property(G_OBJECT(WidgetEnc->combomenu), "margin-top", &marginTop);
-
 	GValue marginLeft = G_VALUE_INIT;
 	g_value_init (&marginLeft, G_TYPE_UINT);
 	g_value_set_uint(&marginLeft, 2);
-	g_object_set_property(G_OBJECT(WidgetEnc->combomenu), "margin-left", &marginLeft);
 	g_object_set_property(G_OBJECT(WidgetEnc->pwdEntry), "margin-left", &marginLeft);
 	g_object_set_property(G_OBJECT(WidgetEnc->pwdReEntry), "margin-left", &marginLeft);
 
-
-	gtk_grid_attach(GTK_GRID(grid2), labelCombo, 0, 0, 1, 1);
-	gtk_grid_attach(GTK_GRID(grid2), WidgetEnc->combomenu, 1, 0, 2, 1);
-	gtk_grid_attach(GTK_GRID(grid2), labelPwd, 0, 1, 1, 1);
-	gtk_grid_attach(GTK_GRID(grid2), WidgetEnc->pwdEntry, 1, 1, 2, 1);
-	gtk_grid_attach(GTK_GRID(grid2), labelRetypePwd, 0, 2, 1, 1);
-	gtk_grid_attach(GTK_GRID(grid2), WidgetEnc->pwdReEntry, 1, 2, 2, 1);
-	gtk_grid_attach(GTK_GRID(grid2), WidgetEnc->infobar, 0, 3, 3, 1);
+	gtk_grid_attach(GTK_GRID(grid2), labelPwd, 0, 0, 1, 1);
+	gtk_grid_attach(GTK_GRID(grid2), WidgetEnc->pwdEntry, 1, 0, 2, 1);
+	gtk_grid_attach(GTK_GRID(grid2), labelRetypePwd, 0, 1, 1, 1);
+	gtk_grid_attach(GTK_GRID(grid2), WidgetEnc->pwdReEntry, 1, 1, 2, 1);
+	gtk_grid_attach(GTK_GRID(grid2), WidgetEnc->infobar, 0, 2, 3, 1);
 
 	gtk_container_add (GTK_CONTAINER (content_area), grid2);
 	gtk_widget_show_all (WidgetEnc->dialog);
