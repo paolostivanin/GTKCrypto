@@ -46,6 +46,12 @@ static void *threadGOST94(struct hashWidget_t *);
 struct widget_t Widget;
 const gchar *my_icon = "/usr/share/icons/hicolor/128x128/apps/polcrypt.png";
 
+struct Menu_t{
+	GtkWidget *menu;
+	GtkWidget *popover;
+} Menu;
+static void toggle_changed_cb2 (struct Menu_t *);
+
 GCRY_THREAD_OPTION_PTHREAD_IMPL;
 
 gint main(int argc, char **argv){
@@ -171,8 +177,8 @@ GtkWidget *do_header_and_mainwin(GtkApplication *app){
 	GtkWidget *header;
 	GtkWidget *box;
 	GtkWidget *image;
-	GtkWidget *menu;
-	GtkWidget *popover;
+	//GtkWidget *menu;
+	//GtkWidget *popover;
 	GIcon *icon;
 	GError *err = NULL;
 
@@ -198,15 +204,15 @@ GtkWidget *do_header_and_mainwin(GtkApplication *app){
 	icon = g_themed_icon_new ("emblem-system-symbolic");
 	image = gtk_image_new_from_gicon (icon, GTK_ICON_SIZE_BUTTON);
 	g_object_unref(icon);
-	menu = gtk_toggle_button_new();
-	gtk_container_add(GTK_CONTAINER(menu), image);
-	gtk_widget_set_tooltip_text(GTK_WIDGET(menu), _("Settings"));
+	Menu.menu = gtk_toggle_button_new();
+	gtk_container_add(GTK_CONTAINER(Menu.menu), image);
+	gtk_widget_set_tooltip_text(GTK_WIDGET(Menu.menu), _("Settings"));
 	
-	popover = create_popover(menu, GTK_POS_TOP);
-	gtk_popover_set_modal (GTK_POPOVER (popover), FALSE);
-	g_signal_connect (menu, "toggled", G_CALLBACK (toggle_changed_cb), popover);
+	Menu.popover = create_popover(Menu.menu, GTK_POS_TOP);
+	gtk_popover_set_modal (GTK_POPOVER (Menu.popover), FALSE);
+	g_signal_connect (Menu.menu, "toggled", G_CALLBACK (toggle_changed_cb), Menu.popover);
 	
-	gtk_header_bar_pack_start(GTK_HEADER_BAR (header), GTK_WIDGET(menu));
+	gtk_header_bar_pack_start(GTK_HEADER_BAR (header), GTK_WIDGET(Menu.menu));
 
 	gtk_window_set_titlebar (GTK_WINDOW (window), header);
 
@@ -241,7 +247,10 @@ static GtkWidget *create_popover (GtkWidget *parent, GtkPositionType pos){
 	
 	g_object_set(r1, "active", TRUE, NULL);
 	
-	//connettere al segnale "cliccato sulla voce" la scomparsa del tutto
+	g_signal_connect_swapped (r1, "toggled", G_CALLBACK (toggle_changed_cb2), &Menu);
+	g_signal_connect_swapped (r2, "toggled", G_CALLBACK (toggle_changed_cb2), &Menu);
+	g_signal_connect_swapped (r3, "toggled", G_CALLBACK (toggle_changed_cb2), &Menu);
+	g_signal_connect_swapped (r4, "toggled", G_CALLBACK (toggle_changed_cb2), &Menu);
 	
 	gtk_container_add (GTK_CONTAINER (popover), box);
 	gtk_container_set_border_width (GTK_CONTAINER (popover), 6);
@@ -252,6 +261,11 @@ static GtkWidget *create_popover (GtkWidget *parent, GtkPositionType pos){
 
 static void toggle_changed_cb (GtkToggleButton *button, GtkWidget *popover){
 	gtk_widget_set_visible (popover, gtk_toggle_button_get_active (button));
+}
+
+static void toggle_changed_cb2 (struct Menu_t *Menu){
+	gtk_widget_set_visible (Menu->popover, FALSE);
+	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(Menu->menu), FALSE);
 }
 
 static void is_enc(GtkWidget *ignored __attribute__ ((unused)), struct widget_t *Widget){
