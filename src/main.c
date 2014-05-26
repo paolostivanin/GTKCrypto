@@ -26,7 +26,10 @@ static void startup (GtkApplication *, gpointer);
 static void quit (GSimpleAction *, GVariant *, gpointer);
 static void about (GSimpleAction *, GVariant *, gpointer);
 static void show_error(struct widget_t *, const gchar *);
-gint encrypt_file_gui(struct widget_t *);
+//gint encrypt_file_gui(struct widget_t *);
+void *encrypt_file_gui(struct widget_t *);
+static void *threadEnc(struct widget_t *);
+
 gint decrypt_file_gui(struct widget_t *);
 void *compute_md5(struct hashWidget_t *);
 void *compute_sha1(struct hashWidget_t *);
@@ -69,7 +72,7 @@ gint main(int argc, char **argv){
 	GError *err = NULL;
 	GdkPixbuf *logo = gdk_pixbuf_new_from_file(my_icon, &err);
 	gtk_window_set_default_icon(logo);
-
+	
 	app = gtk_application_new ("org.gtk.polcrypt",G_APPLICATION_FLAGS_NONE);
 	g_signal_connect (app, "startup", G_CALLBACK (startup), NULL);
 	g_signal_connect (app, "activate", G_CALLBACK (activate), NULL);
@@ -422,8 +425,12 @@ static void do_enc(struct widget_t *WidgetCheckPwd){
 	}
 
 	if(WidgetCheckPwd->toEnc == 0){
-		encrypt_file_gui(WidgetCheckPwd); //questa va messa su un thread perchè blocca il dialog
+		threadEnc(WidgetCheckPwd);
 	}
+}
+
+static void *threadEnc(struct widget_t *Widget){
+	g_thread_new("t_enc", (GThreadFunc)encrypt_file_gui, Widget);
 }
 
 static void select_hash_type(struct widget_t *WidgetHash){

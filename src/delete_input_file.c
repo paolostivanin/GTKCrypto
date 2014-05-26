@@ -13,9 +13,9 @@
 gint random_write(gint, gint, size_t, gint);
 gint zero_write(gint, size_t, gint);
 
-gint delete_input_file(struct widget_t *WidgetMain, size_t fileSize){
+gint delete_input_file(const gchar *filename, size_t fileSize){
 	gint fd, fdRandom;
-	fd = open(WidgetMain->filename, O_WRONLY | O_NOFOLLOW);
+	fd = open(filename, O_WRONLY | O_NOFOLLOW);
 	fdRandom = open("/dev/random", O_RDONLY);
 	if(fd == -1){
 		fprintf(stderr, "Input file: %s\n", strerror(errno));
@@ -43,7 +43,7 @@ gint delete_input_file(struct widget_t *WidgetMain, size_t fileSize){
 	close(fd);
 	close(fdRandom);
 
-	if(remove(WidgetMain->filename) == -1){
+	if(remove(filename) == -1){
 		fprintf(stderr, "Input file remove: %s\n", strerror(errno));
 		return -2;
 	}

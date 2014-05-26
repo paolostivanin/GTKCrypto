@@ -14,18 +14,21 @@
 #include "polcrypt.h"
 
 guchar *calculate_hmac(const gchar *, const guchar *key, size_t, gint);
-gint delete_input_file(struct widget_t *, size_t);
+gint delete_input_file(const gchar *, size_t);
 static void show_error(struct widget_t *, const gchar *);
 
-gint encrypt_file_gui(struct widget_t *WidgetMain){
+void *encrypt_file_gui(struct widget_t *WidgetMain){
+//gint encrypt_file_gui(struct widget_t *WidgetMain){
 	struct metadata_t Metadata;
-	gint algo = -1,fd, number_of_block, block_done = 0, retcode, counterForGoto = 0;
+	gint algo = -1,fd, number_of_block, block_done = 0, retcode = 0, counterForGoto = 0;
 	guchar hex[15] = { 0x01,0x02,0x03,0x04,0x05,0x06,0x07,0x08,0x09,0x0A,0x0B,0x0C,0x0D,0x0E,0x0F}, plain_text[16];
 	guchar *derived_key = NULL, *crypto_key = NULL, *mac_key = NULL, *encBuffer = NULL;
 	gchar *inputKey = NULL;
 	gfloat result_of_division_by_16, fsize_float;
 	off_t fsize = 0;
 	size_t blkLength, keyLength, txtLenght = 16, retval = 0, i;
+	
+	gchar *filename = g_strdup(WidgetMain->filename);
 	
 	struct stat fileStat;
 	gcry_cipher_hd_t hd;
@@ -54,9 +57,9 @@ gint encrypt_file_gui(struct widget_t *WidgetMain){
 	inputKey[len] = '\0';
 
 	gchar *outFilename;
-	size_t lenFilename = strlen(WidgetMain->filename);
-	outFilename = malloc(lenFilename+5); // ".enc\0" are 5 char
-	strncpy(outFilename, WidgetMain->filename, lenFilename);
+	size_t lenFilename = strlen(filename);
+	outFilename = g_malloc(lenFilename+5); // ".enc\0" are 5 char
+	strncpy(outFilename, filename, lenFilename);
 	memcpy(outFilename+lenFilename, ".enc", 4);
 	outFilename[lenFilename+4] = '\0';
 
@@ -67,8 +70,8 @@ gint encrypt_file_gui(struct widget_t *WidgetMain){
 
 	gcry_create_nonce(Metadata.iv, 16);
 	gcry_create_nonce(Metadata.salt, 32);
-
-	fd = open(WidgetMain->filename, O_RDONLY | O_NOFOLLOW);
+	
+	fd = open(filename, O_RDONLY | O_NOFOLLOW);
 	if(fd == -1){
 		show_error(WidgetMain, strerror(errno));
 		gcry_free(inputKey);
@@ -88,7 +91,7 @@ gint encrypt_file_gui(struct widget_t *WidgetMain){
 	number_of_block = (int)result_of_division_by_16;
 	if(result_of_division_by_16 > number_of_block) number_of_block += 1;
 	
-	FILE *fp = fopen(WidgetMain->filename, "r");
+	FILE *fp = fopen(filename, "r");
 	FILE *fpout = fopen(outFilename, "w");
 	if(fp == NULL){
 		show_error(WidgetMain, strerror(errno));
@@ -144,6 +147,7 @@ gint encrypt_file_gui(struct widget_t *WidgetMain){
 	gcry_cipher_setiv(hd, Metadata.iv, blkLength);
 
 	fseek(fp, 0, SEEK_SET);
+
 	fwrite(&Metadata, sizeof(struct metadata_t), 1, fpout);
 
 	while(number_of_block > block_done){
@@ -190,12 +194,12 @@ gint encrypt_file_gui(struct widget_t *WidgetMain){
 	fwrite(hmac, 1, 64, fpout);
 	free(hmac);
 	
-	retcode = delete_input_file(WidgetMain, fsize);
+	retcode = delete_input_file(filename, fsize);
 	if(retcode == -1)
 		show_error(WidgetMain, _("Secure file deletion failed, overwrite it manually"));
 	if(retcode == -2)
 		show_error(WidgetMain, _("File unlink failed, remove it manually"));
-
+		
 	gcry_cipher_close(hd);
 	gcry_free(derived_key);
 	gcry_free(crypto_key);
@@ -203,11 +207,12 @@ gint encrypt_file_gui(struct widget_t *WidgetMain){
 	gcry_free(encBuffer);
 	gcry_free(inputKey);
 	
-	free(outFilename);
+	g_free(filename);
+	g_free(outFilename);
 	
 	fclose(fpout);
 
-	return 0;
+	//return 0;
 }
 
 void show_error(struct widget_t *s_Error, const gchar *message){
