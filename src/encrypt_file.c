@@ -46,7 +46,7 @@ gint encrypt_file_gui(struct widget_t *WidgetMain){
 		algo = gcry_cipher_map_name("camellia256");
 		Metadata.algo_type = 3;
 	}
-	g_print("%d\n", algo);
+
 	const gchar *inputWidKey = gtk_entry_get_text(GTK_ENTRY(WidgetMain->pwdEntry));
 	size_t len = strlen(inputWidKey);
 	inputKey = gcry_malloc_secure(len+1);
@@ -144,9 +144,8 @@ gint encrypt_file_gui(struct widget_t *WidgetMain){
 	gcry_cipher_setiv(hd, Metadata.iv, blkLength);
 
 	fseek(fp, 0, SEEK_SET);
-	
 	fwrite(&Metadata, sizeof(struct metadata_t), 1, fpout);
-	
+
 	while(number_of_block > block_done){
 		memset(plain_text, 0, sizeof(plain_text));
 		retval = fread(plain_text, 1, 16, fp);

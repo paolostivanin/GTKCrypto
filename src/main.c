@@ -299,22 +299,19 @@ static void file_dialog(struct widget_t *Widget){
 }
 
 static void type_pwd_enc(struct widget_t *WidgetEnc){
-	if(gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(Widget.r2))){
-		//impostare algoritmo o da qui oppure passando la struttura alla routine di cifratura
-	}
 	gtk_widget_hide(GTK_WIDGET(WidgetEnc->file_dialog));
 	GtkWidget *content_area, *grid2, *labelPwd, *labelRetypePwd, *infoarea;
-	WidgetEnc->dialog = gtk_dialog_new_with_buttons (_("Encryption Password"), NULL, GTK_DIALOG_MODAL, _("_Close"), GTK_RESPONSE_CLOSE, _("_OK"), GTK_RESPONSE_OK, NULL);
+	WidgetEnc->dialog = gtk_dialog_new_with_buttons (_("Encryption Password"), GTK_WINDOW(WidgetEnc->mainwin), GTK_DIALOG_DESTROY_WITH_PARENT, _("_Cancel"), GTK_RESPONSE_CLOSE, _("_OK"), GTK_RESPONSE_OK, NULL);
 	content_area = gtk_dialog_get_content_area (GTK_DIALOG (WidgetEnc->dialog));
 
 	labelPwd = gtk_label_new(_("Type password"));
 	labelRetypePwd = gtk_label_new(_("Retype password"));
 	WidgetEnc->pwdEntry = gtk_entry_new();
 	WidgetEnc->pwdReEntry = gtk_entry_new();
-	gtk_entry_set_visibility(GTK_ENTRY(WidgetEnc->pwdEntry), FALSE); //input nascosto
+	gtk_entry_set_visibility(GTK_ENTRY(WidgetEnc->pwdEntry), FALSE);
 	gtk_entry_set_visibility(GTK_ENTRY(WidgetEnc->pwdReEntry), FALSE);
 
-	gtk_widget_set_size_request(WidgetEnc->dialog, 150, 100); // richiedo una grandezza minima
+	gtk_widget_set_size_request(WidgetEnc->dialog, 150, 100);
 
 	WidgetEnc->infobar = gtk_info_bar_new();
 	WidgetEnc->infolabel = gtk_label_new(_("Encrypting and deleting the file can take some minutes depending on the file size..."));
@@ -359,7 +356,7 @@ static void type_pwd_enc(struct widget_t *WidgetEnc){
 static void type_pwd_dec(struct widget_t *WidgetDec){
 	gtk_widget_hide(GTK_WIDGET(WidgetDec->file_dialog));
 	GtkWidget *content_area, *grid2, *label, *infoarea;
-	WidgetDec->dialog = gtk_dialog_new_with_buttons (_("Decryption Password"), NULL, GTK_DIALOG_MODAL, _("_Close"), GTK_RESPONSE_CLOSE, _("_OK"), GTK_RESPONSE_OK, NULL);
+	WidgetDec->dialog = gtk_dialog_new_with_buttons (_("Decryption Password"), GTK_WINDOW(WidgetDec->mainwin), GTK_DIALOG_DESTROY_WITH_PARENT, _("_Close"), GTK_RESPONSE_CLOSE, _("_OK"), GTK_RESPONSE_OK, NULL);
 	content_area = gtk_dialog_get_content_area (GTK_DIALOG (WidgetDec->dialog));
 
 	label = gtk_label_new(_("Type password"));
@@ -425,7 +422,7 @@ static void do_enc(struct widget_t *WidgetCheckPwd){
 	}
 
 	if(WidgetCheckPwd->toEnc == 0){
-		encrypt_file_gui(WidgetCheckPwd);
+		encrypt_file_gui(WidgetCheckPwd); //questa va messa su un thread perchè blocca il dialog
 	}
 }
 

@@ -22,11 +22,11 @@ guchar *calculate_hmac(const gchar *filename, const guchar *key, size_t keylen, 
 	
 	fd = open(filename, O_RDONLY | O_NOFOLLOW);
 	if(fd == -1){
-		fprintf(stderr, "%s\n", strerror(errno));
+		fprintf(stderr, "calculate_hmac: %s\n", strerror(errno));
 		return (guchar *)1;
 	}
   	if(fstat(fd, &fileStat) < 0){
-		fprintf(stderr, "%s\n", strerror(errno));
+		fprintf(stderr, "calculate_hmac: %s\n", strerror(errno));
     	close(fd);
     	return (guchar *)1;
   	}
@@ -37,47 +37,46 @@ guchar *calculate_hmac(const gchar *filename, const guchar *key, size_t keylen, 
 	gcry_md_open(&hd, GCRY_MD_SHA512, GCRY_MD_FLAG_HMAC);
 	gcry_md_setkey(hd, key, keylen);
 	if(fsize < BUF_FILE){
-		fAddr = mmap(NULL, fsize, PROT_READ, MAP_FILE | MAP_SHARED, fd, 0);
+		fAddr = mmap(NULL, fsize, PROT_READ, MAP_SHARED, fd, 0);
 		if(fAddr == MAP_FAILED){
-			fprintf(stderr, "%s\n", strerror(errno));
+			fprintf(stderr, "calculate_hmac: %s\n", strerror(errno));
 			return (guchar *)1;
 		}
 		gcry_md_write(hd, fAddr, fsize);
 		retVal = munmap(fAddr, fsize);
 		if(retVal == -1){
-			perror("--> munmap ");
+			perror("calculate_hmac: --> munmap error");
 			return (guchar *)1;
 		}
 		goto nowhile;
 	}
-
 	while(fsize > donesize){
-		fAddr = mmap(NULL, BUF_FILE, PROT_READ, MAP_FILE | MAP_SHARED, fd, offset);
+		fAddr = mmap(NULL, BUF_FILE, PROT_READ, MAP_SHARED, fd, offset);
 		if(fAddr == MAP_FAILED){
-			fprintf(stderr, "compute_md5: %s\n", strerror(errno));
+			fprintf(stderr, "calculate_hmac: %s\n", strerror(errno));
 			return (guchar *)1;
 		}
-		gcry_md_write(hd, fAddr, 16);
-		donesize+=16;
+		gcry_md_write(hd, fAddr, BUF_FILE);
+		donesize+=BUF_FILE;
 		diff=fsize-donesize;
 		offset += BUF_FILE;
-		if(diff > 0 && diff < 16){
-			fAddr = mmap(NULL, diff, PROT_READ, MAP_FILE | MAP_SHARED, fd, offset);
+		if(diff > 0 && diff < BUF_FILE){
+			fAddr = mmap(NULL, diff, PROT_READ, MAP_SHARED, fd, offset);
 			if(fAddr == MAP_FAILED){
-				fprintf(stderr, "compute_md5: %s\n", strerror(errno));
+				fprintf(stderr, "calculate_hmac:  %s\n", strerror(errno));
 				return (guchar *)1;
 			}
 			gcry_md_write(hd, fAddr, diff);
 			retVal = munmap(fAddr, diff);
 			if(retVal == -1){
-				perror("--> munmap ");
+				perror("calculate_hmac: --> munmap ");
 				return (guchar *)1;
 			}
 			break;
 		}
-		retVal = munmap(fAddr, 16);
+		retVal = munmap(fAddr, BUF_FILE);
 		if(retVal == -1){
-			perror("--> munmap ");
+			perror("calculate_hmac: --> munmap ");
 			return (guchar *)1;
 		}
 	}
