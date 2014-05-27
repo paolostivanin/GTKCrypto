@@ -16,9 +16,9 @@
 
 guchar *calculate_hmac(const gchar *, const guchar *key, size_t, gint);
 gint check_pkcs7(guchar *, guchar *);
-static void show_error(struct widget_t *, const gchar *);
+static void show_error(const gchar *);
 
-gint decrypt_file_gui(struct widget_t *WidgetMain){
+void *decrypt_file_gui(struct widget_t *WidgetMain){
 	gint algo = -1, fd, number_of_block, block_done = 0, number_of_pkcs7_byte, counterForGoto = 0;	
 	guchar *derived_key = NULL, *crypto_key = NULL, *mac_key = NULL, *decBuffer = NULL;
 	guchar hex[15] = { 0x01,0x02,0x03,0x04,0x05,0x06,0x07,0x08,0x09,0x0A,0x0B,0x0C,0x0D,0x0E,0x0F}, cipher_text[16], mac_of_file[64] ={0};
@@ -32,26 +32,28 @@ gint decrypt_file_gui(struct widget_t *WidgetMain){
 	struct stat fileStat;
 	gcry_cipher_hd_t hd;
 	
+	gchar *filename = g_strdup(WidgetMain->filename);
+	
 	decBuffer = gcry_malloc(txtLenght);
 	
 	gchar *outFilename = NULL, *extBuf = NULL;
-	size_t lenFilename = strlen(WidgetMain->filename);
+	size_t lenFilename = strlen(filename);
 	extBuf = malloc(5);
 	if(extBuf == NULL){
 		fprintf(stderr, _("decrypt_file: error during memory allocation"));
-		return -1;
+		return;
 	}
-	memcpy(extBuf, (WidgetMain->filename)+lenFilename-4, 4);
+	memcpy(extBuf, (filename)+lenFilename-4, 4);
 	extBuf[4] = '\0';
 	if(strcmp(extBuf, ".enc") == 0){
-		outFilename = malloc(lenFilename-3);
-		strncpy(outFilename, WidgetMain->filename, lenFilename-4);
+		outFilename = g_malloc(lenFilename-3);
+		strncpy(outFilename, filename, lenFilename-4);
 		outFilename[lenFilename-4] = '\0';
 		free(extBuf);
 	}
 	else{
-		outFilename = malloc(lenFilename+5);
-		strncpy(outFilename, WidgetMain->filename, lenFilename);
+		outFilename = g_malloc(lenFilename+5);
+		strncpy(outFilename, filename, lenFilename);
 		memcpy(outFilename+lenFilename, ".dec", 4);
 		outFilename[lenFilename+4] = '\0';
 		free(extBuf);
@@ -64,16 +66,16 @@ gint decrypt_file_gui(struct widget_t *WidgetMain){
 	strncpy(inputKey, inputWidKey, pwd_len);
 	inputKey[pwd_len] = '\0';
 
-	fd = open(WidgetMain->filename, O_RDONLY | O_NOFOLLOW);
+	fd = open(filename, O_RDONLY | O_NOFOLLOW);
 	if(fd == -1){
-		show_error(WidgetMain, strerror(errno));
-		return -1;
+		show_error( strerror(errno));
+		return;
 	}
   	if(fstat(fd, &fileStat) < 0){
   		fprintf(stderr, "decrypt_file: %s\n", strerror(errno));
     	close(fd);
     	gcry_free(inputKey);
-    	return -1;
+    	return;
   	}
   	fsize = fileStat.st_size;
   	close(fd);
@@ -81,23 +83,23 @@ gint decrypt_file_gui(struct widget_t *WidgetMain){
 	number_of_block = (fsize - sizeof(struct metadata_t) - 64)/16;
 	bytes_before_mac = (number_of_block*16)+sizeof(struct metadata_t);
 	
-	fp = fopen(WidgetMain->filename, "r");
+	fp = fopen(filename, "r");
 	if(fp == NULL){
 		fprintf(stderr, "decrypt_file: %s\n", strerror(errno));
 		gcry_free(inputKey);
-		return -1;
+		return;
 	}
 	if(fseek(fp, 0, SEEK_SET) == -1){
 		fprintf(stderr, "decrypt_file: %s\n", strerror(errno));
 		gcry_free(inputKey);
-		return -1;
+		return;
 	}
 
 	retval = fread(&Metadata, sizeof(struct metadata_t), 1, fp);
 	if(retval != 1){
 		fprintf(stderr, _("decrypt_file: cannot read file metadata_t\n"));
 		gcry_free(inputKey);
-		return -1;
+		return;
 	}
 	
 	if(Metadata.algo_type == 0){
@@ -122,14 +124,14 @@ gint decrypt_file_gui(struct widget_t *WidgetMain){
 	if((derived_key = gcry_malloc_secure(64)) == NULL){
 		fprintf(stderr, _("decrypt_file: gcry_malloc_secure failed (derived)\n"));
 		gcry_free(inputKey);
-		return -1;
+		return;
 	}
 	
 	if((crypto_key = gcry_malloc_secure(32)) == NULL){
 		fprintf(stderr, _("decrypt_file: gcry_malloc_secure failed (crypto)\n"));
 		gcry_free(inputKey);
 		gcry_free(derived_key);
-		return -1;
+		return;
 	}
 	
 	if((mac_key = gcry_malloc_secure(32)) == NULL){
@@ -137,7 +139,7 @@ gint decrypt_file_gui(struct widget_t *WidgetMain){
 		gcry_free(crypto_key);
 		gcry_free(inputKey);
 		gcry_free(derived_key);
-		return -1;
+		return;
 	}
 
 	tryAgainDerive:
@@ -148,7 +150,7 @@ gint decrypt_file_gui(struct widget_t *WidgetMain){
 			gcry_free(crypto_key);
 			gcry_free(mac_key);
 			gcry_free(inputKey);
-			return -1;
+			return;
 		}
 		counterForGoto += 1;
 		goto tryAgainDerive;
@@ -165,7 +167,7 @@ gint decrypt_file_gui(struct widget_t *WidgetMain){
 		gcry_free(crypto_key);
 		gcry_free(mac_key);
 		gcry_free(inputKey);
-		return -1;		
+		return;		
 	}
 	if(fseek(fp, bytes_before_mac, SEEK_SET) == -1){
 		fprintf(stderr, "decrypt_file: %s\n", strerror(errno));
@@ -173,7 +175,7 @@ gint decrypt_file_gui(struct widget_t *WidgetMain){
 		gcry_free(crypto_key);
 		gcry_free(mac_key);
 		gcry_free(inputKey);
-		return -1;		
+		return;		
 	}
 	if(fread(mac_of_file, 1, 64, fp) != 64){
 		fprintf(stderr, _("decrypt_file: fread mac error\n"));;
@@ -181,24 +183,26 @@ gint decrypt_file_gui(struct widget_t *WidgetMain){
 		gcry_free(crypto_key);
 		gcry_free(mac_key);
 		gcry_free(inputKey);
-		return -1;
+		return;
 	}
-	guchar *hmac = calculate_hmac(WidgetMain->filename, mac_key, keyLength, 1);
+	guchar *hmac = calculate_hmac(filename, mac_key, keyLength, 1);
 	if(hmac == (guchar *)1){
-		show_error(WidgetMain, _("Error during HMAC calculation\n"));
+		show_error( _("Error during HMAC calculation\n"));
 		gcry_free(derived_key);
 		gcry_free(crypto_key);
 		gcry_free(mac_key);
 		gcry_free(inputKey);
-		return -1;
+		return;
 	}
 	if(memcmp(mac_of_file, hmac, 64) != 0){
-		show_error(WidgetMain, _("HMAC doesn't match. This is caused by\n1) wrong password\nor\n2) corrupted file\n"));
+		//show_error(_("HMAC doesn't match. This is caused by\n1) wrong password\nor\n2) corrupted file\n"));
 		gcry_free(derived_key);
 		gcry_free(crypto_key);
 		gcry_free(mac_key);
 		gcry_free(inputKey);
-		return -15;
+		g_free(filename);
+		g_free(outFilename);
+		g_thread_exit((gpointer)-15);
 	}
 	free(hmac);
 	if(fseek(fp, current_file_offset, SEEK_SET) == -1){
@@ -207,17 +211,17 @@ gint decrypt_file_gui(struct widget_t *WidgetMain){
 		gcry_free(crypto_key);
 		gcry_free(mac_key);
 		gcry_free(inputKey);
-		return -1;		
+		return;		
 	}
 
 	fpout = fopen(outFilename, "w");
 	if(fpout == NULL){
-		show_error(WidgetMain, strerror(errno));
+		show_error( strerror(errno));
 		gcry_free(derived_key);
 		gcry_free(crypto_key);
 		gcry_free(mac_key);
 		gcry_free(inputKey);
-		return -1;
+		return;
 	}
 	
 	while(number_of_block > block_done){
@@ -244,18 +248,19 @@ gint decrypt_file_gui(struct widget_t *WidgetMain){
 	gcry_free(crypto_key);
 	gcry_free(mac_key);
 	gcry_free(decBuffer);
-	free(outFilename);
+	g_free(outFilename);
+	g_free(filename);
 	
 	fclose(fp);
 	fclose(fpout);
-
-	return 0;
+	
+	g_thread_exit((gpointer)0);
 }
 
-void show_error(struct widget_t *s_Error, const gchar *message){
+static void show_error(const gchar *message){
 	GtkWidget *dialog;
-	dialog = gtk_message_dialog_new(GTK_WINDOW(s_Error->mainwin),
-            GTK_DIALOG_DESTROY_WITH_PARENT,
+	dialog = gtk_message_dialog_new(NULL,
+            GTK_DIALOG_MODAL,
             GTK_MESSAGE_ERROR,
             GTK_BUTTONS_OK,
             "%s", message);

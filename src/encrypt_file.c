@@ -74,13 +74,13 @@ void *encrypt_file_gui(struct widget_t *WidgetMain){
 	if(fd == -1){
 		show_error(WidgetMain, strerror(errno));
 		gcry_free(inputKey);
-		return -1;
+		return;
 	}
   	if(fstat(fd, &fileStat) < 0){
 		show_error(WidgetMain, strerror(errno));
 		gcry_free(inputKey);
     	close(fd);
-    	return -1;
+    	return;
   	}
   	fsize = fileStat.st_size;
   	close(fd);
@@ -95,12 +95,12 @@ void *encrypt_file_gui(struct widget_t *WidgetMain){
 	if(fp == NULL){
 		show_error(WidgetMain, strerror(errno));
 		gcry_free(inputKey);
-		return -1;
+		return;
 	}
 	if(fpout == NULL){
 		show_error(WidgetMain, strerror(errno));
 		gcry_free(inputKey);
-		return -1;
+		return;
 	}
 	
 	gcry_cipher_open(&hd, algo, GCRY_CIPHER_MODE_CBC, 0);
@@ -108,14 +108,14 @@ void *encrypt_file_gui(struct widget_t *WidgetMain){
 	if((derived_key = gcry_malloc_secure(64)) == NULL){
 		fprintf(stderr, _("encrypt_file: gcry_malloc_secure failed (derived)\n"));
 		gcry_free(inputKey);
-		return -1;
+		return;
 	}
 	
 	if((crypto_key = gcry_malloc_secure(32)) == NULL){
 		fprintf(stderr, _("encrypt_file: gcry_malloc_secure failed (crypto)\n"));
 		gcry_free(inputKey);
 		gcry_free(derived_key);
-		return -1;
+		return;
 	}
 	
 	if((mac_key = gcry_malloc_secure(32)) == NULL){
@@ -123,7 +123,7 @@ void *encrypt_file_gui(struct widget_t *WidgetMain){
 		gcry_free(crypto_key);
 		gcry_free(inputKey);
 		gcry_free(derived_key);
-		return -1;
+		return;
 	}
 
 	tryAgainDerive:
@@ -134,7 +134,7 @@ void *encrypt_file_gui(struct widget_t *WidgetMain){
 			gcry_free(crypto_key);
 			gcry_free(mac_key);
 			gcry_free(inputKey);
-			return -1;
+			return;
 		}
 		counterForGoto += 1;
 		goto tryAgainDerive;
@@ -187,7 +187,7 @@ void *encrypt_file_gui(struct widget_t *WidgetMain){
 		gcry_free(crypto_key);
 		gcry_free(mac_key);
 		gcry_free(inputKey);
-		return -1;
+		return;
 	}
 	fpout = fopen(outFilename, "a");
 	fwrite(hmac, 1, 64, fpout);

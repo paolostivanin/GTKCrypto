@@ -19,6 +19,7 @@ struct metadata_t{
 extern struct metadata_t Metadata;
 
 struct widget_t{
+	gint error;
 	gint mode, toEnc;
 	gchar *filename;
 	GtkWidget *pwdEntry, *pwdReEntry, *mainwin, *dialog, *file_dialog, *infobar, *infolabel;

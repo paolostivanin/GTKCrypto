@@ -18,19 +18,19 @@ static void is_enc(GtkWidget *, struct widget_t *);
 static void is_dec(GtkWidget *, struct widget_t *);
 static void is_hash(GtkWidget *, struct widget_t *);
 static void type_pwd_enc(struct widget_t *);
-static void type_pwd_dec(struct widget_t *);
 static void do_enc(struct widget_t *);
+static void type_pwd_dec(struct widget_t *);
 static void select_hash_type(struct widget_t *);
 static void activate (GtkApplication *, gpointer);
 static void startup (GtkApplication *, gpointer);
 static void quit (GSimpleAction *, GVariant *, gpointer);
 static void about (GSimpleAction *, GVariant *, gpointer);
 static void show_error(struct widget_t *, const gchar *);
-//gint encrypt_file_gui(struct widget_t *);
 void *encrypt_file_gui(struct widget_t *);
 static void *threadEnc(struct widget_t *);
+void *decrypt_file_gui(struct widget_t *);
+static void *threadDec(struct widget_t *);
 
-gint decrypt_file_gui(struct widget_t *);
 void *compute_md5(struct hashWidget_t *);
 void *compute_sha1(struct hashWidget_t *);
 void *compute_sha256(struct hashWidget_t *);
@@ -51,6 +51,10 @@ static void *threadGOST94(struct hashWidget_t *);
 
 
 const gchar *my_icon = "/usr/share/icons/hicolor/128x128/apps/polcrypt.png";
+
+struct thread_t{
+	GThread *t;
+}Threads;
 
 GCRY_THREAD_OPTION_PTHREAD_IMPL;
 
@@ -168,7 +172,7 @@ static void activate (GtkApplication *app, gpointer user_data __attribute__ ((un
 	gtk_grid_attach(GTK_GRID(grid), frameText, 0, 2, 3, 2);
 	gtk_grid_attach(GTK_GRID(grid), butHa, 0, 5, 3, 1);
 	gtk_grid_attach(GTK_GRID(grid), butQ, 0, 6, 3, 1);
-
+	
 	gtk_widget_show_all(Widget.mainwin);
 }
 
@@ -291,6 +295,8 @@ static void file_dialog(struct widget_t *Widget){
 		}
 		else if(Widget->mode == 2){
 			type_pwd_dec(Widget);
+			gpointer ret = g_thread_join(Threads.t);
+			if(ret == (gpointer)-15) type_pwd_dec(Widget);
 			g_free (Widget->filename);
 		}
 		else if(Widget->mode == 3){
@@ -400,11 +406,8 @@ static void type_pwd_dec(struct widget_t *WidgetDec){
 	gint result = gtk_dialog_run(GTK_DIALOG(WidgetDec->dialog));
 	switch(result){
 		case GTK_RESPONSE_OK:
-			if(decrypt_file_gui(WidgetDec) == -15){
-				gtk_widget_destroy(WidgetDec->dialog);
-				type_pwd_dec(WidgetDec);
-			}
-			else gtk_widget_destroy(WidgetDec->dialog);
+			threadDec(WidgetDec);
+			gtk_widget_destroy(WidgetDec->dialog);
 			break;
 		case GTK_RESPONSE_CLOSE:
 			gtk_widget_destroy (WidgetDec->dialog);
@@ -431,6 +434,10 @@ static void do_enc(struct widget_t *WidgetCheckPwd){
 
 static void *threadEnc(struct widget_t *Widget){
 	g_thread_new("t_enc", (GThreadFunc)encrypt_file_gui, Widget);
+}
+
+static void *threadDec(struct widget_t *Widget){
+	Threads.t = g_thread_new("t_dec", (GThreadFunc)decrypt_file_gui, Widget);
 }
 
 static void select_hash_type(struct widget_t *WidgetHash){

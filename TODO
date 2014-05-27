@@ -1,5 +1,5 @@
-* convert encrypt_file_gui from gint to void
-* block/lock file which is being encrypted
+* message if wrong decrypt pwd is given
+
 * quit button can be clicked ONLY if all threads have finished (hash+enc)
+
 * popup after enc & del
-* check if all algos support ctr mode
