@@ -18,7 +18,6 @@ gint delete_input_file(const gchar *, size_t);
 static void show_error(struct widget_t *, const gchar *);
 
 void *encrypt_file_gui(struct widget_t *WidgetMain){
-//gint encrypt_file_gui(struct widget_t *WidgetMain){
 	struct metadata_t Metadata;
 	gint algo = -1,fd, number_of_block, block_done = 0, retcode = 0, counterForGoto = 0;
 	guchar hex[15] = { 0x01,0x02,0x03,0x04,0x05,0x06,0x07,0x08,0x09,0x0A,0x0B,0x0C,0x0D,0x0E,0x0F}, plain_text[16];

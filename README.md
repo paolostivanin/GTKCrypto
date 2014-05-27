@@ -5,7 +5,7 @@ This software let you to:
 * Encrypt and decrypt files using AES, Twofish, Serpent or Camellia (all with a 256bit key and in CBC mode);
 * Compute the hash of a given file (supported hashes are MD5, GOST94, SHA-1, SHA-256, SHA3-256, SHA-512, SHA3-512 and Whirlpool);
 
-This software is developed by Paolo Stivanin (a.k.a Polslinux)
+This software is developed by Paolo "Polslinux" Stivanin (https://www.paolostivanin.com)
 
 
 Security
@@ -24,10 +24,10 @@ The latest stable release (v2.1.1) can be found in the 'master' branch, just clo
 
 Requirements
 ------------
-* GCC or Clang	: required version of Clang **>= 3.1**, of GCC **>= 4.4.0**;
-* Gcrypt	: required version **>=1.5.0**;
+* GCC or Clang	: required version of Clang **>= 3.2**, of GCC **>= 4.6.0**;
+* Gcrypt	: required version **>=1.6.0**;
 * Nettle	: required version **>=2.6.0**;
-* GTK+		: required version **>=3.4.0**;
+* GTK+		: required version **>=3.12.0**;
 * Glib		: required version **>=2.36.0**;
 
 

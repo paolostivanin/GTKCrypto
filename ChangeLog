@@ -47,12 +47,10 @@
 ??/06/2014 - v2.2.0
 	* ADDED: possibility to choose between file/text encryption
 	* ADDED: new gui (header bar, popover, new main gui, etc)
+	* ADDED: encryption process now use thread
+	* ADDED: possibility to choose between CBC and CTR mode
 
-??/??/2014 - v2.3.0
+??/09-10/2014 - v2.3.0
 	* ADDED: multiple file selection for en/de/cryption
 	* ADDED: asymmetric encryption support (with RSA or with a ECC algo)
-	* AES256-ctr as default instead of AES256-cbc
-
-?????????? - EVALUATING FEATURES
-	* possibility to choose different aes mode like aes-cbc, aes-ctr, aes-gcm, etc
-	* compression using zlib
+	* ADDED: compression using zlib
