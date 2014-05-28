@@ -1,5 +1,9 @@
 * message if wrong decrypt pwd is given
 
-* quit button can be clicked ONLY if all threads have finished (hash+enc)
+* review errors handling!!! IMPORTANT
 
-* popup after enc & del
+* review wrong password input (check if it is all ok)
+
+* more usage of notifications
+
+* quit button can be clicked ONLY if all threads have finished (hash+enc)

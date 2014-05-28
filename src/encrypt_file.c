@@ -11,11 +11,12 @@
 #include <glib/gi18n.h>
 #include <locale.h>
 #include <libintl.h>
+#include <libnotify/notify.h>
 #include "polcrypt.h"
 
 guchar *calculate_hmac(const gchar *, const guchar *key, size_t, gint);
 gint delete_input_file(const gchar *, size_t);
-static void show_error(struct widget_t *, const gchar *);
+static void send_notification(const gchar *, const gchar *);
 
 void *encrypt_file_gui(struct widget_t *WidgetMain){
 	struct metadata_t Metadata;
@@ -72,12 +73,12 @@ void *encrypt_file_gui(struct widget_t *WidgetMain){
 	
 	fd = open(filename, O_RDONLY | O_NOFOLLOW);
 	if(fd == -1){
-		show_error(WidgetMain, strerror(errno));
+		g_print("%s\n", strerror(errno));
 		gcry_free(inputKey);
 		return;
 	}
   	if(fstat(fd, &fileStat) < 0){
-		show_error(WidgetMain, strerror(errno));
+		g_print("%s\n", strerror(errno));
 		gcry_free(inputKey);
     	close(fd);
     	return;
@@ -93,12 +94,12 @@ void *encrypt_file_gui(struct widget_t *WidgetMain){
 	FILE *fp = fopen(filename, "r");
 	FILE *fpout = fopen(outFilename, "w");
 	if(fp == NULL){
-		show_error(WidgetMain, strerror(errno));
+		g_print("%s\n", strerror(errno));
 		gcry_free(inputKey);
 		return;
 	}
 	if(fpout == NULL){
-		show_error(WidgetMain, strerror(errno));
+		g_print("%s\n", strerror(errno));
 		gcry_free(inputKey);
 		return;
 	}
@@ -106,20 +107,20 @@ void *encrypt_file_gui(struct widget_t *WidgetMain){
 	gcry_cipher_open(&hd, algo, GCRY_CIPHER_MODE_CBC, 0);
 	
 	if((derived_key = gcry_malloc_secure(64)) == NULL){
-		fprintf(stderr, _("encrypt_file: gcry_malloc_secure failed (derived)\n"));
+		g_print(_("encrypt_file: gcry_malloc_secure failed (derived)\n"));
 		gcry_free(inputKey);
 		return;
 	}
 	
 	if((crypto_key = gcry_malloc_secure(32)) == NULL){
-		fprintf(stderr, _("encrypt_file: gcry_malloc_secure failed (crypto)\n"));
+		g_print(_("encrypt_file: gcry_malloc_secure failed (crypto)\n"));
 		gcry_free(inputKey);
 		gcry_free(derived_key);
 		return;
 	}
 	
 	if((mac_key = gcry_malloc_secure(32)) == NULL){
-		fprintf(stderr, _("encrypt_file: gcry_malloc_secure failed (mac)\n"));
+		g_print(_("encrypt_file: gcry_malloc_secure failed (mac)\n"));
 		gcry_free(crypto_key);
 		gcry_free(inputKey);
 		gcry_free(derived_key);
@@ -129,7 +130,7 @@ void *encrypt_file_gui(struct widget_t *WidgetMain){
 	tryAgainDerive:
 	if(gcry_kdf_derive (inputKey, len+1, GCRY_KDF_PBKDF2, GCRY_MD_SHA512, Metadata.salt, 32, 150000, 64, derived_key) != 0){
 		if(counterForGoto == 3){
-			fprintf(stderr, _("encrypt_file: Key derivation error\n"));
+			g_print(_("encrypt_file: Key derivation error\n"));
 			gcry_free(derived_key);
 			gcry_free(crypto_key);
 			gcry_free(mac_key);
@@ -182,7 +183,7 @@ void *encrypt_file_gui(struct widget_t *WidgetMain){
 
 	guchar *hmac = calculate_hmac(outFilename, mac_key, keyLength, 0);
 	if(hmac == (guchar *)1){
-		show_error(WidgetMain, _("Error during HMAC calculation"));
+		g_print(_("Error during HMAC calculation"));
 		gcry_free(derived_key);
 		gcry_free(crypto_key);
 		gcry_free(mac_key);
@@ -195,9 +196,9 @@ void *encrypt_file_gui(struct widget_t *WidgetMain){
 	
 	retcode = delete_input_file(filename, fsize);
 	if(retcode == -1)
-		show_error(WidgetMain, _("Secure file deletion failed, overwrite it manually"));
+		g_print(_("Secure file deletion failed, overwrite it manually"));
 	if(retcode == -2)
-		show_error(WidgetMain, _("File unlink failed, remove it manually"));
+		g_print(_("File unlink failed, remove it manually"));
 		
 	gcry_cipher_close(hd);
 	gcry_free(derived_key);
@@ -210,18 +211,20 @@ void *encrypt_file_gui(struct widget_t *WidgetMain){
 	g_free(outFilename);
 	
 	fclose(fpout);
+	
+	send_notification("PolCrypt", "Encryption successfully done");
 
-	//return 0;
+	g_thread_exit((gpointer)0);
 }
 
-void show_error(struct widget_t *s_Error, const gchar *message){
-	GtkWidget *dialog;
-	dialog = gtk_message_dialog_new(GTK_WINDOW(s_Error->mainwin),
-            GTK_DIALOG_DESTROY_WITH_PARENT,
-            GTK_MESSAGE_ERROR,
-            GTK_BUTTONS_OK,
-            "%s", message);
-	gtk_window_set_title(GTK_WINDOW(dialog), "Error");
-	gtk_dialog_run(GTK_DIALOG(dialog));
-	gtk_widget_destroy(dialog);
+static void send_notification(const gchar *title, const gchar *message){
+	NotifyNotification *n;
+    notify_init("org.gtk.polcrypt");
+    n = notify_notification_new (title, message, NULL);
+    notify_notification_set_timeout(n, 3000); //3 seconds
+    if (!notify_notification_show (n, NULL)) {
+		g_error("Failed to send notification.\n");
+        g_thread_exit((gpointer)-1);
+	}
+	g_object_unref(G_OBJECT(n));
 }

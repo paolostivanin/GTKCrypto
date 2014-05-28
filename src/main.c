@@ -54,6 +54,7 @@ const gchar *my_icon = "/usr/share/icons/hicolor/128x128/apps/polcrypt.png";
 
 struct thread_t{
 	GThread *t;
+	GThread *tenc;
 }Threads;
 
 GCRY_THREAD_OPTION_PTHREAD_IMPL;
@@ -108,7 +109,7 @@ static void activate (GtkApplication *app, gpointer user_data __attribute__ ((un
 	GtkWidget *butEn, *butDe, *butEnText, *butDeText, *butHa, *butQ, *grid;
 	GtkWidget *boxFile, *boxText, *frameFile, *frameText;
 	GError *err = NULL;
-	const gchar *path = "/home/polslinux/Documenti/Development/Progetti/4-PolCrypt/src/style.css";
+	const gchar *path = "/home/polslinux/Documenti/Development/Progetti/4-PolCrypt/src/style.css"; //DA CAMBIAREEEEE
 
 	if(glib_check_version(2, 36, 0) != NULL){
 		show_error(NULL, _("The required version of GLib is 2.36.0 or greater."));
@@ -433,7 +434,7 @@ static void do_enc(struct widget_t *WidgetCheckPwd){
 }
 
 static void *threadEnc(struct widget_t *Widget){
-	g_thread_new("t_enc", (GThreadFunc)encrypt_file_gui, Widget);
+	Threads.tenc = g_thread_new("t_enc", (GThreadFunc)encrypt_file_gui, Widget);
 }
 
 static void *threadDec(struct widget_t *Widget){
