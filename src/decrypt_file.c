@@ -258,7 +258,7 @@ void *decrypt_file_gui(struct widget_t *WidgetMain){
 			gcry_cipher_decrypt(hd, decBuffer, retval, cipher_text, retval);
 			fwrite(decBuffer, 1, retval, fpout);
 			done_size += retval;
-			if((real_fsize-done_size) < txtLenght){
+			if((real_fsize-done_size) < (off_t)txtLenght){
 				retval = fread(cipher_text, 1, (real_fsize-done_size), fp);
 				gcry_cipher_decrypt(hd, decBuffer, retval, cipher_text, retval);
 				fwrite(decBuffer, 1, retval, fpout);

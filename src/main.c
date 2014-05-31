@@ -11,6 +11,7 @@ struct widget_t Widget;
 
 GtkWidget *do_header_and_mainwin(GtkApplication *);
 static GtkWidget *create_popover(GtkWidget *, GtkPositionType);
+static GtkWidget *create_popover_dialog(GtkWidget *, GtkPositionType);
 static void toggle_changed_cb (GtkToggleButton *, GtkWidget *);
 static void hide_menu (struct widget_t *);
 static void file_dialog(struct widget_t *);
@@ -224,22 +225,40 @@ GtkWidget *do_header_and_mainwin(GtkApplication *app){
 	return window;
 }
 
-/* Nella funzione sottostante devo modificare:
- * 1) il fatto che si chida il popover quando clicco (ora che ci sono 2 scelte scoccia);
- * 2) il fatto di avere sto mega elenco. Aggiungere submenu;
- */
 static GtkWidget *create_popover (GtkWidget *parent, GtkPositionType pos){
 
-	GtkWidget *popover, *box, *label, *labelMode, *hline1, *hline2, *hline3;
+	GtkWidget *popover, *box, *label;
+
+	label = gtk_label_new(_("Empy for now"));
+
+	box = gtk_box_new (GTK_ORIENTATION_VERTICAL, 4);
+	gtk_box_set_homogeneous (GTK_BOX (box), FALSE);
+
+	popover = gtk_popover_new(parent);
+	gtk_popover_set_position (GTK_POPOVER (popover), pos);
+
+	gtk_box_pack_start (GTK_BOX (box), label, TRUE, TRUE, 0);
+
+	gtk_container_add (GTK_CONTAINER (popover), box);
+	gtk_container_set_border_width (GTK_CONTAINER (popover), 4);
+	gtk_widget_show_all (box);
+	
+	return popover; 
+}
+
+static GtkWidget *create_popover_dialog (GtkWidget *parent, GtkPositionType pos){
+
+	GtkWidget *popover, *box, *box2, *box3, *label, *labelMode, *hline1, *hline2;
 
 	label = gtk_label_new(_("Cipher Algo"));
 	labelMode = gtk_label_new(_("Cipher Mode"));
 	hline1 = gtk_separator_new(GTK_ORIENTATION_HORIZONTAL);
 	hline2 = gtk_separator_new(GTK_ORIENTATION_HORIZONTAL);
-	hline3 = gtk_separator_new(GTK_ORIENTATION_HORIZONTAL);
 
+	box2 = gtk_box_new (GTK_ORIENTATION_HORIZONTAL, 4);
 	box = gtk_box_new (GTK_ORIENTATION_VERTICAL, 4);
-	gtk_box_set_homogeneous (GTK_BOX (box), FALSE);
+	box3 = gtk_box_new (GTK_ORIENTATION_VERTICAL, 4);
+	gtk_box_set_homogeneous (GTK_BOX (box2), FALSE);
 
 	popover = gtk_popover_new(parent);
 	gtk_popover_set_position (GTK_POPOVER (popover), pos);
@@ -255,22 +274,27 @@ static GtkWidget *create_popover (GtkWidget *parent, GtkPositionType pos){
 
 	gtk_box_pack_start (GTK_BOX (box), label, TRUE, TRUE, 0);
 	gtk_box_pack_start (GTK_BOX (box), hline1, TRUE, TRUE, 0);
-	gtk_box_pack_start (GTK_BOX (box), Widget.r0_1, TRUE, TRUE, 1);
-	gtk_box_pack_start (GTK_BOX (box), Widget.r0_2, TRUE, TRUE, 1);
-	gtk_box_pack_start (GTK_BOX (box), Widget.r0_3, TRUE, TRUE, 1);
-	gtk_box_pack_start (GTK_BOX (box), Widget.r0_4, TRUE, TRUE, 1);
-	gtk_box_pack_start (GTK_BOX (box), hline2, TRUE, TRUE, 0);
-	gtk_box_pack_start (GTK_BOX (box), labelMode, TRUE, TRUE, 0);
-	gtk_box_pack_start (GTK_BOX (box), hline3, TRUE, TRUE, 0);
-	gtk_box_pack_start (GTK_BOX (box), Widget.r1_1, TRUE, TRUE, 1);
-	gtk_box_pack_start (GTK_BOX (box), Widget.r1_2, TRUE, TRUE, 1);
+	gtk_box_pack_start (GTK_BOX (box), Widget.r0_1, TRUE, TRUE, 0);
+	gtk_box_pack_start (GTK_BOX (box), Widget.r0_2, TRUE, TRUE, 0);
+	gtk_box_pack_start (GTK_BOX (box), Widget.r0_3, TRUE, TRUE, 0);
+	gtk_box_pack_start (GTK_BOX (box), Widget.r0_4, TRUE, TRUE, 0);
+	
+	gtk_box_pack_start (GTK_BOX (box3), labelMode, FALSE, TRUE, 0);
+	gtk_box_pack_start (GTK_BOX (box3), hline2, FALSE, TRUE, 0);
+	gtk_box_pack_start (GTK_BOX (box3), Widget.r1_1, FALSE, TRUE, 0);
+	gtk_box_pack_start (GTK_BOX (box3), Widget.r1_2, FALSE, TRUE, 0);
+	
+	GtkWidget *vline = gtk_separator_new(GTK_ORIENTATION_VERTICAL);
+	gtk_box_pack_start( GTK_BOX(box2), box, TRUE, TRUE, 0);
+	gtk_box_pack_start (GTK_BOX (box2), vline, TRUE, TRUE, 0);
+	gtk_box_pack_start( GTK_BOX(box2), box3, FALSE, TRUE, 0);
 
 	g_object_set(Widget.r0_1, "active", TRUE, NULL);
 	g_object_set(Widget.r1_1, "active", TRUE, NULL);
 
-	gtk_container_add (GTK_CONTAINER (popover), box);
+	gtk_container_add (GTK_CONTAINER (popover), box2);
 	gtk_container_set_border_width (GTK_CONTAINER (popover), 4);
-	gtk_widget_show_all (box);
+	gtk_widget_show_all (box2);
 	
 	return popover; 
 }
@@ -279,7 +303,7 @@ static void toggle_changed_cb (GtkToggleButton *button, GtkWidget *popover){
 	gtk_widget_set_visible (popover, gtk_toggle_button_get_active (button));
 }
 
-static void hide_menu(struct widget_t *Menu){
+static void hide_menu(struct widget_t *Menu __attribute__ ((unused))){
 	if(gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(Widget.menu)))
 		gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(Widget.menu), FALSE);
 }
@@ -324,9 +348,36 @@ static void file_dialog(struct widget_t *Widget){
 static void type_pwd_enc(struct widget_t *WidgetEnc){
 	gtk_widget_hide(GTK_WIDGET(WidgetEnc->file_dialog));
 	GtkWidget *content_area, *grid2, *labelPwd, *labelRetypePwd, *infoarea;
-	WidgetEnc->dialog = gtk_dialog_new_with_buttons (_("Encryption Password"), GTK_WINDOW(WidgetEnc->mainwin), GTK_DIALOG_DESTROY_WITH_PARENT, _("_Cancel"), GTK_RESPONSE_CLOSE, _("_OK"), GTK_RESPONSE_OK, NULL);
+	
+	/* ***** */
+	const gchar *headertext = "Encryption Password";
+	GtkWidget *header = gtk_header_bar_new ();
+	gtk_header_bar_set_show_close_button (GTK_HEADER_BAR (header), FALSE);
+	gtk_header_bar_set_title (GTK_HEADER_BAR (header), headertext);
+	gtk_header_bar_set_has_subtitle (GTK_HEADER_BAR (header), FALSE);
+	GtkWidget *box = gtk_box_new (GTK_ORIENTATION_HORIZONTAL, 0);
+	gtk_style_context_add_class (gtk_widget_get_style_context (box), "linked");
+	
+	GIcon *icon = g_themed_icon_new ("emblem-system-symbolic");
+	GtkWidget *image = gtk_image_new_from_gicon (icon, GTK_ICON_SIZE_BUTTON);
+	g_object_unref(icon);
+	
+	Widget.menu = gtk_toggle_button_new();
+	gtk_container_add(GTK_CONTAINER(Widget.menu), image);
+	gtk_widget_set_tooltip_text(GTK_WIDGET(Widget.menu), _("Settings"));
+	
+	GtkWidget *popover = create_popover_dialog(Widget.menu, GTK_POS_TOP);
+	gtk_popover_set_modal (GTK_POPOVER (Widget.popover), TRUE);
+	g_signal_connect (Widget.menu, "toggled", G_CALLBACK (toggle_changed_cb), popover);
+	
+	gtk_header_bar_pack_start(GTK_HEADER_BAR (header), GTK_WIDGET(Widget.menu));
+	/* ***** */
+	WidgetEnc->dialog = gtk_dialog_new_with_buttons (NULL, GTK_WINDOW(WidgetEnc->mainwin), GTK_DIALOG_DESTROY_WITH_PARENT, _("_Cancel"), GTK_RESPONSE_CLOSE, _("_OK"), GTK_RESPONSE_OK, NULL);
 	content_area = gtk_dialog_get_content_area (GTK_DIALOG (WidgetEnc->dialog));
-
+	gtk_window_set_titlebar (GTK_WINDOW (WidgetEnc->dialog), header);
+	gtk_widget_add_events(GTK_WIDGET(WidgetEnc->dialog), GDK_BUTTON_PRESS_MASK);
+	g_signal_connect(WidgetEnc->dialog, "button-press-event", G_CALLBACK(hide_menu), &Widget);
+	
 	labelPwd = gtk_label_new(_("Type password"));
 	labelRetypePwd = gtk_label_new(_("Retype password"));
 	WidgetEnc->pwdEntry = gtk_entry_new();

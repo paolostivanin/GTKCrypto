@@ -7,4 +7,6 @@
 
 * more usage of notifications
 
-* settings menu not in mainwin but in enc dialog
+* dec not using thread
+
+* settings menu not in mainwin but in enc dialog (delete settings from main!!! {or change its contents})
