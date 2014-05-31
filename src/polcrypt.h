@@ -3,8 +3,9 @@
 
 #define BUF_FILE 16777216 /* 16 MiB memory buffer (hash) */
 #define BUFSIZE 1048576  /* 1 MiB memory buffer (delete_input_file) */
+#define HEADERBAR_BUF 22 /* buffer for the title of the headerbar */
 #define GCRYPT_MIN_VER "1.5.0"
-#define VERSION "2.2.0-dev"
+#define VERSION "2.2.0-alpha"
 #define LOCALE_DIR "/usr/share/locale" // or your specification
 #define PACKAGE    "polcrypt"          // mo file name in LOCALE
 
@@ -25,7 +26,7 @@ struct widget_t{
 	GtkWidget *pwdEntry, *pwdReEntry, *mainwin, *dialog, *file_dialog, *infobar, *infolabel;
 	GtkWidget *menu;
 	GtkWidget *popover;
-	GtkWidget *r0, *r1, *r2, *r3, *r4;
+	GtkWidget *r0, *r0_1, *r0_2, *r0_3, *r0_4, *r1, *r1_1, *r1_2;
 };
 extern struct widget_t Widget;
 

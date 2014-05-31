@@ -1,9 +1,12 @@
-* message if wrong decrypt pwd is given
+--> IMPORTANT **** rework errors handling **** IMPORTANT <--
 
-* review errors handling!!! IMPORTANT
+--> IMPORTANT **** quit button can be clicked ONLY if all threads have finished (hash+enc+dec) **** IMPORTANT <--
 
-* review wrong password input (check if it is all ok)
+
+* review wrong password input (enc+dec)
 
 * more usage of notifications
 
-* quit button can be clicked ONLY if all threads have finished (hash+enc)
+* settings menu not in mainwin but in enc dialog?
+
+* add possibility to choose between cbc and ctr

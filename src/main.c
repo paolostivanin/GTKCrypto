@@ -11,6 +11,7 @@ struct widget_t Widget;
 
 GtkWidget *do_header_and_mainwin(GtkApplication *);
 static GtkWidget *create_popover(GtkWidget *, GtkPositionType);
+static GtkWidget *create_menu(gint);
 static void toggle_changed_cb (GtkToggleButton *, GtkWidget *);
 static void toggle_changed_cb2 (struct widget_t *);
 static void file_dialog(struct widget_t *);
@@ -126,22 +127,22 @@ static void activate (GtkApplication *app, gpointer user_data __attribute__ ((un
 	gtk_css_provider_load_from_path (GTK_CSS_PROVIDER (cs), path, &err);
 	if(err != NULL) g_print(_("Error during CSS parsing\n"));
 
-	butEn = gtk_button_new_with_label(_("Encrypt File"));
-	butDe = gtk_button_new_with_label(_("Decrypt File"));
-	butEnText = gtk_button_new_with_label(_("Encrypt Text"));
-	butDeText = gtk_button_new_with_label(_("Decrypt Text"));
+	butEn = gtk_button_new_with_label(_("File"));
+	butDe = gtk_button_new_with_label(_("File"));
+	butEnText = gtk_button_new_with_label(_("Text"));
+	butDeText = gtk_button_new_with_label(_("Text"));
 	butHa = gtk_button_new_with_label(_("Compute Hash"));
 	butQ = gtk_button_new_with_label(_("Quit"));
 	
-	frameFile = gtk_frame_new("File");
+	frameFile = gtk_frame_new("Encrypt");
 	boxFile = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 2);
 	gtk_box_pack_start (GTK_BOX (boxFile), butEn, TRUE, TRUE, 2);
-	gtk_box_pack_start (GTK_BOX (boxFile), butDe, TRUE, TRUE, 2);
+	gtk_box_pack_start (GTK_BOX (boxFile), butEnText, TRUE, TRUE, 2);
 	gtk_container_add(GTK_CONTAINER(frameFile), boxFile);
 	
-	frameText = gtk_frame_new("Text");
+	frameText = gtk_frame_new("Decrypt");
 	boxText = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 2);
-	gtk_box_pack_start (GTK_BOX (boxText), butEnText, TRUE, TRUE, 2);
+	gtk_box_pack_start (GTK_BOX (boxText), butDe, TRUE, TRUE, 2);
 	gtk_box_pack_start (GTK_BOX (boxText), butDeText, TRUE, TRUE, 2);
 	gtk_container_add(GTK_CONTAINER(frameText), boxText);
 
@@ -192,9 +193,9 @@ GtkWidget *do_header_and_mainwin(GtkApplication *app){
 	gtk_window_set_icon_from_file(GTK_WINDOW(window), my_icon, &err);
 	gtk_container_set_border_width(GTK_CONTAINER(window), 10);
 
-	gchar headertext[20];
-	g_snprintf(headertext, 19, _("PolCrypt %s"), VERSION);
-	headertext[19] = '\0';
+	gchar headertext[HEADERBAR_BUF];
+	g_snprintf(headertext, HEADERBAR_BUF-1, _("PolCrypt %s"), VERSION);
+	headertext[HEADERBAR_BUF-1] = '\0';
 
 	header = gtk_header_bar_new ();
 	gtk_header_bar_set_show_close_button (GTK_HEADER_BAR (header), TRUE);
@@ -222,44 +223,77 @@ GtkWidget *do_header_and_mainwin(GtkApplication *app){
 	return window;
 }
 
+/* Nella funzione sottostante devo modificare:
+ * 1) il fatto che si chida il popover quando clicco (ora che ci sono 2 scelte scoccia);
+ * 2) il fatto di avere sto mega elenco. Aggiungere submenu;
+ */
 static GtkWidget *create_popover (GtkWidget *parent, GtkPositionType pos){
 	
-	GtkWidget *popover, *box, *label, *hline;
+	GtkWidget *popover, *box;
 	
-	label = gtk_label_new(_("Cipher Algo"));
-	hline = gtk_separator_new(GTK_ORIENTATION_HORIZONTAL);
-	
-	box = gtk_box_new (GTK_ORIENTATION_VERTICAL, 4);
+	box = gtk_box_new (GTK_ORIENTATION_VERTICAL, 3);
 	gtk_box_set_homogeneous (GTK_BOX (box), FALSE);
 	
 	popover = gtk_popover_new(parent);
 	gtk_popover_set_position (GTK_POPOVER (popover), pos);
 	
-	Widget.r0 = gtk_radio_button_new(NULL);
-	Widget.r1 = gtk_radio_button_new_with_label_from_widget(GTK_RADIO_BUTTON(Widget.r0), "AES-256");
-	Widget.r2 = gtk_radio_button_new_with_label_from_widget(GTK_RADIO_BUTTON(Widget.r0), "Serpent");
-	Widget.r3 = gtk_radio_button_new_with_label_from_widget(GTK_RADIO_BUTTON(Widget.r0), "Twofish");
-	Widget.r4 = gtk_radio_button_new_with_label_from_widget(GTK_RADIO_BUTTON(Widget.r0), "Camellia-256");
-	
-	gtk_box_pack_start (GTK_BOX (box), label, TRUE, TRUE, 0);
-	gtk_box_pack_start (GTK_BOX (box), hline, TRUE, TRUE, 0);
-	gtk_box_pack_start (GTK_BOX (box), Widget.r1, TRUE, TRUE, 2);
-	gtk_box_pack_start (GTK_BOX (box), Widget.r2, TRUE, TRUE, 2);
-	gtk_box_pack_start (GTK_BOX (box), Widget.r3, TRUE, TRUE, 2);
-	gtk_box_pack_start (GTK_BOX (box), Widget.r4, TRUE, TRUE, 2);
-	
-	g_object_set(Widget.r1, "active", TRUE, NULL);
-	
-	g_signal_connect_swapped (Widget.r1, "toggled", G_CALLBACK (toggle_changed_cb2), &Widget);
-	g_signal_connect_swapped (Widget.r2, "toggled", G_CALLBACK (toggle_changed_cb2), &Widget);
-	g_signal_connect_swapped (Widget.r3, "toggled", G_CALLBACK (toggle_changed_cb2), &Widget);
-	g_signal_connect_swapped (Widget.r4, "toggled", G_CALLBACK (toggle_changed_cb2), &Widget);
+	gtk_box_pack_start (GTK_BOX (box), create_menu(1), TRUE, TRUE, 0);
+	gtk_box_pack_start (GTK_BOX (box), create_menu(2), TRUE, TRUE, 2);
+
+	// Qua dovrò abilitare quando avrò deciso la struttura finale del menù
+	/*g_signal_connect_swapped (Widget.r0_1, "toggled", G_CALLBACK (toggle_changed_cb2), &Widget);
+	g_signal_connect_swapped (Widget.r0_2, "toggled", G_CALLBACK (toggle_changed_cb2), &Widget);
+	g_signal_connect_swapped (Widget.r0_3, "toggled", G_CALLBACK (toggle_changed_cb2), &Widget);
+	g_signal_connect_swapped (Widget.r0_4, "toggled", G_CALLBACK (toggle_changed_cb2), &Widget);
+	g_signal_connect_swapped (Widget.r1_1, "toggled", G_CALLBACK (toggle_changed_cb2), &Widget);
+	g_signal_connect_swapped (Widget.r1_2, "toggled", G_CALLBACK (toggle_changed_cb2), &Widget);*/
 	
 	gtk_container_add (GTK_CONTAINER (popover), box);
-	gtk_container_set_border_width (GTK_CONTAINER (popover), 6);
+	gtk_container_set_border_width (GTK_CONTAINER (popover), 4);
 	gtk_widget_show_all (box);
 
 	return popover; 
+}
+
+static GtkWidget *create_menu(gint mode){
+	GSList *group = NULL;
+	GtkWidget *menubar, *submenu, *menuitem1, *menuitem1_1, *menuitem1_2, *menuitem1_3, *menuitem1_4;
+	
+	menubar = gtk_menu_bar_new();
+	gtk_menu_bar_set_pack_direction(GTK_MENU_BAR(menubar), GTK_PACK_DIRECTION_TTB);
+	
+	submenu = gtk_menu_new();
+	
+	if(mode == 1) menuitem1 = gtk_menu_item_new_with_label(_("Cipher Algo"));
+	else menuitem1 = gtk_menu_item_new_with_label(_("Cipher Mode"));
+	gtk_menu_shell_append (GTK_MENU_SHELL (menubar), menuitem1);
+	
+	gtk_menu_item_set_submenu (GTK_MENU_ITEM (menuitem1), submenu);
+	
+	if(mode == 1) menuitem1_1 = gtk_radio_menu_item_new_with_label (group, "AES-256");
+	else menuitem1_1 = gtk_radio_menu_item_new_with_label (group, "CBC");
+	group = gtk_radio_menu_item_get_group (GTK_RADIO_MENU_ITEM (menuitem1_1));
+	
+	if(mode == 1) menuitem1_2 = gtk_radio_menu_item_new_with_label (group, "Twofish");
+	else menuitem1_2 = gtk_radio_menu_item_new_with_label (group, "CTR");
+	group = gtk_radio_menu_item_get_group (GTK_RADIO_MENU_ITEM (menuitem1_2));
+	
+	if(mode == 1){
+		menuitem1_3 = gtk_radio_menu_item_new_with_label (group, "Serpent");
+		group = gtk_radio_menu_item_get_group (GTK_RADIO_MENU_ITEM (menuitem1_3));
+	
+		menuitem1_4 = gtk_radio_menu_item_new_with_label (group, "Camellia-256");
+		group = gtk_radio_menu_item_get_group (GTK_RADIO_MENU_ITEM (menuitem1_4));
+	}
+	
+	gtk_menu_shell_append (GTK_MENU_SHELL (submenu), menuitem1_1);
+	gtk_menu_shell_append (GTK_MENU_SHELL (submenu), menuitem1_2);
+	if(mode == 1){
+		gtk_menu_shell_append (GTK_MENU_SHELL (submenu), menuitem1_3);
+		gtk_menu_shell_append (GTK_MENU_SHELL (submenu), menuitem1_4);
+	}
+	
+	return menubar;
 }
 
 static void toggle_changed_cb (GtkToggleButton *button, GtkWidget *popover){

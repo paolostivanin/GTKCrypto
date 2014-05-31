@@ -33,19 +33,19 @@ void *encrypt_file_gui(struct widget_t *WidgetMain){
 	struct stat fileStat;
 	gcry_cipher_hd_t hd;
 	
-	if(gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(Widget.r1))){
+	if(gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(Widget.r0_1))){
 		algo = gcry_cipher_map_name("aes256");
 		Metadata.algo_type = 0;
 	}
-	else if(gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(Widget.r2))){
+	else if(gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(Widget.r0_2))){
 		algo = gcry_cipher_map_name("serpent256");
 		Metadata.algo_type = 1;
 	}
-	else if(gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(Widget.r3))){
+	else if(gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(Widget.r0_3))){
 		algo = gcry_cipher_map_name("twofish");
 		Metadata.algo_type = 2;
 	}
-	else if(gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(Widget.r4))){
+	else if(gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(Widget.r0_4))){
 		algo = gcry_cipher_map_name("camellia256");
 		Metadata.algo_type = 3;
 	}
