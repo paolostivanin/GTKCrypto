@@ -20,11 +20,11 @@ gint check_pkcs7(guchar *, guchar *);
 static void send_notification(const gchar *, const gchar *);
 
 void *decrypt_file_gui(struct widget_t *WidgetMain){
-	gint algo = -1, fd, number_of_block, block_done = 0, number_of_pkcs7_byte, counterForGoto = 0;	
+	gint algo = -1, mode = -1, fd, number_of_block = -1, block_done = 0, number_of_pkcs7_byte, counterForGoto = 0;	
 	guchar *derived_key = NULL, *crypto_key = NULL, *mac_key = NULL, *decBuffer = NULL;
 	guchar hex[15] = { 0x01,0x02,0x03,0x04,0x05,0x06,0x07,0x08,0x09,0x0A,0x0B,0x0C,0x0D,0x0E,0x0F}, cipher_text[16], mac_of_file[64] ={0};
 	gchar *inputKey = NULL;
-	off_t fsize = 0;
+	off_t fsize = 0, done_size = 0, real_fsize = 0;
 	size_t blkLength = 0, keyLength = 0, txtLenght = 16, retval = 0, pwd_len = 0;
 	glong current_file_offset, bytes_before_mac;
 	FILE *fp, *fpout;
@@ -79,10 +79,8 @@ void *decrypt_file_gui(struct widget_t *WidgetMain){
     	return;
   	}
   	fsize = fileStat.st_size;
+  	real_fsize = fsize-64-sizeof(struct metadata_t);
   	close(fd);
-	
-	number_of_block = (fsize - sizeof(struct metadata_t) - 64)/16;
-	bytes_before_mac = (number_of_block*16)+sizeof(struct metadata_t);
 	
 	fp = fopen(filename, "r");
 	if(fp == NULL){
@@ -116,11 +114,25 @@ void *decrypt_file_gui(struct widget_t *WidgetMain){
 	else if(Metadata.algo_type == 3){
 		algo = gcry_cipher_map_name("camellia256");
 	}
+	if(Metadata.algo_mode == 1){
+		mode = GCRY_CIPHER_MODE_CBC;
+	}
+	else{
+		mode = GCRY_CIPHER_MODE_CTR;
+	}
+
+	if(mode == GCRY_CIPHER_MODE_CBC){
+		number_of_block = (fsize - sizeof(struct metadata_t) - 64)/16;
+		bytes_before_mac = (number_of_block*16)+sizeof(struct metadata_t);
+	}
+	else{
+		bytes_before_mac = fsize-64;
+	}
 
 	blkLength = gcry_cipher_get_algo_blklen(algo);
 	keyLength = gcry_cipher_get_algo_keylen(algo);
 	
-	gcry_cipher_open(&hd, algo, GCRY_CIPHER_MODE_CBC, 0);
+	gcry_cipher_open(&hd, algo, mode, 0);
 	
 	if((derived_key = gcry_malloc_secure(64)) == NULL){
 		g_print(_("decrypt_file: gcry_malloc_secure failed (derived)\n"));
@@ -224,23 +236,37 @@ void *decrypt_file_gui(struct widget_t *WidgetMain){
 		gcry_free(inputKey);
 		return;
 	}
-	
-	while(number_of_block > block_done){
-		memset(cipher_text, 0, sizeof(cipher_text));
-		retval = fread(cipher_text, 1, 16, fp);
-		if(!retval) break;
-		
-		gcry_cipher_decrypt(hd, decBuffer, txtLenght, cipher_text, txtLenght);
-		if(block_done == (number_of_block-1)){
-			number_of_pkcs7_byte = check_pkcs7(decBuffer, hex);
-			fwrite(decBuffer, 1, number_of_pkcs7_byte, fpout);	
-			goto end;
+
+	if(mode == GCRY_CIPHER_MODE_CBC){
+		while(number_of_block > block_done){
+			memset(cipher_text, 0, sizeof(cipher_text));
+			retval = fread(cipher_text, 1, 16, fp);
+			gcry_cipher_decrypt(hd, decBuffer, txtLenght, cipher_text, txtLenght);
+			if(block_done == (number_of_block-1)){
+				number_of_pkcs7_byte = check_pkcs7(decBuffer, hex);
+				fwrite(decBuffer, 1, number_of_pkcs7_byte, fpout);	
+				goto end;
+			}
+			fwrite(decBuffer, 1, 16, fpout);
+			block_done++;
 		}
-		
-		fwrite(decBuffer, 1, 16, fpout);
-		block_done++;
 	}
-	
+	else{
+		while(real_fsize > done_size){
+			memset(cipher_text, 0, sizeof(cipher_text));
+			retval = fread(cipher_text, 1, txtLenght, fp);
+			gcry_cipher_decrypt(hd, decBuffer, retval, cipher_text, retval);
+			fwrite(decBuffer, 1, retval, fpout);
+			done_size += retval;
+			if((real_fsize-done_size) < txtLenght){
+				retval = fread(cipher_text, 1, (real_fsize-done_size), fp);
+				gcry_cipher_decrypt(hd, decBuffer, retval, cipher_text, retval);
+				fwrite(decBuffer, 1, retval, fpout);
+				break;
+			}
+		}
+	}
+
 	end:
 	
 	gcry_cipher_close(hd);
@@ -264,7 +290,7 @@ static void send_notification(const gchar *title, const gchar *message){
 	NotifyNotification *n;
     notify_init("org.gtk.polcrypt");
     n = notify_notification_new (title, message, NULL);
-    notify_notification_set_timeout(n, 3000); //3 seconds
+    notify_notification_set_timeout(n, 3000);
     if (!notify_notification_show (n, NULL)) {
 		g_error("Failed to send notification.\n");
         g_thread_exit((gpointer)-1);

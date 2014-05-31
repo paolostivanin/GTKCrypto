@@ -20,7 +20,7 @@ static void send_notification(const gchar *, const gchar *);
 
 void *encrypt_file_gui(struct widget_t *WidgetMain){
 	struct metadata_t Metadata;
-	gint algo = -1,fd, number_of_block, block_done = 0, retcode = 0, counterForGoto = 0;
+	gint algo = -1, mode = -1, fd, number_of_block = -1, block_done = 0, retcode = 0, counterForGoto = 0;
 	guchar hex[15] = { 0x01,0x02,0x03,0x04,0x05,0x06,0x07,0x08,0x09,0x0A,0x0B,0x0C,0x0D,0x0E,0x0F}, plain_text[16];
 	guchar *derived_key = NULL, *crypto_key = NULL, *mac_key = NULL, *encBuffer = NULL;
 	gchar *inputKey = NULL;
@@ -33,21 +33,29 @@ void *encrypt_file_gui(struct widget_t *WidgetMain){
 	struct stat fileStat;
 	gcry_cipher_hd_t hd;
 	
-	if(gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(Widget.r0_1))){
+	if(gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(WidgetMain->r0_1))){
 		algo = gcry_cipher_map_name("aes256");
 		Metadata.algo_type = 0;
 	}
-	else if(gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(Widget.r0_2))){
+	else if(gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(WidgetMain->r0_2))){
 		algo = gcry_cipher_map_name("serpent256");
 		Metadata.algo_type = 1;
 	}
-	else if(gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(Widget.r0_3))){
+	else if(gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(WidgetMain->r0_3))){
 		algo = gcry_cipher_map_name("twofish");
 		Metadata.algo_type = 2;
 	}
-	else if(gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(Widget.r0_4))){
+	else if(gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(WidgetMain->r0_4))){
 		algo = gcry_cipher_map_name("camellia256");
 		Metadata.algo_type = 3;
+	}
+	if(gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(WidgetMain->r1_1))){
+		mode = GCRY_CIPHER_MODE_CBC;
+		Metadata.algo_mode = 1;
+	}
+	else if(gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(WidgetMain->r1_2))){
+		mode = GCRY_CIPHER_MODE_CTR;
+		Metadata.algo_mode = 2;
 	}
 
 	const gchar *inputWidKey = gtk_entry_get_text(GTK_ENTRY(WidgetMain->pwdEntry));
@@ -104,7 +112,7 @@ void *encrypt_file_gui(struct widget_t *WidgetMain){
 		return;
 	}
 	
-	gcry_cipher_open(&hd, algo, GCRY_CIPHER_MODE_CBC, 0);
+	gcry_cipher_open(&hd, algo, mode, 0);
 	
 	if((derived_key = gcry_malloc_secure(64)) == NULL){
 		g_print(_("encrypt_file: gcry_malloc_secure failed (derived)\n"));
@@ -154,28 +162,35 @@ void *encrypt_file_gui(struct widget_t *WidgetMain){
 		memset(plain_text, 0, sizeof(plain_text));
 		retval = fread(plain_text, 1, 16, fp);
 		if(!retval) break;
-		if(retval < 16){
-			for(i=retval; i<16; i++){
-				if(retval == 1) plain_text[i] = hex[14];
-				if(retval == 2) plain_text[i] = hex[13];
-				if(retval == 3) plain_text[i] = hex[12];
-				if(retval == 4) plain_text[i] = hex[11];
-				if(retval == 5) plain_text[i] = hex[10];
-				if(retval == 6) plain_text[i] = hex[9];
-				if(retval == 7) plain_text[i] = hex[8];
-				if(retval == 8) plain_text[i] = hex[7];
-				if(retval == 9) plain_text[i] = hex[6];
-				if(retval == 10) plain_text[i] = hex[5];
-				if(retval == 11) plain_text[i] = hex[4];
-				if(retval == 12) plain_text[i] = hex[3];
-				if(retval == 13) plain_text[i] = hex[2];
-				if(retval == 14) plain_text[i] = hex[1];
-				if(retval == 15) plain_text[i] = hex[0];
+		if(mode == GCRY_CIPHER_MODE_CBC){
+			if(retval < 16){
+				for(i=retval; i<16; i++){
+					if(retval == 1) plain_text[i] = hex[14];
+					if(retval == 2) plain_text[i] = hex[13];
+					if(retval == 3) plain_text[i] = hex[12];
+					if(retval == 4) plain_text[i] = hex[11];
+					if(retval == 5) plain_text[i] = hex[10];
+					if(retval == 6) plain_text[i] = hex[9];
+					if(retval == 7) plain_text[i] = hex[8];
+					if(retval == 8) plain_text[i] = hex[7];
+					if(retval == 9) plain_text[i] = hex[6];
+					if(retval == 10) plain_text[i] = hex[5];
+					if(retval == 11) plain_text[i] = hex[4];
+					if(retval == 12) plain_text[i] = hex[3];
+					if(retval == 13) plain_text[i] = hex[2];
+					if(retval == 14) plain_text[i] = hex[1];
+					if(retval == 15) plain_text[i] = hex[0];
+				}
 			}
 		}
-		gcry_cipher_encrypt(hd, encBuffer, txtLenght, plain_text, txtLenght);
-		
-		fwrite(encBuffer, 1, 16, fpout);
+		if(mode == GCRY_CIPHER_MODE_CBC){
+			gcry_cipher_encrypt(hd, encBuffer, txtLenght, plain_text, txtLenght);
+			fwrite(encBuffer, 1, txtLenght, fpout);
+		}
+		else{
+			gcry_cipher_encrypt(hd, encBuffer, retval, plain_text, retval);
+			fwrite(encBuffer, 1, retval, fpout);
+		}
 		block_done++;
 	}
 	fclose(fpout);
@@ -221,7 +236,7 @@ static void send_notification(const gchar *title, const gchar *message){
 	NotifyNotification *n;
     notify_init("org.gtk.polcrypt");
     n = notify_notification_new (title, message, NULL);
-    notify_notification_set_timeout(n, 3000); //3 seconds
+    notify_notification_set_timeout(n, 3000);
     if (!notify_notification_show (n, NULL)) {
 		g_error("Failed to send notification.\n");
         g_thread_exit((gpointer)-1);
