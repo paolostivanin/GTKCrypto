@@ -164,8 +164,8 @@ static void activate (GtkApplication *app, gpointer user_data __attribute__ ((un
 
 	g_signal_connect(butEn, "clicked", G_CALLBACK (is_enc), &Widget);
 	g_signal_connect(butDe, "clicked", G_CALLBACK (is_dec), &Widget);
-	g_signal_connect(butEnText, "clicked", G_CALLBACK (prepare_text), NULL);
-	g_signal_connect(butDeText, "clicked", G_CALLBACK (prepare_text), NULL);
+	g_signal_connect(butEnText, "clicked", G_CALLBACK (prepare_text), &Widget);
+	g_signal_connect(butDeText, "clicked", G_CALLBACK (prepare_text), &Widget);
 	g_signal_connect(butHa, "clicked", G_CALLBACK (is_hash), &Widget);
 	g_signal_connect(butQ, "clicked", G_CALLBACK (quit), app);
 
