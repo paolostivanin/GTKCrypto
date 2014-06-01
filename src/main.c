@@ -27,10 +27,14 @@ static void startup (GtkApplication *, gpointer);
 static void quit (GSimpleAction *, GVariant *, gpointer);
 static void about (GSimpleAction *, GVariant *, gpointer);
 static void show_error(struct widget_t *, const gchar *);
+
 void *encrypt_file_gui(struct widget_t *);
 static void *threadEnc(struct widget_t *);
 void *decrypt_file_gui(struct widget_t *);
 static void *threadDec(struct widget_t *);
+gint encrypt_text();
+gint decrypt_text();
+gint prepare_text(struct widget_t *);
 
 void *compute_md5(struct hashWidget_t *);
 void *compute_sha1(struct hashWidget_t *);
@@ -160,8 +164,8 @@ static void activate (GtkApplication *app, gpointer user_data __attribute__ ((un
 
 	g_signal_connect(butEn, "clicked", G_CALLBACK (is_enc), &Widget);
 	g_signal_connect(butDe, "clicked", G_CALLBACK (is_dec), &Widget);
-	g_signal_connect(butEnText, "clicked", G_CALLBACK (quit), app); // CHANGE HERE
-	g_signal_connect(butDeText, "clicked", G_CALLBACK (quit), app); // CHANGE HERE
+	g_signal_connect(butEnText, "clicked", G_CALLBACK (prepare_text), NULL);
+	g_signal_connect(butDeText, "clicked", G_CALLBACK (prepare_text), NULL);
 	g_signal_connect(butHa, "clicked", G_CALLBACK (is_hash), &Widget);
 	g_signal_connect(butQ, "clicked", G_CALLBACK (quit), app);
 
@@ -229,7 +233,7 @@ static GtkWidget *create_popover (GtkWidget *parent, GtkPositionType pos){
 
 	GtkWidget *popover, *box, *label;
 
-	label = gtk_label_new(_("Empy for now"));
+	label = gtk_label_new(_("Empty for now"));
 
 	box = gtk_box_new (GTK_ORIENTATION_VERTICAL, 4);
 	gtk_box_set_homogeneous (GTK_BOX (box), FALSE);
@@ -348,30 +352,29 @@ static void file_dialog(struct widget_t *Widget){
 static void type_pwd_enc(struct widget_t *WidgetEnc){
 	gtk_widget_hide(GTK_WIDGET(WidgetEnc->file_dialog));
 	GtkWidget *content_area, *grid2, *labelPwd, *labelRetypePwd, *infoarea;
+	GtkWidget *header, *box, *image, *popover;
+	GIcon *icon;
 	
-	/* ***** */
-	const gchar *headertext = "Encryption Password";
-	GtkWidget *header = gtk_header_bar_new ();
+	header = gtk_header_bar_new ();
 	gtk_header_bar_set_show_close_button (GTK_HEADER_BAR (header), FALSE);
-	gtk_header_bar_set_title (GTK_HEADER_BAR (header), headertext);
+	gtk_header_bar_set_title (GTK_HEADER_BAR (header), _("Encryption Password"));
 	gtk_header_bar_set_has_subtitle (GTK_HEADER_BAR (header), FALSE);
-	GtkWidget *box = gtk_box_new (GTK_ORIENTATION_HORIZONTAL, 0);
+	box = gtk_box_new (GTK_ORIENTATION_HORIZONTAL, 0);
 	gtk_style_context_add_class (gtk_widget_get_style_context (box), "linked");
-	
-	GIcon *icon = g_themed_icon_new ("emblem-system-symbolic");
-	GtkWidget *image = gtk_image_new_from_gicon (icon, GTK_ICON_SIZE_BUTTON);
+	icon = g_themed_icon_new ("emblem-system-symbolic");
+	image = gtk_image_new_from_gicon (icon, GTK_ICON_SIZE_BUTTON);
 	g_object_unref(icon);
 	
 	Widget.menu = gtk_toggle_button_new();
 	gtk_container_add(GTK_CONTAINER(Widget.menu), image);
 	gtk_widget_set_tooltip_text(GTK_WIDGET(Widget.menu), _("Settings"));
 	
-	GtkWidget *popover = create_popover_dialog(Widget.menu, GTK_POS_TOP);
+	popover = create_popover_dialog(Widget.menu, GTK_POS_TOP);
 	gtk_popover_set_modal (GTK_POPOVER (Widget.popover), TRUE);
 	g_signal_connect (Widget.menu, "toggled", G_CALLBACK (toggle_changed_cb), popover);
 	
 	gtk_header_bar_pack_start(GTK_HEADER_BAR (header), GTK_WIDGET(Widget.menu));
-	/* ***** */
+
 	WidgetEnc->dialog = gtk_dialog_new_with_buttons (NULL, GTK_WINDOW(WidgetEnc->mainwin), GTK_DIALOG_DESTROY_WITH_PARENT, _("_Cancel"), GTK_RESPONSE_CLOSE, _("_OK"), GTK_RESPONSE_OK, NULL);
 	content_area = gtk_dialog_get_content_area (GTK_DIALOG (WidgetEnc->dialog));
 	gtk_window_set_titlebar (GTK_WINDOW (WidgetEnc->dialog), header);
@@ -395,8 +398,8 @@ static void type_pwd_enc(struct widget_t *WidgetEnc){
 	gtk_container_add(GTK_CONTAINER(infoarea), WidgetEnc->infolabel);
 
 	grid2 = gtk_grid_new();
-	gtk_grid_set_column_homogeneous(GTK_GRID(grid2), TRUE); // colonne stessa larghezza
-	gtk_grid_set_row_spacing(GTK_GRID(grid2), 5); // spazio fra le righe
+	gtk_grid_set_column_homogeneous(GTK_GRID(grid2), TRUE);
+	gtk_grid_set_row_spacing(GTK_GRID(grid2), 5);
 
 	GValue marginLeft = G_VALUE_INIT;
 	g_value_init (&marginLeft, G_TYPE_UINT);
