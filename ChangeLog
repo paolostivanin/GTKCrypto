@@ -44,10 +44,10 @@
 27/03/2014 - v2.1.1
 	* REMOVED: multiple encryption (it isn't really useful)
 
-??/06/2014 - v2.2.0
-	* ADDED: possibility to choose between file/text encryption
-	* ADDED: new gui (header bar, popover, new main gui, etc)
-	* ADDED: encryption process now use thread
+3w/06/2014 - v2.2.0
+	* ADDED: possibility to choose between file or text encryption
+	* ADDED: new gui (header bar, popover, new main gui)
+	* ADDED: encryption and decryption processes now use thread
 	* ADDED: possibility to choose between CBC and CTR mode
 
 ??/09-10/2014 - v2.3.0
