@@ -71,9 +71,6 @@ void insert_text(GtkWidget *clickedButton){
 	g_signal_connect_swapped (okbt, "clicked", G_CALLBACK(on_button_clicked), &Widgets);
 }
 
-/* ToDo:
- * - carattere monospace per base64
- */
 static void on_button_clicked (struct _widget *Widgets){
 	GtkTextIter start;
 	GtkTextIter end;
