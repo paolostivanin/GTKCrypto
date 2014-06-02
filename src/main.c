@@ -32,7 +32,7 @@ void *encrypt_file_gui(struct widget_t *);
 static void *threadEnc(struct widget_t *);
 void *decrypt_file_gui(struct widget_t *);
 static void *threadDec(struct widget_t *);
-void insert_text();
+void insert_text(GtkWidget *);
 
 void *compute_md5(struct hashWidget_t *);
 void *compute_sha1(struct hashWidget_t *);
