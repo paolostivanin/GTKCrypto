@@ -111,8 +111,8 @@ static void activate (GtkApplication *app, gpointer user_data __attribute__ ((un
 {
 	GtkWidget *butEn, *butDe, *butEnText, *butDeText, *butHa, *butQ, *grid;
 	GtkWidget *boxFile, *boxText, *frameFile, *frameText;
-	GError *err = NULL;
-	const gchar *path = "/home/polslinux/Documenti/Development/Progetti/4-PolCrypt/src/main.css"; //DA CAMBIAREEEEE
+	//GError *err = NULL;
+	//const gchar *path = "/usr/share/polcrypt/main.css";
 
 	if(glib_check_version(2, 36, 0) != NULL){
 		show_error(NULL, _("The required version of GLib is 2.36.0 or greater."));
@@ -127,9 +127,9 @@ static void activate (GtkApplication *app, gpointer user_data __attribute__ ((un
 	gtk_widget_add_events(GTK_WIDGET(Widget.mainwin), GDK_BUTTON_PRESS_MASK);
 	g_signal_connect(Widget.mainwin, "button-press-event", G_CALLBACK(hide_menu), &Widget);
 
-	GtkCssProvider *cs = gtk_css_provider_new ();
+	/*GtkCssProvider *cs = gtk_css_provider_new ();
 	gtk_css_provider_load_from_path (GTK_CSS_PROVIDER (cs), path, &err);
-	if(err != NULL) g_print(_("Error during CSS parsing\n"));
+	if(err != NULL) g_print(_("Error during CSS parsing\n"));*/
 
 	butEn = gtk_button_new_with_label(_("File"));
 	butDe = gtk_button_new_with_label(_("File"));
@@ -138,13 +138,13 @@ static void activate (GtkApplication *app, gpointer user_data __attribute__ ((un
 	butHa = gtk_button_new_with_label(_("Compute Hash"));
 	butQ = gtk_button_new_with_label(_("Quit"));
 	
-	frameFile = gtk_frame_new("Encrypt");
+	frameFile = gtk_frame_new(_("Encrypt"));
 	boxFile = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 2);
 	gtk_box_pack_start (GTK_BOX (boxFile), butEn, TRUE, TRUE, 2);
 	gtk_box_pack_start (GTK_BOX (boxFile), butEnText, TRUE, TRUE, 2);
 	gtk_container_add(GTK_CONTAINER(frameFile), boxFile);
 	
-	frameText = gtk_frame_new("Decrypt");
+	frameText = gtk_frame_new(_("Decrypt"));
 	boxText = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 2);
 	gtk_box_pack_start (GTK_BOX (boxText), butDe, TRUE, TRUE, 2);
 	gtk_box_pack_start (GTK_BOX (boxText), butDeText, TRUE, TRUE, 2);
@@ -157,8 +157,8 @@ static void activate (GtkApplication *app, gpointer user_data __attribute__ ((un
 	gtk_widget_set_name(GTK_WIDGET(butHa), "butHa");
 	gtk_widget_set_name(GTK_WIDGET(butQ), "butQ");
 
-	gtk_style_context_add_provider_for_screen(gdk_screen_get_default(), GTK_STYLE_PROVIDER(cs), GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
-	g_object_unref(cs);
+	/*gtk_style_context_add_provider_for_screen(gdk_screen_get_default(), GTK_STYLE_PROVIDER(cs), GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
+	g_object_unref(cs);*/
 
 	g_signal_connect(butEn, "clicked", G_CALLBACK (is_enc), &Widget);
 	g_signal_connect(butDe, "clicked", G_CALLBACK (is_dec), &Widget);
@@ -335,8 +335,6 @@ static void file_dialog(struct widget_t *Widget){
 		}
 		else if(Widget->mode == 2){
 			type_pwd_dec(Widget);
-			gpointer ret = g_thread_join(Threads.t);
-			if(ret == (gpointer)-15) type_pwd_dec(Widget);
 			g_free (Widget->filename);
 		}
 		else if(Widget->mode == 3){
@@ -431,7 +429,7 @@ static void type_pwd_enc(struct widget_t *WidgetEnc){
 static void type_pwd_dec(struct widget_t *WidgetDec){
 	gtk_widget_hide(GTK_WIDGET(WidgetDec->file_dialog));
 	GtkWidget *content_area, *grid2, *label, *infoarea;
-	WidgetDec->dialog = gtk_dialog_new_with_buttons (_("Decryption Password"), GTK_WINDOW(WidgetDec->mainwin), GTK_DIALOG_DESTROY_WITH_PARENT, _("_Close"), GTK_RESPONSE_CLOSE, _("_OK"), GTK_RESPONSE_OK, NULL);
+	WidgetDec->dialog = gtk_dialog_new_with_buttons (_("Decryption Password"), GTK_WINDOW(WidgetDec->mainwin), GTK_DIALOG_DESTROY_WITH_PARENT, _("_Cancel"), GTK_RESPONSE_CANCEL, _("_OK"), GTK_RESPONSE_OK, NULL);
 	content_area = gtk_dialog_get_content_area (GTK_DIALOG (WidgetDec->dialog));
 
 	label = gtk_label_new(_("Type password"));
@@ -475,7 +473,7 @@ static void type_pwd_dec(struct widget_t *WidgetDec){
 			threadDec(WidgetDec);
 			gtk_widget_destroy(WidgetDec->dialog);
 			break;
-		case GTK_RESPONSE_CLOSE:
+		case GTK_RESPONSE_CANCEL:
 			gtk_widget_destroy (WidgetDec->dialog);
 			break;
 	}

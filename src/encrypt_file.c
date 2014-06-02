@@ -94,9 +94,9 @@ void *encrypt_file_gui(struct widget_t *WidgetMain){
   	fsize = fileStat.st_size;
   	close(fd);
 
-	fsize_float = (float)fsize;
+	fsize_float = (gfloat)fsize;
 	result_of_division_by_16 = fsize_float / 16;
-	number_of_block = (int)result_of_division_by_16;
+	number_of_block = (gint)result_of_division_by_16;
 	if(result_of_division_by_16 > number_of_block) number_of_block += 1;
 	
 	FILE *fp = fopen(filename, "r");
@@ -161,7 +161,6 @@ void *encrypt_file_gui(struct widget_t *WidgetMain){
 	while(number_of_block > block_done){
 		memset(plain_text, 0, sizeof(plain_text));
 		retval = fread(plain_text, 1, 16, fp);
-		if(!retval) break;
 		if(mode == GCRY_CIPHER_MODE_CBC){
 			if(retval < 16){
 				for(i=retval; i<16; i++){
@@ -182,8 +181,6 @@ void *encrypt_file_gui(struct widget_t *WidgetMain){
 					if(retval == 15) plain_text[i] = hex[0];
 				}
 			}
-		}
-		if(mode == GCRY_CIPHER_MODE_CBC){
 			gcry_cipher_encrypt(hd, encBuffer, txtLenght, plain_text, txtLenght);
 			fwrite(encBuffer, 1, txtLenght, fpout);
 		}

@@ -72,8 +72,11 @@ void insert_text(GtkWidget *clickedButton){
 	gtk_container_add (GTK_CONTAINER (content_area), scrolledwin);
 	gtk_container_add (GTK_CONTAINER (content_area), box);
 	
-	okbt = gtk_dialog_add_button(GTK_DIALOG(Widgets.dialog), "OK", GTK_RESPONSE_OK);
-	clbt = gtk_dialog_add_button(GTK_DIALOG(Widgets.dialog), _("Cancel"), GTK_RESPONSE_OK);
+	clbt = gtk_dialog_add_button(GTK_DIALOG(Widgets.dialog), _("Cancel"), GTK_RESPONSE_CANCEL);
+	okbt = gtk_dialog_add_button(GTK_DIALOG(Widgets.dialog), _("OK"), GTK_RESPONSE_OK);
+	
+	gtk_widget_set_name(GTK_WIDGET(okbt), "okbt");
+	gtk_widget_set_name(GTK_WIDGET(clbt), "clbt");
 
 	Widgets.buffer = gtk_text_view_get_buffer (GTK_TEXT_VIEW (Widgets.text_view));
 
@@ -211,7 +214,7 @@ static void enc_dec_text(struct _widget *Widgets){
 
 gint check_pwd(struct _widget *pwdWidgets){
 	if(g_strcmp0(gtk_entry_get_text(GTK_ENTRY(pwdWidgets->enPWD)), gtk_entry_get_text(GTK_ENTRY(pwdWidgets->cmpEnPWD))) != 0){
-		show_error(pwdWidgets, "Password are different, try again!");
+		show_error(pwdWidgets, _("Password are different, try again!"));
 		return -1;
 	}
 	return 0;
