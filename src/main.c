@@ -32,9 +32,7 @@ void *encrypt_file_gui(struct widget_t *);
 static void *threadEnc(struct widget_t *);
 void *decrypt_file_gui(struct widget_t *);
 static void *threadDec(struct widget_t *);
-gint encrypt_text();
-gint decrypt_text();
-gint prepare_text(struct widget_t *);
+void insert_text();
 
 void *compute_md5(struct hashWidget_t *);
 void *compute_sha1(struct hashWidget_t *);
@@ -164,8 +162,8 @@ static void activate (GtkApplication *app, gpointer user_data __attribute__ ((un
 
 	g_signal_connect(butEn, "clicked", G_CALLBACK (is_enc), &Widget);
 	g_signal_connect(butDe, "clicked", G_CALLBACK (is_dec), &Widget);
-	g_signal_connect(butEnText, "clicked", G_CALLBACK (prepare_text), &Widget);
-	g_signal_connect(butDeText, "clicked", G_CALLBACK (prepare_text), &Widget);
+	g_signal_connect(butEnText, "clicked", G_CALLBACK (insert_text), NULL);
+	g_signal_connect(butDeText, "clicked", G_CALLBACK (insert_text), NULL);
 	g_signal_connect(butHa, "clicked", G_CALLBACK (is_hash), &Widget);
 	g_signal_connect(butQ, "clicked", G_CALLBACK (quit), app);
 

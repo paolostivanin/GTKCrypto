@@ -8,9 +8,6 @@
 #include <libintl.h>
 #include "polcrypt.h"
 
-#define MAX_BUF 1024
-
-
 struct _widget{
 	GtkTextBuffer *buffer;
 	GtkTextBuffer *buffer_2;
@@ -23,7 +20,13 @@ struct _widget Widgets;
 
 static void encrypt_text(struct _widget *);
 
-// remember to set a MAX BUFFER (eg 5 MiB)
+/* 1) inserire una SCROLLED_WINDOW nel dialog
+ * 2) fare in modo che il dialog venga chiuso quando premo cancel dato che devo scriverci dentro encoded text
+ */
+
+static void close_dialog(GtkWidget *dialog){
+	gtk_widget_destroy(dialog);
+}
 
 static void on_button_clicked (struct _widget *Widgets){
 	GtkTextIter start;
@@ -38,35 +41,48 @@ static void on_button_clicked (struct _widget *Widgets){
 	encrypt_text(Widgets);
 	gchar *encoded_text = g_base64_encode(Widgets->binaryEncText, Widgets->totalLen);
 	
-	g_print("%s\n", encoded_text);
+	gtk_text_buffer_set_text (Widgets->buffer, encoded_text, -1);
 
 	g_free (Widgets->text);
 	g_free (Widgets->binaryEncText);
 	g_free (encoded_text);
 }
 
-gint prepare_text(struct widget_t *Widget){
+/* **********************************
+ * 1) aggiungere scrolled window
+ * 2) fare in modo che venga passato dal main il parametro 1 per dire ENC o 2 per dire DEC. Cambiare qui di conseguenza
+ * **********************************
+ */
+void insert_text(){
 	GtkWidget *dialog;
-	GtkWidget *box;
+	GtkWidget *box, *box2;
 	GtkWidget *text_view;
 	GtkWidget *content_area;
+	GtkWidget *okbt, *clbt;
   
-	dialog = gtk_dialog_new_with_buttons ("Text", NULL,
-										GTK_DIALOG_MODAL,
-										"_OK", GTK_RESPONSE_OK, _("_Cancel"), GTK_RESPONSE_CANCEL,
-										NULL);
+	dialog = gtk_dialog_new();
+	gtk_window_set_title(GTK_WINDOW(dialog), _("Insert Text"));
+	gtk_window_set_position(GTK_WINDOW(dialog), GTK_WIN_POS_CENTER);
 	content_area = gtk_dialog_get_content_area(GTK_DIALOG(dialog));
 
 	gtk_widget_set_size_request (dialog, 600, 400);
+	
+	okbt = gtk_button_new_with_label("OK");
+	clbt = gtk_button_new_with_label(_("Cancel"));
 
 	box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 0);
+	box2 = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
 	
 	text_view = gtk_text_view_new ();
 	
 	gtk_box_pack_start(GTK_BOX(box), text_view, TRUE, TRUE, 0);
+	gtk_box_pack_end(GTK_BOX(box), box2, FALSE, TRUE, 0);
+	
+	gtk_box_pack_start(GTK_BOX(box2), okbt, TRUE, TRUE, 0);
+	gtk_box_pack_start(GTK_BOX(box2), clbt, TRUE, TRUE, 0);
 	
 	g_object_set (text_view, "expand", TRUE, NULL);
-	
+
 	gtk_container_add (GTK_CONTAINER (content_area), box);
 
 	/* Obtaining the buffer associated with the widget. */
@@ -77,18 +93,8 @@ gint prepare_text(struct widget_t *Widget){
     
     gtk_widget_show_all(dialog);
     
-	gint result = gtk_dialog_run(GTK_DIALOG(dialog));
-	switch(result){
-		case GTK_RESPONSE_CANCEL:
-			g_signal_connect_swapped (dialog, "response", G_CALLBACK(gtk_widget_destroy), NULL);
-			break;
-		case GTK_RESPONSE_OK:
-			on_button_clicked(&Widgets);
-			break;
-	}
-	gtk_widget_destroy(dialog);
-
-	return 0;
+	g_signal_connect_swapped (clbt, "clicked", G_CALLBACK(close_dialog), dialog);
+	g_signal_connect_swapped (okbt, "clicked", G_CALLBACK(on_button_clicked), &Widgets);
 }
 
 static void encrypt_text(struct _widget *Widgets){
