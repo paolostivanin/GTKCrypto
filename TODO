@@ -2,10 +2,6 @@
 
 --> IMPORTANT **** quit button can be clicked ONLY if all threads have finished (hash+enc+dec) **** IMPORTANT <--
 
-* text enc e dec
-
-* review wrong password input (enc+dec)
-
 * more usage of notifications
-
 * dec not using thread
+* css styling

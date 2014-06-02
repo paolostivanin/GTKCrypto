@@ -6,9 +6,15 @@ GUI_SOURCES = src/main.c src/check_pkcs7.c src/encrypt_file.c src/decrypt_file.c
 
 all: polcrypt
 install:
+	mkdir -v /usr/share/polcrypt
 	test -s polcrypt && cp -v polcrypt /usr/bin/ || echo "--> GUI not built, please type make before make install"
-	test -s po/it.mo && cp -v po/it.mo /usr/share/locale/it/LC_MESSAGES/polcrypt.mo || echo "--> Italian language not copied"
+	test -s po/it.mo && cp -v po/it.mo /usr/share/locale/it/LC_MESSAGES/polcrypt.mo || echo "--> Italian language not installed"
+	test -s src/main.css && cp -v src/main.css /usr/share/polcrypt/
+	test -s LICENSE && cp -v LICENSE /usr/share/polcrypt/
 	cp -v polcrypt.png /usr/share/icons/hicolor/128x128/apps/
+
+uninstall:
+	rm -r /usr/share/polcrypt
 
 polcrypt: $(GUI_SOURCES)
 	$(CC) $(CFLAGS) $(GUI_SOURCES) $(GUI_HASH_SOURCES) -o polcrypt $(LDFLAGS) `pkg-config --cflags --libs gtk+-3.0`

@@ -112,7 +112,7 @@ static void activate (GtkApplication *app, gpointer user_data __attribute__ ((un
 	GtkWidget *butEn, *butDe, *butEnText, *butDeText, *butHa, *butQ, *grid;
 	GtkWidget *boxFile, *boxText, *frameFile, *frameText;
 	GError *err = NULL;
-	const gchar *path = "/home/polslinux/Documenti/Development/Progetti/4-PolCrypt/src/style.css"; //DA CAMBIAREEEEE
+	const gchar *path = "/home/polslinux/Documenti/Development/Progetti/4-PolCrypt/src/main.css"; //DA CAMBIAREEEEE
 
 	if(glib_check_version(2, 36, 0) != NULL){
 		show_error(NULL, _("The required version of GLib is 2.36.0 or greater."));
@@ -157,7 +157,7 @@ static void activate (GtkApplication *app, gpointer user_data __attribute__ ((un
 	gtk_widget_set_name(GTK_WIDGET(butHa), "butHa");
 	gtk_widget_set_name(GTK_WIDGET(butQ), "butQ");
 
-	//gtk_style_context_add_provider_for_screen(gdk_screen_get_default(), GTK_STYLE_PROVIDER(cs), GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
+	gtk_style_context_add_provider_for_screen(gdk_screen_get_default(), GTK_STYLE_PROVIDER(cs), GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
 	g_object_unref(cs);
 
 	g_signal_connect(butEn, "clicked", G_CALLBACK (is_enc), &Widget);
