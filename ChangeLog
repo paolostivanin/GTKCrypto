@@ -49,6 +49,7 @@
 	* ADDED: new gui (header bar, popover, new main gui)
 	* ADDED: encryption and decryption processes now use thread
 	* ADDED: possibility to choose between CBC and CTR mode
+	* ToDo: add css styling, add more hash (?)
 
 ??/09-10/2014 - v2.3.0
 	* ADDED: multiple file selection for en/de/cryption

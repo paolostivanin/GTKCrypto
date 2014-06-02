@@ -28,9 +28,6 @@ gint check_pwd(struct _widget *);
 static void show_error(struct _widget *, const gchar *);
 static void close_dialog(GtkWidget *);
 
-/* ToDo:
- * - aggiungere input pwd
- */
 void insert_text(GtkWidget *clickedButton){
 	GtkWidget *scrolledwin;
 	GtkWidget *box;
@@ -138,9 +135,6 @@ static void on_button_clicked (struct _widget *Widgets){
 	g_free (Widgets->text);
 }
 
-/* ToDo:
- * - rimuovere pwd dalla funzione, leggerla da input fornito dal main
- */
 static void enc_dec_text(struct _widget *Widgets){
 	gint algo = -1, mode = -1, counterForGoto = 0;
 	guchar *crypto_key = NULL, *tmpEncBuf = NULL;
