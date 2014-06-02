@@ -14,15 +14,9 @@ struct _widget{
 	gchar *text;
 	guchar *binaryEncText;
 	gsize totalLen;
-};
-
-struct _widget Widgets;
+} Widgets;
 
 static void encrypt_text(struct _widget *);
-
-/* 1) inserire una SCROLLED_WINDOW nel dialog
- * 2) fare in modo che il dialog venga chiuso quando premo cancel dato che devo scriverci dentro encoded text
- */
 
 static void close_dialog(GtkWidget *dialog){
 	gtk_widget_destroy(dialog);
@@ -48,14 +42,12 @@ static void on_button_clicked (struct _widget *Widgets){
 	g_free (encoded_text);
 }
 
-/* **********************************
- * 1) aggiungere scrolled window
- * 2) fare in modo che venga passato dal main il parametro 1 per dire ENC o 2 per dire DEC. Cambiare qui di conseguenza
- * **********************************
+/* 1) fare in modo che venga passato dal main il parametro 1 per dire ENC o 2 per dire DEC. Cambiare qui di conseguenza
  */
 void insert_text(){
 	GtkWidget *dialog;
-	GtkWidget *box, *box2;
+	GtkWidget *scrolledwin;
+	GtkWidget *box;
 	GtkWidget *text_view;
 	GtkWidget *content_area;
 	GtkWidget *okbt, *clbt;
@@ -64,26 +56,24 @@ void insert_text(){
 	gtk_window_set_title(GTK_WINDOW(dialog), _("Insert Text"));
 	gtk_window_set_position(GTK_WINDOW(dialog), GTK_WIN_POS_CENTER);
 	content_area = gtk_dialog_get_content_area(GTK_DIALOG(dialog));
+	
+	scrolledwin = gtk_scrolled_window_new(NULL, NULL);
 
 	gtk_widget_set_size_request (dialog, 600, 400);
-	
-	okbt = gtk_button_new_with_label("OK");
-	clbt = gtk_button_new_with_label(_("Cancel"));
 
 	box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 0);
-	box2 = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
-	
+		
 	text_view = gtk_text_view_new ();
 	
 	gtk_box_pack_start(GTK_BOX(box), text_view, TRUE, TRUE, 0);
-	gtk_box_pack_end(GTK_BOX(box), box2, FALSE, TRUE, 0);
-	
-	gtk_box_pack_start(GTK_BOX(box2), okbt, TRUE, TRUE, 0);
-	gtk_box_pack_start(GTK_BOX(box2), clbt, TRUE, TRUE, 0);
 	
 	g_object_set (text_view, "expand", TRUE, NULL);
 
-	gtk_container_add (GTK_CONTAINER (content_area), box);
+	gtk_container_add (GTK_CONTAINER (scrolledwin), box);
+	gtk_container_add (GTK_CONTAINER (content_area), scrolledwin);
+	
+	okbt = gtk_dialog_add_button(GTK_DIALOG(dialog), "OK", GTK_RESPONSE_OK);
+	clbt = gtk_dialog_add_button(GTK_DIALOG(dialog), _("Cancel"), GTK_RESPONSE_OK);
 
 	/* Obtaining the buffer associated with the widget. */
 	Widgets.buffer = gtk_text_view_get_buffer (GTK_TEXT_VIEW (text_view));
@@ -97,6 +87,11 @@ void insert_text(){
 	g_signal_connect_swapped (okbt, "clicked", G_CALLBACK(on_button_clicked), &Widgets);
 }
 
+/*
+ * 1) togliere la pwd dalla funzione e leggere da dialog creato prima di entrare qui (o aggiungere campo pwd direttamente nel dialog)
+ * 2) cambiare nome funzione 
+ * 3) renderla universale (ovvero fare in modo che enc/dec senza scriverne due)
+ */
 static void encrypt_text(struct _widget *Widgets){
 	gint algo = -1, mode = -1, counterForGoto = 0;
 	guchar *derived_key = NULL, *crypto_key = NULL, *mac_key = NULL, *tmpEncBuf = NULL;
