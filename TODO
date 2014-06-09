@@ -3,3 +3,5 @@
 --> IMPORTANT: quit button can be clicked ONLY if all threads have finished (hash+enc+dec)
 
 --> more usage of notifications
+
+--> togliere struttura definita globalmente e usare swapped nel connect
