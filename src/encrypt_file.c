@@ -25,7 +25,7 @@ void *encrypt_file_gui(struct widget_t *WidgetMain){
 	guchar *derived_key = NULL, *crypto_key = NULL, *mac_key = NULL, *encBuffer = NULL;
 	gchar *inputKey = NULL;
 	gfloat result_of_division_by_16, fsize_float;
-	off_t fsize = 0;
+	off_t fsize = 0, doneSize = 0;
 	size_t blkLength, keyLength, txtLenght = 16, retval = 0, i;
 	
 	gchar *filename = g_strdup(WidgetMain->filename);
@@ -152,16 +152,20 @@ void *encrypt_file_gui(struct widget_t *WidgetMain){
 	memcpy(mac_key, derived_key + 32, 32);
 
 	gcry_cipher_setkey(hd, crypto_key, keyLength);
-	gcry_cipher_setiv(hd, Metadata.iv, blkLength);
+	if(mode == GCRY_CIPHER_MODE_CBC)
+		gcry_cipher_setiv(hd, Metadata.iv, blkLength);
+	else
+		gcry_cipher_setctr(hd, Metadata.iv, blkLength);
+	
 
 	fseek(fp, 0, SEEK_SET);
 
 	fwrite(&Metadata, sizeof(struct metadata_t), 1, fpout);
 
-	while(number_of_block > block_done){
-		memset(plain_text, 0, sizeof(plain_text));
-		retval = fread(plain_text, 1, 16, fp);
-		if(mode == GCRY_CIPHER_MODE_CBC){
+	if(mode == GCRY_CIPHER_MODE_CBC){
+		while(number_of_block > block_done){
+			memset(plain_text, 0, sizeof(plain_text));
+			retval = fread(plain_text, 1, 16, fp);
 			if(retval < 16){
 				for(i=retval; i<16; i++){
 					if(retval == 1) plain_text[i] = hex[14];
@@ -184,11 +188,16 @@ void *encrypt_file_gui(struct widget_t *WidgetMain){
 			gcry_cipher_encrypt(hd, encBuffer, txtLenght, plain_text, txtLenght);
 			fwrite(encBuffer, 1, txtLenght, fpout);
 		}
-		else{
+		block_done++;
+	}
+	else{
+		while(fsize > doneSize){
+			memset(plain_text, 0, sizeof(plain_text));
+			retval = fread(plain_text, 1, 16, fp);
 			gcry_cipher_encrypt(hd, encBuffer, retval, plain_text, retval);
 			fwrite(encBuffer, 1, retval, fpout);
+			doneSize += retval;
 		}
-		block_done++;
 	}
 	fclose(fpout);
 	fclose(fp);

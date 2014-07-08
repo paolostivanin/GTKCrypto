@@ -2,8 +2,8 @@
 #define POLCRYPT_H_INCLUDED
 
 #define BUF_FILE 16777216 /* 16 MiB memory buffer (hash) */
-#define BUFSIZE 1048576  /* 1 MiB memory buffer (delete_input_file) */
-#define GCRYPT_MIN_VER "1.6.0"
+#define BUFSIZE 2097152  /* 2 MiB memory buffer (delete_input_file) */
+#define GCRYPT_MIN_VER "1.5.0"
 #define HEADERBAR_BUF 21 /* buffer for the title of the headerbar */
 #define VERSION "2.2.0-beta"
 #define LOCALE_DIR "/usr/share/locale" // or your specification

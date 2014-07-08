@@ -166,7 +166,10 @@ void *decrypt_file_gui(struct widget_t *WidgetMain){
 	memcpy(mac_key, derived_key + 32, 32);
 		
 	gcry_cipher_setkey(hd, crypto_key, keyLength);
-	gcry_cipher_setiv(hd, Metadata.iv, blkLength);
+	if(mode == GCRY_CIPHER_MODE_CBC)
+		gcry_cipher_setiv(hd, Metadata.iv, blkLength);
+	else
+		gcry_cipher_setctr(hd, Metadata.iv, blkLength);
 
 	if((current_file_offset = ftell(fp)) == -1){
 		g_print("decrypt_file: %s\n", strerror(errno));
@@ -248,11 +251,18 @@ void *decrypt_file_gui(struct widget_t *WidgetMain){
 	else{
 		while(realSize > doneSize){
 			memset(cipher_text, 0, sizeof(cipher_text));
-			if(realSize >= 16) retval = fread(cipher_text, 1, 16, fp);
-			else retval = fread(cipher_text, 1, realSize, fp);
-			gcry_cipher_decrypt(hd, decBuffer, retval, cipher_text, retval);
-			fwrite(decBuffer, 1, retval, fpout);
-			doneSize += retval;
+			if(realSize-doneSize < 16){
+				retval = fread(cipher_text, 1, realSize-doneSize, fp);
+				gcry_cipher_decrypt(hd, decBuffer, retval, cipher_text, retval);
+				fwrite(decBuffer, 1, retval, fpout);
+				break;
+			}
+			else{
+				retval = fread(cipher_text, 1, 16, fp);
+				gcry_cipher_decrypt(hd, decBuffer, retval, cipher_text, retval);
+				fwrite(decBuffer, 1, retval, fpout);
+				doneSize += retval;
+			}
 		}
 	}
 	

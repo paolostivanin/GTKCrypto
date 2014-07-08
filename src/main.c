@@ -366,7 +366,7 @@ static void type_pwd_enc(struct widget_t *WidgetEnc){
 	gtk_widget_set_tooltip_text(GTK_WIDGET(Widget.menu), _("Settings"));
 	
 	popover = create_popover_dialog(Widget.menu, GTK_POS_TOP);
-	gtk_popover_set_modal (GTK_POPOVER (Widget.popover), TRUE);
+	gtk_popover_set_modal (GTK_POPOVER (popover), TRUE);
 	g_signal_connect (Widget.menu, "toggled", G_CALLBACK (toggle_changed_cb), popover);
 	
 	gtk_header_bar_pack_start(GTK_HEADER_BAR (header), GTK_WIDGET(Widget.menu));
