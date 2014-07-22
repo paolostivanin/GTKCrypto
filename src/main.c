@@ -7,12 +7,11 @@
 #include <libintl.h>
 #include "polcrypt.h"
 
-struct widget_t Widget;
 
-GtkWidget *do_header_and_mainwin(GtkApplication *);
-static GtkWidget *create_popover(GtkWidget *, GtkPositionType);
-static GtkWidget *create_popover_dialog(GtkWidget *, GtkPositionType);
+GtkWidget *do_header_and_mainwin(GtkApplication *, struct widget_t *);
+static GtkWidget *create_popover_dialog(GtkWidget *, GtkPositionType, struct widget_t *);
 static void toggle_changed_cb (GtkToggleButton *, GtkWidget *);
+static void toggle_changed_cb2(GtkToggleButton *, gpointer data);
 static void hide_menu (struct widget_t *);
 static void file_dialog(struct widget_t *);
 static void is_enc(GtkWidget *, struct widget_t *);
@@ -60,195 +59,17 @@ struct thread_t{
 	GThread *tenc;
 }Threads;
 
-GCRY_THREAD_OPTION_PTHREAD_IMPL;
-
-gint main(int argc, char **argv){
-	gcry_control(GCRYCTL_SET_THREAD_CBS, &gcry_threads_pthread);
-	if(!gcry_check_version(GCRYPT_MIN_VER)){
-		fputs("libgcrypt min version required: 1.6.0\n", stderr);
-		return -1;
-	}
-	gcry_control(GCRYCTL_INIT_SECMEM, 16384, 0);
-	gcry_control(GCRYCTL_INITIALIZATION_FINISHED, 0);
-
-	setlocale(LC_ALL, "");
-	bindtextdomain(PACKAGE, LOCALE_DIR);
-	textdomain(PACKAGE);
-
-	GtkApplication *app;
-	gint status;
-	GError *err = NULL;
-	GdkPixbuf *logo = gdk_pixbuf_new_from_file(my_icon, &err);
-	gtk_window_set_default_icon(logo);
-	
-	app = gtk_application_new ("org.gtk.polcrypt",G_APPLICATION_FLAGS_NONE);
-	g_signal_connect (app, "startup", G_CALLBACK (startup), NULL);
-	g_signal_connect (app, "activate", G_CALLBACK (activate), NULL);
-	status = g_application_run (G_APPLICATION (app), argc, argv);
-	g_object_unref (app);
-	return status;
-}
-
-static void startup (GtkApplication *application, gpointer user_data __attribute__ ((unused)))
-{
-	static const GActionEntry actions[] = {
-		{ "about", about },
-		{ "quit", quit }
-	};
-
-	GMenu *menu;
-
-	g_action_map_add_action_entries (G_ACTION_MAP (application), actions, G_N_ELEMENTS (actions), application);
-
-	menu = g_menu_new ();
-	g_menu_append (menu, _("About"), "app.about");
-	g_menu_append (menu, _("Quit"),  "app.quit");
-	gtk_application_set_app_menu (application, G_MENU_MODEL (menu));
-	g_object_unref (menu);
-}
-
-static void activate (GtkApplication *app, gpointer user_data __attribute__ ((unused)))
-{
-	GtkWidget *butEn, *butDe, *butEnText, *butDeText, *butHa, *butQ, *grid;
-	GtkWidget *boxFile, *boxText, *frameFile, *frameText;
-	//GError *err = NULL;
-	//const gchar *path = "/usr/share/polcrypt/main.css";
-
-	if(glib_check_version(2, 36, 0) != NULL){
-		show_error(NULL, _("The required version of GLib is 2.36.0 or greater."));
-		return;
-	}
-	if(gtk_check_version(3, 12, 0) != NULL){
-		show_error(NULL, _("The required version of GTK+ is 3.12.0 or greater."));
-		return;
-	}
-
-	Widget.mainwin = do_header_and_mainwin(app);
-	gtk_widget_add_events(GTK_WIDGET(Widget.mainwin), GDK_BUTTON_PRESS_MASK);
-	g_signal_connect(Widget.mainwin, "button-press-event", G_CALLBACK(hide_menu), &Widget);
-
-	/*GtkCssProvider *cs = gtk_css_provider_new ();
-	gtk_css_provider_load_from_path (GTK_CSS_PROVIDER (cs), path, &err);
-	if(err != NULL) g_print(_("Error during CSS parsing\n"));*/
-
-	butEn = gtk_button_new_with_label(_("File"));
-	butDe = gtk_button_new_with_label(_("File"));
-	butEnText = gtk_button_new_with_label(_("Text"));
-	butDeText = gtk_button_new_with_label(_("Text"));
-	butHa = gtk_button_new_with_label(_("Compute Hash"));
-	butQ = gtk_button_new_with_label(_("Quit"));
-	
-	frameFile = gtk_frame_new(_("Encrypt"));
-	boxFile = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 2);
-	gtk_box_pack_start (GTK_BOX (boxFile), butEn, TRUE, TRUE, 2);
-	gtk_box_pack_start (GTK_BOX (boxFile), butEnText, TRUE, TRUE, 2);
-	gtk_container_add(GTK_CONTAINER(frameFile), boxFile);
-	
-	frameText = gtk_frame_new(_("Decrypt"));
-	boxText = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 2);
-	gtk_box_pack_start (GTK_BOX (boxText), butDe, TRUE, TRUE, 2);
-	gtk_box_pack_start (GTK_BOX (boxText), butDeText, TRUE, TRUE, 2);
-	gtk_container_add(GTK_CONTAINER(frameText), boxText);
-
-	gtk_widget_set_name(GTK_WIDGET(butEn), "butEn");
-	gtk_widget_set_name(GTK_WIDGET(butDe), "butDe");
-	gtk_widget_set_name(GTK_WIDGET(butEnText), "butEnText");
-	gtk_widget_set_name(GTK_WIDGET(butDeText), "butDeText");
-	gtk_widget_set_name(GTK_WIDGET(butHa), "butHa");
-	gtk_widget_set_name(GTK_WIDGET(butQ), "butQ");
-
-	/*gtk_style_context_add_provider_for_screen(gdk_screen_get_default(), GTK_STYLE_PROVIDER(cs), GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
-	g_object_unref(cs);*/
-
+static void activate (GtkApplication *app, gpointer user_data __attribute__ ((unused))){
 	g_signal_connect(butEn, "clicked", G_CALLBACK (is_enc), &Widget);
 	g_signal_connect(butDe, "clicked", G_CALLBACK (is_dec), &Widget);
 	g_signal_connect(butEnText, "clicked", G_CALLBACK (insert_text), NULL);
 	g_signal_connect(butDeText, "clicked", G_CALLBACK (insert_text), NULL);
 	g_signal_connect(butHa, "clicked", G_CALLBACK (is_hash), &Widget);
 	g_signal_connect(butQ, "clicked", G_CALLBACK (quit), app);
-
-	grid = gtk_grid_new();
-	gtk_container_add(GTK_CONTAINER(Widget.mainwin), grid);
-	gtk_grid_set_row_homogeneous(GTK_GRID(grid), TRUE);
-	gtk_grid_set_column_homogeneous(GTK_GRID(grid), TRUE);
-	gtk_grid_set_row_spacing(GTK_GRID(grid), 5);
-	gtk_grid_set_column_spacing(GTK_GRID(grid), 5);
-
-	gtk_grid_attach(GTK_GRID(grid), frameFile, 0, 0, 3, 2);
-	gtk_grid_attach(GTK_GRID(grid), frameText, 0, 2, 3, 2);
-	gtk_grid_attach(GTK_GRID(grid), butHa, 0, 5, 3, 1);
-	gtk_grid_attach(GTK_GRID(grid), butQ, 0, 6, 3, 1);
-	
-	gtk_widget_show_all(Widget.mainwin);
 }
 
-GtkWidget *do_header_and_mainwin(GtkApplication *app){
-	static GtkWidget *window = NULL;
-	GtkWidget *header;
-	GtkWidget *box;
-	GtkWidget *image;
-	GIcon *icon;
-	GError *err = NULL;
 
-	window = gtk_application_window_new(app);
-	gtk_window_set_application (GTK_WINDOW (window), GTK_APPLICATION (app));
-	gtk_window_set_position(GTK_WINDOW(window), GTK_WIN_POS_CENTER);
-	gtk_window_set_resizable(GTK_WINDOW(window), FALSE);
-	gtk_window_set_icon_from_file(GTK_WINDOW(window), my_icon, &err);
-	gtk_container_set_border_width(GTK_CONTAINER(window), 10);
-
-	gchar headertext[HEADERBAR_BUF];
-	g_snprintf(headertext, HEADERBAR_BUF-1, _("PolCrypt %s"), VERSION);
-	headertext[HEADERBAR_BUF-1] = '\0';
-
-	header = gtk_header_bar_new ();
-	gtk_header_bar_set_show_close_button (GTK_HEADER_BAR (header), TRUE);
-	gtk_header_bar_set_title (GTK_HEADER_BAR (header), headertext);
-	gtk_header_bar_set_has_subtitle (GTK_HEADER_BAR (header), FALSE);
-
-	box = gtk_box_new (GTK_ORIENTATION_HORIZONTAL, 0);
-	gtk_style_context_add_class (gtk_widget_get_style_context (box), "linked");
-
-	icon = g_themed_icon_new ("emblem-system-symbolic");
-	image = gtk_image_new_from_gicon (icon, GTK_ICON_SIZE_BUTTON);
-	g_object_unref(icon);
-	Widget.menu = gtk_toggle_button_new();
-	gtk_container_add(GTK_CONTAINER(Widget.menu), image);
-	gtk_widget_set_tooltip_text(GTK_WIDGET(Widget.menu), _("Settings"));
-	
-	Widget.popover = create_popover(Widget.menu, GTK_POS_TOP);
-	gtk_popover_set_modal (GTK_POPOVER (Widget.popover), TRUE);
-	g_signal_connect (Widget.menu, "toggled", G_CALLBACK (toggle_changed_cb), Widget.popover);
-	
-	gtk_header_bar_pack_start(GTK_HEADER_BAR (header), GTK_WIDGET(Widget.menu));
-
-	gtk_window_set_titlebar (GTK_WINDOW (window), header);
-	
-	return window;
-}
-
-static GtkWidget *create_popover (GtkWidget *parent, GtkPositionType pos){
-
-	GtkWidget *popover, *box, *label;
-
-	label = gtk_label_new(_("Empty for now"));
-
-	box = gtk_box_new (GTK_ORIENTATION_VERTICAL, 4);
-	gtk_box_set_homogeneous (GTK_BOX (box), FALSE);
-
-	popover = gtk_popover_new(parent);
-	gtk_popover_set_position (GTK_POPOVER (popover), pos);
-
-	gtk_box_pack_start (GTK_BOX (box), label, TRUE, TRUE, 0);
-
-	gtk_container_add (GTK_CONTAINER (popover), box);
-	gtk_container_set_border_width (GTK_CONTAINER (popover), 4);
-	gtk_widget_show_all (box);
-	
-	return popover; 
-}
-
-static GtkWidget *create_popover_dialog (GtkWidget *parent, GtkPositionType pos){
+static GtkWidget *create_popover_dialog (GtkWidget *parent, GtkPositionType pos, struct widget_t *Widget){
 
 	GtkWidget *popover, *box, *box2, *box3, *label, *labelMode, *hline1, *hline2;
 
@@ -265,34 +86,34 @@ static GtkWidget *create_popover_dialog (GtkWidget *parent, GtkPositionType pos)
 	popover = gtk_popover_new(parent);
 	gtk_popover_set_position (GTK_POPOVER (popover), pos);
 
-	Widget.r0_1 = gtk_radio_button_new_with_label_from_widget(NULL, "AES-256");
-	Widget.r0_2 = gtk_radio_button_new_with_label_from_widget(GTK_RADIO_BUTTON(Widget.r0_1), "Serpent");
-	Widget.r0_3 = gtk_radio_button_new_with_label_from_widget(GTK_RADIO_BUTTON(Widget.r0_1), "Twofish");
-	Widget.r0_4 = gtk_radio_button_new_with_label_from_widget(GTK_RADIO_BUTTON(Widget.r0_1), "Camellia-256");
+	Widget->r0_1 = gtk_radio_button_new_with_label_from_widget(NULL, "AES-256");
+	Widget->r0_2 = gtk_radio_button_new_with_label_from_widget(GTK_RADIO_BUTTON(Widget->r0_1), "Serpent");
+	Widget->r0_3 = gtk_radio_button_new_with_label_from_widget(GTK_RADIO_BUTTON(Widget->r0_1), "Twofish");
+	Widget->r0_4 = gtk_radio_button_new_with_label_from_widget(GTK_RADIO_BUTTON(Widget->r0_1), "Camellia-256");
 	
-	Widget.r1_1 = gtk_radio_button_new_with_label_from_widget(NULL, "CBC");
-	Widget.r1_2 = gtk_radio_button_new_with_label_from_widget(GTK_RADIO_BUTTON(Widget.r1_1), "CTR");
+	Widget->r1_1 = gtk_radio_button_new_with_label_from_widget(NULL, "CBC");
+	Widget->r1_2 = gtk_radio_button_new_with_label_from_widget(GTK_RADIO_BUTTON(Widget->r1_1), "CTR");
 
 
 	gtk_box_pack_start (GTK_BOX (box), label, TRUE, TRUE, 0);
 	gtk_box_pack_start (GTK_BOX (box), hline1, TRUE, TRUE, 0);
-	gtk_box_pack_start (GTK_BOX (box), Widget.r0_1, TRUE, TRUE, 0);
-	gtk_box_pack_start (GTK_BOX (box), Widget.r0_2, TRUE, TRUE, 0);
-	gtk_box_pack_start (GTK_BOX (box), Widget.r0_3, TRUE, TRUE, 0);
-	gtk_box_pack_start (GTK_BOX (box), Widget.r0_4, TRUE, TRUE, 0);
+	gtk_box_pack_start (GTK_BOX (box), Widget->r0_1, TRUE, TRUE, 0);
+	gtk_box_pack_start (GTK_BOX (box), Widget->r0_2, TRUE, TRUE, 0);
+	gtk_box_pack_start (GTK_BOX (box), Widget->r0_3, TRUE, TRUE, 0);
+	gtk_box_pack_start (GTK_BOX (box), Widget->r0_4, TRUE, TRUE, 0);
 	
 	gtk_box_pack_start (GTK_BOX (box3), labelMode, FALSE, TRUE, 0);
 	gtk_box_pack_start (GTK_BOX (box3), hline2, FALSE, TRUE, 0);
-	gtk_box_pack_start (GTK_BOX (box3), Widget.r1_1, FALSE, TRUE, 0);
-	gtk_box_pack_start (GTK_BOX (box3), Widget.r1_2, FALSE, TRUE, 0);
+	gtk_box_pack_start (GTK_BOX (box3), Widget->r1_1, FALSE, TRUE, 0);
+	gtk_box_pack_start (GTK_BOX (box3), Widget->r1_2, FALSE, TRUE, 0);
 	
 	GtkWidget *vline = gtk_separator_new(GTK_ORIENTATION_VERTICAL);
 	gtk_box_pack_start( GTK_BOX(box2), box, TRUE, TRUE, 0);
 	gtk_box_pack_start (GTK_BOX (box2), vline, TRUE, TRUE, 0);
 	gtk_box_pack_start( GTK_BOX(box2), box3, FALSE, TRUE, 0);
 
-	g_object_set(Widget.r0_1, "active", TRUE, NULL);
-	g_object_set(Widget.r1_1, "active", TRUE, NULL);
+	g_object_set(Widget->r0_1, "active", TRUE, NULL);
+	g_object_set(Widget->r1_1, "active", TRUE, NULL);
 
 	gtk_container_add (GTK_CONTAINER (popover), box2);
 	gtk_container_set_border_width (GTK_CONTAINER (popover), 4);
@@ -302,12 +123,15 @@ static GtkWidget *create_popover_dialog (GtkWidget *parent, GtkPositionType pos)
 }
 
 static void toggle_changed_cb (GtkToggleButton *button, GtkWidget *popover){
-	gtk_widget_set_visible (popover, gtk_toggle_button_get_active (button));
+	gtk_widget_set_visible (popover, gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(button)));
+}
+static void toggle_changed_cb2 (GtkToggleButton *bt, gpointer data __attribute__ ((unused))){
+	gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON(bt), FALSE);
 }
 
-static void hide_menu(struct widget_t *Menu __attribute__ ((unused))){
-	if(gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(Widget.menu)))
-		gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(Widget.menu), FALSE);
+static void hide_menu(struct widget_t *Widget){
+	if(gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(Widget->menu)))
+		gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(Widget->menu), FALSE);
 }
 
 static void is_enc(GtkWidget *ignored __attribute__ ((unused)), struct widget_t *Widget){
@@ -361,21 +185,22 @@ static void type_pwd_enc(struct widget_t *WidgetEnc){
 	image = gtk_image_new_from_gicon (icon, GTK_ICON_SIZE_BUTTON);
 	g_object_unref(icon);
 	
-	Widget.menu = gtk_toggle_button_new();
-	gtk_container_add(GTK_CONTAINER(Widget.menu), image);
-	gtk_widget_set_tooltip_text(GTK_WIDGET(Widget.menu), _("Settings"));
+	WidgetEnc->menu = gtk_toggle_button_new();
+	gtk_container_add(GTK_CONTAINER(WidgetEnc->menu), image);
+	gtk_widget_set_tooltip_text(GTK_WIDGET(WidgetEnc->menu), _("Settings"));
 	
-	popover = create_popover_dialog(Widget.menu, GTK_POS_TOP);
+	popover = create_popover_dialog(WidgetEnc->menu, GTK_POS_TOP, WidgetEnc);
 	gtk_popover_set_modal (GTK_POPOVER (popover), TRUE);
-	g_signal_connect (Widget.menu, "toggled", G_CALLBACK (toggle_changed_cb), popover);
+	g_signal_connect (WidgetEnc->menu, "toggled", G_CALLBACK (toggle_changed_cb), popover);
 	
-	gtk_header_bar_pack_start(GTK_HEADER_BAR (header), GTK_WIDGET(Widget.menu));
+	gtk_header_bar_pack_start(GTK_HEADER_BAR (header), GTK_WIDGET(WidgetEnc->menu));
 
-	WidgetEnc->dialog = gtk_dialog_new_with_buttons (NULL, GTK_WINDOW(WidgetEnc->mainwin), GTK_DIALOG_DESTROY_WITH_PARENT, _("_Cancel"), GTK_RESPONSE_CLOSE, _("_OK"), GTK_RESPONSE_OK, NULL);
+	GtkDialogFlags flags = GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT;
+	WidgetEnc->dialog = gtk_dialog_new_with_buttons (NULL, NULL, flags, _("_OK"), GTK_RESPONSE_OK, _("_Cancel"), GTK_RESPONSE_CLOSE, NULL);
 	content_area = gtk_dialog_get_content_area (GTK_DIALOG (WidgetEnc->dialog));
 	gtk_window_set_titlebar (GTK_WINDOW (WidgetEnc->dialog), header);
 	gtk_widget_add_events(GTK_WIDGET(WidgetEnc->dialog), GDK_BUTTON_PRESS_MASK);
-	g_signal_connect(WidgetEnc->dialog, "button-press-event", G_CALLBACK(hide_menu), &Widget);
+	g_signal_connect_swapped(WidgetEnc->dialog, "button-press-event", G_CALLBACK(hide_menu), WidgetEnc);
 	
 	labelPwd = gtk_label_new(_("Type password"));
 	labelRetypePwd = gtk_label_new(_("Retype password"));
