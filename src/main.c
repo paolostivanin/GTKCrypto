@@ -51,9 +51,6 @@ static void *threadSHA3_512(struct hashWidget_t *);
 static void *threadWHIRLPOOL(struct hashWidget_t *);
 static void *threadGOST94(struct hashWidget_t *);
 
-
-const gchar *my_icon = "/usr/share/icons/hicolor/128x128/apps/polcrypt.png";
-
 struct thread_t{
 	GThread *t;
 	GThread *tenc;

@@ -4,8 +4,8 @@
 #define BUF_FILE 16777216 /* 16 MiB memory buffer (hash) */
 #define BUFSIZE 2097152  /* 2 MiB memory buffer (delete_input_file) */
 #define GCRYPT_MIN_VER "1.5.0"
-#define HEADERBAR_BUF 21 /* buffer for the title of the headerbar */
-#define VERSION "2.2.0-beta"
+#define HEADERBAR_BUF 22 /* buffer for the title of the headerbar */
+#define VERSION "2.2.0-beta2"
 #define LOCALE_DIR "/usr/share/locale" // or your specification
 #define PACKAGE    "polcrypt"          // mo file name in LOCALE
 
