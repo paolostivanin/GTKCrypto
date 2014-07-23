@@ -7,13 +7,13 @@
 #define GCRYPT_MIN_VER "1.5.0"
 #define VERSION "2.2.0-beta2"
 
-#define HEADERBAR_BUF 22 /* buffer for the title of the headerbar */
+#define HEADERBAR_BUF 22 /* buffer for the headerbar's title */
 
-#define DECRYPT 0
-#define ENCRYPT 1
+#define ENCRYPT 0
+#define DECRYPT 1
 
 #define LOCALE_DIR "/usr/share/locale"
-#define PACKAGE    "polcrypt"          // mo file name in LOCALE_DIR
+#define PACKAGE    "polcrypt"          /* mo file name in LOCALE_DIR */
 
 #include <glib.h>
 #include <gtk/gtk.h>
