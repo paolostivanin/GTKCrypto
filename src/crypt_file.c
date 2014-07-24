@@ -131,6 +131,7 @@ crypt_file(struct widget_t *Widget,
 		send_notification ("ERROR", "The password you chose is not a valid UTF-8 string");
 		g_free (cryptoBuffer);
 		g_free (filename);
+		g_free (outFilename);
 		return -2;
 	}
 	pwdLen = strlen(pwd);
@@ -154,13 +155,14 @@ crypt_file(struct widget_t *Widget,
 			g_printerr ("%s\n", strerror (errno));
 			gcry_free (inputKey);
 			g_free (filename);
+			g_free (outFilename);
 			g_free (cryptoBuffer);
 			return -3;
 		}
 	}
 	else
 	{
-		fileSize = fileSize-64-sizeof (struct metadata_t);
+		fileSize = fileSize - 64 - sizeof (struct metadata_t);
 	}
 	
 	fp = g_fopen (filename, "r");
@@ -169,6 +171,7 @@ crypt_file(struct widget_t *Widget,
 		g_printerr ("%s\n", strerror (errno));
 		gcry_free (inputKey);
 		g_free (filename);
+		g_free (outFilename);
 		g_free (cryptoBuffer);
 		if (mode == ENCRYPT)
 			fclose (fpout);
@@ -232,6 +235,7 @@ crypt_file(struct widget_t *Widget,
 		g_printerr ( _("encrypt_file: gcry_malloc_secure failed (derived)\n"));
 		gcry_free (inputKey);
 		g_free (filename);
+		g_free (outFilename);
 		g_free (cryptoBuffer);
 		fclose W(fp);
 		if (mode == ENCRYPT)
@@ -244,6 +248,7 @@ crypt_file(struct widget_t *Widget,
 		g_printerr ( _("encrypt_file: gcry_malloc_secure failed (crypto)\n"));
 		gcry_free (inputKey);
 		g_free (filename);
+		g_free (outFilename);
 		g_free (cryptoBuffer);
 		g_free (derivedKey);
 		fclose (fp);
@@ -257,6 +262,7 @@ crypt_file(struct widget_t *Widget,
 		g_printerr ( _("encrypt_file: gcry_malloc_secure failed (mac)\n"));
 		gcry_free (inputKey);
 		g_free (filename);
+		g_free (outFilename);
 		g_free (cryptoBuffer);
 		g_free (derivedKey);
 		g_free (cryptoKey);
@@ -274,6 +280,7 @@ crypt_file(struct widget_t *Widget,
 			g_printerr ( _("encrypt_file: Key derivation error\n"));
 			gcry_free (inputKey);
 			g_free (filename);
+			g_free (outFilename);
 			g_free (cryptoBuffer);
 			g_free (derivedKey);
 			g_free (cryptoKey);
@@ -296,19 +303,21 @@ crypt_file(struct widget_t *Widget,
 	
 	if (mode == DECRYPT)
 	{
-		numberOfBlock = (fileSize - sizeof (struct metadata_t) - 64) / 16;
-		bytesBeforeMAC = fileSize - 64;
+		numberOfBlock = fileSize / 16;
+		bytesBeforeMAC = fileSize + sizeof(struct metadata_t);
 		
 		if ((currentFileOffset = ftell (fp)) == -1)
 		{
 			g_printerr ("decrypt_file: %s\n", strerror (errno));
 			//free e return
 		}
+		
 		if (fseek (fp, bytesBeforeMAC, SEEK_SET) == -1)
 		{
 			g_printerr ("decrypt_file: %s\n", strerror (errno));
 			//free e return
 		}
+		
 		if (fread (fileMAC, 1, 64, fp) != 64)
 		{
 			g_printerr ("decrypt_file: %s\n", strerror (errno));
@@ -316,11 +325,24 @@ crypt_file(struct widget_t *Widget,
 		}
 		
 		guchar *hmac = calculate_hmac(filename, macKey, keyLength, 1);
-		if(hmac == (guchar *)1)
+		if (hmac == (guchar *)1)
 		{
 			g_printerr ( _("Error during HMAC calculation\n"));
 			//free e return
-		}			
+		}	
+		
+		if (memcmp (fileMAC, hmac, 64) != 0)
+		{
+			send_notification("PolCrypt", "HMAC doesn't match. This is caused by\n1) wrong password\nor\n2) corrupted file\n");
+			//free e return
+		}
+		free(hmac);
+		
+		if (fseek (fp, currentFileOffset, SEEK_SET) == -1)
+		{
+			g_printerr ("decrypt_file: %s\n", strerror (errno));
+			//free e return	
+		}		
 	}
 	
 	if (mode == ENCRYPT)
@@ -369,6 +391,74 @@ crypt_file(struct widget_t *Widget,
 				doneSize += retVal;
 			}
 		}
+		
+		fclose(fpout);
+		fclose(fp);
+		
+		guchar *hmac = calculate_hmac (outFilename, macKey, keyLength, 0);
+		if (hmac == (guchar *)1)
+		{
+			g_printerr ( _("Error during HMAC calculation"));
+			//free e return
+		}
+		
+		fpout = g_fopen (outFilename, "a");
+		fwrite (hmac, 1, 64, fpout);
+		free (hmac);
+	
+		retVal = delete_input_file (filename, fsize);
+		if (retVal == -1)
+			g_printerr ( _("Secure file deletion failed, overwrite it manually"));
+		if(retVal == -2)
+			g_printerr ( _("File unlink failed, remove it manually"));
+			
+		fclose(fpout);
+		
+		send_notification("PolCrypt", "Encryption successfully done");
+	}
+	else
+	{
+		if (mode == GCRY_CIPHER_MODE_CBC)
+		{
+			while (numberOfBlock > blockDone)
+			{
+				memset (text, 0, sizeof (text));
+				retVal = fread (text, 1, 16, fp);
+				gcry_cipher_decrypt (hd, cryptoBuffer, retVal, text, retVal);
+				if (blockDone == (numberOfBlock-1))
+				{
+					numberOfPKCS7Bytes = check_pkcs7 (cryptoBuffer, hex);
+					fwrite (cryptoBuffer, 1, numberOfPKCS7Bytes, fpout);	
+					goto end;
+				}
+				fwrite (cryptoBuffer, 1, retVal, fpout);
+				blockDone++;
+			}
+		}
+		else{
+			while (fileSize > doneSize)
+			{
+				memset (text, 0, sizeof (text));
+				if (fileSize-doneSize < 16)
+				{
+					retVal = fread (text, 1, fileSize-doneSize, fp);
+					gcry_cipher_decrypt (hd, cryptoBuffer, retVal, text, retVal);
+					fwrite (cryptoBuffer, 1, retVal, fpout);
+					break;
+				}
+				else
+				{
+					retVal = fread (text, 1, 16, fp);
+					gcry_cipher_decrypt (hd, cryptoBuffer, retVal, text, retVal);
+					fwrite (cryptoBuffer, 1, retVal, fpout);
+					doneSize += retVal;
+				}
+			}
+		}
+		
+		fclose(fp);
+		fclose(fpout);
+		send_notification("PolCrypt", "Decryption successfully done");
 	}
 
 	
