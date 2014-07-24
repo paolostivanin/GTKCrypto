@@ -1,71 +1,5 @@
 void *decrypt_file_gui(struct widget_t *WidgetMain){
-	gint algo = -1, mode = -1, fd, number_of_block = -1, block_done = 0, number_of_pkcs7_byte, counterForGoto = 0;	
-	guchar *derived_key = NULL, *crypto_key = NULL, *mac_key = NULL, *decBuffer = NULL;
-	guchar hex[15] = { 0x01,0x02,0x03,0x04,0x05,0x06,0x07,0x08,0x09,0x0A,0x0B,0x0C,0x0D,0x0E,0x0F}, cipher_text[16], mac_of_file[64] ={0};
-	gchar *inputKey = NULL;
-	off_t fsize = 0;
-	size_t blkLength = 0, keyLength = 0, txtLenght = 16, retval = 0, pwd_len = 0, realSize, doneSize = 0;
-	glong current_file_offset, bytes_before_mac;
-	FILE *fp, *fpout;
-	
-	struct metadata_t Metadata;
-	struct stat fileStat;
-	gcry_cipher_hd_t hd;
-	
-	gchar *filename = g_strdup(WidgetMain->filename);
-	
-	decBuffer = gcry_malloc(txtLenght);
-	
-	gchar *outFilename = NULL, *extBuf = NULL;
-	size_t lenFilename = strlen(filename);
-	extBuf = malloc(5);
-	if(extBuf == NULL){
-		g_print(_("decrypt_file: error during memory allocation"));
-		return;
-	}
-	memcpy(extBuf, (filename)+lenFilename-4, 4);
-	extBuf[4] = '\0';
-	if(strcmp(extBuf, ".enc") == 0){
-		outFilename = g_malloc(lenFilename-3);
-		strncpy(outFilename, filename, lenFilename-4);
-		outFilename[lenFilename-4] = '\0';
-		free(extBuf);
-	}
-	else{
-		outFilename = g_malloc(lenFilename+5);
-		strncpy(outFilename, filename, lenFilename);
-		memcpy(outFilename+lenFilename, ".dec", 4);
-		outFilename[lenFilename+4] = '\0';
-		free(extBuf);
-	}
 
-	const gchar *inputWidKey = gtk_entry_get_text(GTK_ENTRY(WidgetMain->pwdEntry));
-	pwd_len = strlen(inputWidKey);
-	inputKey = gcry_malloc_secure(pwd_len+1);
-	strncpy(inputKey, inputWidKey, pwd_len);
-	inputKey[pwd_len] = '\0';
-
-	fd = open(filename, O_RDONLY | O_NOFOLLOW);
-	if(fd == -1){
-		g_print("%s\n", strerror(errno));
-		return;
-	}
-  	if(fstat(fd, &fileStat) < 0){
-  		g_print("decrypt_file: %s\n", strerror(errno));
-    	close(fd);
-    	gcry_free(inputKey);
-    	return;
-  	}
-  	fsize = fileStat.st_size;
-  	realSize = fsize-64-sizeof(struct metadata_t);
-  	close(fd);
-	
-	fp = fopen(filename, "r");
-	if(fp == NULL){
-		g_print("decrypt_file: %s\n", strerror(errno));
-		gcry_free(inputKey);
-		return;
-	}
 	if(fseek(fp, 0, SEEK_SET) == -1){
 		g_print("decrypt_file: %s\n", strerror(errno));
 		gcry_free(inputKey);
@@ -102,9 +36,6 @@ void *decrypt_file_gui(struct widget_t *WidgetMain){
 	number_of_block = (fsize - sizeof(struct metadata_t) - 64)/16;
 	bytes_before_mac = fsize-64;
 
-	blkLength = gcry_cipher_get_algo_blklen(algo);
-	keyLength = gcry_cipher_get_algo_keylen(algo);
-	
 	gcry_cipher_open(&hd, algo, mode, 0);
 	
 	if((derived_key = gcry_malloc_secure(64)) == NULL){
@@ -260,18 +191,4 @@ void *decrypt_file_gui(struct widget_t *WidgetMain){
 	fclose(fpout);
 	
 	send_notification("PolCrypt", "Decryption successfully done");
-	
-	g_thread_exit((gpointer)0);
-}
-
-static void send_notification(const gchar *title, const gchar *message){
-	NotifyNotification *n;
-    notify_init("org.gtk.polcrypt");
-    n = notify_notification_new (title, message, NULL);
-    notify_notification_set_timeout(n, 3000);
-    if (!notify_notification_show (n, NULL)) {
-		g_error("Failed to send notification.\n");
-        g_thread_exit((gpointer)-1);
-	}
-	g_object_unref(G_OBJECT(n));
 }

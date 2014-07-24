@@ -19,10 +19,10 @@
 #include <gtk/gtk.h>
 
 struct metadata_t{
-	gint8 algo_type; //(NULL|0=aes),(1=serpent),(2=twofish),(3=camellia)
-	gint8 algo_mode; //1=CBC,2=CTR
-	guchar salt[32];
-	guchar iv[16];
+	gint8 algoType; //(NULL|0=aes),(1=serpent),(2=twofish),(3=camellia)
+	gint8 algoMode; //1=CBC,2=CTR
+	guint8 salt[32];
+	guint8 iv[16];
 };
 extern struct metadata_t Metadata;
 
@@ -31,7 +31,7 @@ struct widget_t{
 	GtkWidget *mainwin;
 	GtkWidget *pwdEntry[2];
 	GtkWidget *menu, *popover;
-	GtkWidget *radioButton[6];
+	GtkWidget *radioButton[6]; //aes, serpent, twofish, camellia, cbc, ctr
 };
 extern struct widget_t Widget;
 

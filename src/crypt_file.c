@@ -20,9 +20,164 @@ gint
 crypt_file(struct widget_t *Widget,
 	   gint mode)
 {
-	goffset fileSize;
-	fileSize = get_file_size (Widget->filename);
+	struct metadata_t Metadata;
+	gcry_cipher_hd_t hd;
+	
+	guint8 padding[15] = { 0x01,0x02,0x03,0x04,0x05,0x06,0x07,0x08,0x09,0x0A,0x0B,0x0C,0x0D,0x0E,0x0F};
+	guint8 *derivedKey = NULL, *cryptoKey = NULL, *macKey = NULL;
+	
+	guchar text[16], fileMAC[64], *cryptoBuffer = NULL;
+	
+	gint algo = -1, algoMode = -1, numberOfBlock = -1, blockDone = 0, numberOfPKCS7Bytes, retCode = 0, counterForGoto = 0;	
+	
+	gchar *inputKey = NULL, *outFilename = NULL, *extBuf = NULL;
+	gchar *filename = g_strdup(Widget->filename); //remember to free it!!
+	
+	gfloat divBy16;
+	glong currentFileOffset, bytesBeforeMAC;
+	
+	goffset fileSize = 0, doneSize = 0;
+	gsize blkLength = 0, keyLength = 0, retVal = 0, i, lenFilename, pwdLen = 0, doneSize = 0;
+	
+	FILE *fp, *fpout;
+	
+	if (!g_utf8_validate (filename, -1, NULL))
+	{
+		send_notification ("ERROR", "The name of the file you chose isn't a valid UTF-8 string");
+		return -2;
+	}
+	
+	fileSize = get_file_size (filename);
+	
+	cryptoBuffer = gcry_malloc (16);
+	if (cryptoBuffer == NULL)
+	{
+		g_printerr ( _("crypt_file: error during memory allocation (decBuffer)"));
+		return -1;
+	}
+	
+	if(mode == ENCRYPT)
+	{
+		if (gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (Widget->radioButton[0])))
+		{
+			algo = gcry_cipher_map_name ("aes256");
+			Metadata.algoType = 0;
+		}
+		else if (gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (Widget->radioButton[1]))){
+			algo = gcry_cipher_map_name ("serpent256");
+			Metadata.algoType = 1;
+		}
+		else if (gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (Widget->radioButton[2]))){
+			algo = gcry_cipher_map_name ("twofish");
+			Metadata.algoType = 2;
+		}
+		else if (gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (Widget->radioButton[3]))){
+			algo = gcry_cipher_map_name ("camellia256");
+			Metadata.algoType = 3;
+		}
+		if (gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (Widget->radioButton[4]))){
+			mode = GCRY_CIPHER_MODE_CBC;
+			Metadata.algoMode = 1;
+		}
+		else if (gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (Widget->radioButton[5]))){
+			mode = GCRY_CIPHER_MODE_CTR;
+			Metadata.algoMode = 2;
+		}
+		
+		lenFilename = g_utf8_strlen (filename, -1);
+		outFilename = g_malloc (lenFilename+5); // ".enc\0" are 5 char
+		g_utf8_strncpy (outFilename, filename, lenFilename);
+		memcpy (outFilename+lenFilename, ".enc", 4);
+		outFilename[lenFilename+4] = '\0';
+	}
+	else
+	{
+		lenFilename = g_utf8_strlen (filename, -1);
+		extBuf = malloc(5);
+		if (extBuf == NULL)
+		{
+			g_printerr ( _("crypt_file: error during memory allocation (extBuf)"));
+			g_free (cryptoBuffer);
+			g_free (filename);
+			return -1;
+		}
+		
+		memcpy(extBuf, (filename)+lenFilename-4, 4);
+		extBuf[4] = '\0';
+		if (g_strcmp0 (extBuf, ".enc") == 0)
+		{
+			outFilename = g_malloc (lenFilename-3);
+			strncpy (outFilename, filename, lenFilename-4);
+			outFilename[lenFilename-4] = '\0';
+			g_free (extBuf);
+		}
+		else
+		{
+			outFilename = g_malloc(lenFilename+5);
+			g_utf8_strncpy (outFilename, filename, lenFilename);
+			memcpy (outFilename+lenFilename, ".dec", 4);
+			outFilename[lenFilename+4] = '\0';
+			g_free (extBuf);
+		}
+	}
+	
+	const gchar *pwd = gtk_entry_get_text (GTK_ENTRY (Widget->pwdEntry[0]));
+	if (!g_utf8_validate (pwd, -1, NULL))
+	{
+		send_notification ("ERROR", "The password you chose is not a valid UTF-8 string");
+		g_free (cryptoBuffer);
+		g_free (filename);
+		return -2;
+	}
+	pwdLen = strlen(pwd);
+	inputKey = gcry_malloc_secure (pwdLen+1);
+	g_utf8_strncpy (inputKey, pwd, pwdLen);
+	inputKey[pwdLen] = '\0';
+	
+	blkLength = gcry_cipher_get_algo_blklen (algo);
+	keyLength = gcry_cipher_get_algo_keylen (algo);
+	
+	if (mode == ENCRYPT)
+	{
+		gcry_create_nonce(Metadata.iv, 16);
+		gcry_create_nonce(Metadata.salt, 32);
+		
+		divBy16 = (gfloat) fileSize / 16;
+		numberOfBlock = (gint) divBy16;
+		if (divBy16 > numberOfBlock)
+			numberOfBlock += 1;
+		
+		fpout = g_fopen (outFilename, "w");
+		if (fpout == NULL)
+		{
+			g_printerr ("%s\n", strerror (errno));
+			gcry_free (inputKey);
+			g_free (filename);
+			g_free (cryptoBuffer);
+			return -3;
+		}
+	}
+	else
+	{
+		fileSize = fileSize - 64 - sizeof (struct metadata_t);
+	}
+	
+	fp = g_fopen (filename, "r");
+	if (fp == NULL)
+	{
+		g_printerr ("%s\n", strerror (errno));
+		gcry_free (inputKey);
+		g_free (filename);
+		g_free (cryptoBuffer);
+		if (mode == ENCRYPT)
+			fclose (fpout);
+		return -3;
+	}
+
+		
+	return 0;
 }	
+
 
 goffset
 get_file_size (const gchar *filePath)
@@ -42,4 +197,18 @@ get_file_size (const gchar *filePath)
 	g_object_unref(file);
 	
 	return fileSize;
+}
+
+
+static void
+send_notification (const gchar *title,
+		   const gchar *message)
+{
+	NotifyNotification *n;
+	notify_init ("org.gtk.polcrypt");
+	n = notify_notification_new (title, message, NULL);
+	notify_notification_set_timeout(n, 3000);
+	if (!notify_notification_show (n, NULL))
+		g_printerr ("Failed to send notification.\n");
+        g_object_unrefv(G_OBJECTv(n));
 }
