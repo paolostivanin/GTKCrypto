@@ -1,53 +1,5 @@
 void *encrypt_file_gui(struct widget_t *WidgetMain){
 
-	gcry_cipher_setkey(hd, crypto_key, keyLength);
-	if(mode == GCRY_CIPHER_MODE_CBC)
-		gcry_cipher_setiv(hd, Metadata.iv, blkLength);
-	else
-		gcry_cipher_setctr(hd, Metadata.iv, blkLength);
-	
-
-	fseek(fp, 0, SEEK_SET);
-
-	fwrite(&Metadata, sizeof(struct metadata_t), 1, fpout);
-
-	if(mode == GCRY_CIPHER_MODE_CBC){
-		while(number_of_block > block_done){
-			memset(plain_text, 0, sizeof(plain_text));
-			retval = fread(plain_text, 1, 16, fp);
-			if(retval < 16){
-				for(i=retval; i<16; i++){
-					if(retval == 1) plain_text[i] = hex[14];
-					if(retval == 2) plain_text[i] = hex[13];
-					if(retval == 3) plain_text[i] = hex[12];
-					if(retval == 4) plain_text[i] = hex[11];
-					if(retval == 5) plain_text[i] = hex[10];
-					if(retval == 6) plain_text[i] = hex[9];
-					if(retval == 7) plain_text[i] = hex[8];
-					if(retval == 8) plain_text[i] = hex[7];
-					if(retval == 9) plain_text[i] = hex[6];
-					if(retval == 10) plain_text[i] = hex[5];
-					if(retval == 11) plain_text[i] = hex[4];
-					if(retval == 12) plain_text[i] = hex[3];
-					if(retval == 13) plain_text[i] = hex[2];
-					if(retval == 14) plain_text[i] = hex[1];
-					if(retval == 15) plain_text[i] = hex[0];
-				}
-			}
-			gcry_cipher_encrypt(hd, encBuffer, txtLenght, plain_text, txtLenght);
-			fwrite(encBuffer, 1, txtLenght, fpout);
-		}
-		block_done++;
-	}
-	else{
-		while(fsize > doneSize){
-			memset(plain_text, 0, sizeof(plain_text));
-			retval = fread(plain_text, 1, 16, fp);
-			gcry_cipher_encrypt(hd, encBuffer, retval, plain_text, retval);
-			fwrite(encBuffer, 1, retval, fpout);
-			doneSize += retval;
-		}
-	}
 	fclose(fpout);
 	fclose(fp);
 

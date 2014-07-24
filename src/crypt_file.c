@@ -27,7 +27,7 @@ crypt_file(struct widget_t *Widget,
 	guchar *derivedKey = NULL, *cryptoKey = NULL, *macKey = NULL;
 	guchar text[16], fileMAC[64], *cryptoBuffer = NULL;
 	
-	gint algo = -1, algoMode = -1, numberOfBlock = -1, blockDone = 0, numberOfPKCS7Bytes, retCode = 0, counterForGoto = 0;	
+	gint algo = -1, algoMode = -1, numberOfBlock = -1, blockDone = 0, numberOfPKCS7Bytes, counterForGoto = 0;	
 	
 	gchar *inputKey = NULL, *outFilename = NULL, *extBuf = NULL;
 	gchar *filename = g_strdup(Widget->filename); //remember to free it!!
@@ -286,7 +286,90 @@ crypt_file(struct widget_t *Widget,
 	}
 	
 	memcpy (cryptoKey, derivedKey, 32);
-	memcpy (macKey, derivedKey+32, 32);
+	memcpy (macKey, derivedKey + 32, 32);
+	
+	gcry_cipher_setkey (hd, cryptoKey, keyLength);
+	if (algoMode == GCRY_CIPHER_MODE_CBC)
+		gcry_cipher_setiv(hd, Metadata.iv, blkLength);
+	else
+		gcry_cipher_setctr(hd, Metadata.iv, blkLength);
+	
+	if (mode == DECRYPT)
+	{
+		numberOfBlock = (fileSize - sizeof (struct metadata_t) - 64) / 16;
+		bytesBeforeMAC = fileSize - 64;
+		
+		if ((currentFileOffset = ftell (fp)) == -1)
+		{
+			g_printerr ("decrypt_file: %s\n", strerror (errno));
+			//free e return
+		}
+		if (fseek (fp, bytesBeforeMAC, SEEK_SET) == -1)
+		{
+			g_printerr ("decrypt_file: %s\n", strerror (errno));
+			//free e return
+		}
+		if (fread (fileMAC, 1, 64, fp) != 64)
+		{
+			g_printerr ("decrypt_file: %s\n", strerror (errno));
+			//free e return
+		}
+		
+		guchar *hmac = calculate_hmac(filename, macKey, keyLength, 1);
+		if(hmac == (guchar *)1)
+		{
+			g_printerr ( _("Error during HMAC calculation\n"));
+			//free e return
+		}			
+	}
+	
+	if (mode == ENCRYPT)
+	{
+		fseek (fp, 0, SEEK_SET);
+		fwrite (&Metadata, sizeof(struct metadata_t), 1, fpout);
+		if (mode == GCRY_CIPHER_MODE_CBC)
+		{
+			while (numberOfBlock > blockDone)
+			{
+				memset (text, 0, sizeof (text));
+				retVal = fread (text, 1, 16, fp);
+				if (retVal < 16)
+				{
+					for(i = retVal; i < 16; i++)
+					{
+						if(retVal == 1) plain_text[i] = hex[14];
+						if(retVal == 2) plain_text[i] = hex[13];
+						if(retVal == 3) plain_text[i] = hex[12];
+						if(retVal == 4) plain_text[i] = hex[11];
+						if(retVal == 5) plain_text[i] = hex[10];
+						if(retVal == 6) plain_text[i] = hex[9];
+						if(retVal == 7) plain_text[i] = hex[8];
+						if(retVal == 8) plain_text[i] = hex[7];
+						if(retVal == 9) plain_text[i] = hex[6];
+						if(retVal == 10) plain_text[i] = hex[5];
+						if(retVal == 11) plain_text[i] = hex[4];
+						if(retVal == 12) plain_text[i] = hex[3];
+						if(retVal == 13) plain_text[i] = hex[2];
+						if(retVal == 14) plain_text[i] = hex[1];
+						if(retVal == 15) plain_text[i] = hex[0];
+					}
+				}
+				gcry_cipher_encrypt (hd, cryptoBuffer, 16, text, 16);
+				fwrite(cryptoBuffer, 1, 16, fpout);
+			}
+			blockDone++;
+		}
+		else{
+			while (fileSize > doneSize)
+			{
+				memset (text, 0, sizeof (text));
+				retVal = fread (text, 1, 16, fp);
+				gcry_cipher_encrypt (hd, cryptoBuffer, retVal, text, retVal);
+				fwrite (cryptoBuffer, 1, retVal, fpout);
+				doneSize += retVal;
+			}
+		}
+	}
 
 	
 	return 0;

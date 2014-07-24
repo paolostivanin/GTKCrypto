@@ -1,47 +1,5 @@
 void *decrypt_file_gui(struct widget_t *WidgetMain){
 
-	number_of_block = (fsize - sizeof(struct metadata_t) - 64)/16;
-	bytes_before_mac = fsize-64;
-		
-	gcry_cipher_setkey(hd, crypto_key, keyLength);
-	if(mode == GCRY_CIPHER_MODE_CBC)
-		gcry_cipher_setiv(hd, Metadata.iv, blkLength);
-	else
-		gcry_cipher_setctr(hd, Metadata.iv, blkLength);
-
-	if((current_file_offset = ftell(fp)) == -1){
-		g_print("decrypt_file: %s\n", strerror(errno));
-		gcry_free(derived_key);
-		gcry_free(crypto_key);
-		gcry_free(mac_key);
-		gcry_free(inputKey);
-		return;		
-	}
-	if(fseek(fp, bytes_before_mac, SEEK_SET) == -1){
-		g_print("decrypt_file: %s\n", strerror(errno));
-		gcry_free(derived_key);
-		gcry_free(crypto_key);
-		gcry_free(mac_key);
-		gcry_free(inputKey);
-		return;		
-	}
-	if(fread(mac_of_file, 1, 64, fp) != 64){
-		g_print(_("decrypt_file: fread mac error\n"));;
-		gcry_free(derived_key);
-		gcry_free(crypto_key);
-		gcry_free(mac_key);
-		gcry_free(inputKey);
-		return;
-	}
-	guchar *hmac = calculate_hmac(filename, mac_key, keyLength, 1);
-	if(hmac == (guchar *)1){
-		g_print(_("Error during HMAC calculation\n"));
-		gcry_free(derived_key);
-		gcry_free(crypto_key);
-		gcry_free(mac_key);
-		gcry_free(inputKey);
-		return;
-	}
 	if(memcmp(mac_of_file, hmac, 64) != 0){
 		send_notification("PolCrypt", "HMAC doesn't match. This is caused by\n1) wrong password\nor\n2) corrupted file\n");
 		gcry_free(derived_key);
