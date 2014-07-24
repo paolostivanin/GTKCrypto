@@ -1,5 +1,6 @@
 #include <gtk/gtk.h>
 #include <glib.h>
+#include <glib/gstdio.h>
 #include <gdk-pixbuf/gdk-pixbuf.h>
 #include <gcrypt.h>
 #include <errno.h>
@@ -27,7 +28,7 @@ crypt_file(struct widget_t *Widget,
 	guchar *derivedKey = NULL, *cryptoKey = NULL, *macKey = NULL;
 	guchar text[16], fileMAC[64], *cryptoBuffer = NULL;
 	
-	gint algo = -1, algoMode = -1, numberOfBlock = -1, blockDone = 0, numberOfPKCS7Bytes, counterForGoto = 0;	
+	gint algo = -1, retVal, i, algoMode = -1, numberOfBlock = -1, blockDone = 0, numberOfPKCS7Bytes, counterForGoto = 0;	
 	
 	gchar *inputKey = NULL, *outFilename = NULL, *extBuf = NULL;
 	gchar *filename = g_strdup(Widget->filename); //remember to free it!!
@@ -36,7 +37,7 @@ crypt_file(struct widget_t *Widget,
 	glong currentFileOffset, bytesBeforeMAC;
 	
 	goffset fileSize = 0, doneSize = 0;
-	gsize blkLength = 0, keyLength = 0, retVal = 0, i, lenFilename, pwdLen = 0, doneSize = 0;
+	gsize blkLength = 0, keyLength = 0, lenFilename, pwdLen = 0;
 	
 	FILE *fp, *fpout;
 	
@@ -161,9 +162,7 @@ crypt_file(struct widget_t *Widget,
 		}
 	}
 	else
-	{
 		fileSize = fileSize - 64 - sizeof (struct metadata_t);
-	}
 	
 	fp = g_fopen (filename, "r");
 	if (fp == NULL)
@@ -191,8 +190,8 @@ crypt_file(struct widget_t *Widget,
 			g_printerr ( _("decrypt_file: cannot read file metadata_t\n"));
 			//esci e free
 		}
-		
-		switch (Metada.algoType)
+				
+		switch (Metadata.algoType)
 		{
 			case 0:
 				algo = gcry_cipher_map_name("aes256");
@@ -210,7 +209,7 @@ crypt_file(struct widget_t *Widget,
 				algo = gcry_cipher_map_name("aes256");
 				break;
 		}
-		
+
 		switch (Metadata.algoMode)
 		{
 			case 1:
@@ -237,7 +236,7 @@ crypt_file(struct widget_t *Widget,
 		g_free (filename);
 		g_free (outFilename);
 		g_free (cryptoBuffer);
-		fclose W(fp);
+		fclose (fp);
 		if (mode == ENCRYPT)
 			fclose (fpout);		
 		return -4;
@@ -273,7 +272,7 @@ crypt_file(struct widget_t *Widget,
 	}
 	
 	tryAgainDerive:
-	if (gcry_kdf_derive (inputKey, pwdLen+1, GCRY_KDF_PBKDF2, GCRY_MD_SHA512, Metadata.salt, 32, 150000, 64, derived_key) != 0)
+	if (gcry_kdf_derive (inputKey, pwdLen+1, GCRY_KDF_PBKDF2, GCRY_MD_SHA512, Metadata.salt, 32, 150000, 64, derivedKey) != 0)
 	{
 		if (counterForGoto == 3)
 		{
@@ -306,6 +305,8 @@ crypt_file(struct widget_t *Widget,
 		numberOfBlock = fileSize / 16;
 		bytesBeforeMAC = fileSize + sizeof(struct metadata_t);
 		
+		fpout = g_fopen (outFilename, "a");
+				
 		if ((currentFileOffset = ftell (fp)) == -1)
 		{
 			g_printerr ("decrypt_file: %s\n", strerror (errno));
@@ -323,7 +324,7 @@ crypt_file(struct widget_t *Widget,
 			g_printerr ("decrypt_file: %s\n", strerror (errno));
 			//free e return
 		}
-		
+				
 		guchar *hmac = calculate_hmac(filename, macKey, keyLength, 1);
 		if (hmac == (guchar *)1)
 		{
@@ -337,7 +338,7 @@ crypt_file(struct widget_t *Widget,
 			//free e return
 		}
 		free(hmac);
-		
+				
 		if (fseek (fp, currentFileOffset, SEEK_SET) == -1)
 		{
 			g_printerr ("decrypt_file: %s\n", strerror (errno));
@@ -349,7 +350,7 @@ crypt_file(struct widget_t *Widget,
 	{
 		fseek (fp, 0, SEEK_SET);
 		fwrite (&Metadata, sizeof(struct metadata_t), 1, fpout);
-		if (mode == GCRY_CIPHER_MODE_CBC)
+		if (algoMode == GCRY_CIPHER_MODE_CBC)
 		{
 			while (numberOfBlock > blockDone)
 			{
@@ -359,27 +360,27 @@ crypt_file(struct widget_t *Widget,
 				{
 					for(i = retVal; i < 16; i++)
 					{
-						if(retVal == 1) plain_text[i] = hex[14];
-						if(retVal == 2) plain_text[i] = hex[13];
-						if(retVal == 3) plain_text[i] = hex[12];
-						if(retVal == 4) plain_text[i] = hex[11];
-						if(retVal == 5) plain_text[i] = hex[10];
-						if(retVal == 6) plain_text[i] = hex[9];
-						if(retVal == 7) plain_text[i] = hex[8];
-						if(retVal == 8) plain_text[i] = hex[7];
-						if(retVal == 9) plain_text[i] = hex[6];
-						if(retVal == 10) plain_text[i] = hex[5];
-						if(retVal == 11) plain_text[i] = hex[4];
-						if(retVal == 12) plain_text[i] = hex[3];
-						if(retVal == 13) plain_text[i] = hex[2];
-						if(retVal == 14) plain_text[i] = hex[1];
-						if(retVal == 15) plain_text[i] = hex[0];
+						if(retVal == 1) text[i] = padding[14];
+						if(retVal == 2) text[i] = padding[13];
+						if(retVal == 3) text[i] = padding[12];
+						if(retVal == 4) text[i] = padding[11];
+						if(retVal == 5) text[i] = padding[10];
+						if(retVal == 6) text[i] = padding[9];
+						if(retVal == 7) text[i] = padding[8];
+						if(retVal == 8) text[i] = padding[7];
+						if(retVal == 9) text[i] = padding[6];
+						if(retVal == 10) text[i] = padding[5];
+						if(retVal == 11) text[i] = padding[4];
+						if(retVal == 12) text[i] = padding[3];
+						if(retVal == 13) text[i] = padding[2];
+						if(retVal == 14) text[i] = padding[1];
+						if(retVal == 15) text[i] = padding[0];
 					}
 				}
 				gcry_cipher_encrypt (hd, cryptoBuffer, 16, text, 16);
 				fwrite(cryptoBuffer, 1, 16, fpout);
+				blockDone++;
 			}
-			blockDone++;
 		}
 		else{
 			while (fileSize > doneSize)
@@ -406,7 +407,7 @@ crypt_file(struct widget_t *Widget,
 		fwrite (hmac, 1, 64, fpout);
 		free (hmac);
 	
-		retVal = delete_input_file (filename, fsize);
+		retVal = delete_input_file (filename, fileSize);
 		if (retVal == -1)
 			g_printerr ( _("Secure file deletion failed, overwrite it manually"));
 		if(retVal == -2)
@@ -418,7 +419,7 @@ crypt_file(struct widget_t *Widget,
 	}
 	else
 	{
-		if (mode == GCRY_CIPHER_MODE_CBC)
+		if (algoMode == GCRY_CIPHER_MODE_CBC)
 		{
 			while (numberOfBlock > blockDone)
 			{
@@ -427,7 +428,7 @@ crypt_file(struct widget_t *Widget,
 				gcry_cipher_decrypt (hd, cryptoBuffer, retVal, text, retVal);
 				if (blockDone == (numberOfBlock-1))
 				{
-					numberOfPKCS7Bytes = check_pkcs7 (cryptoBuffer, hex);
+					numberOfPKCS7Bytes = check_pkcs7 (cryptoBuffer, padding);
 					fwrite (cryptoBuffer, 1, numberOfPKCS7Bytes, fpout);	
 					goto end;
 				}
@@ -455,7 +456,7 @@ crypt_file(struct widget_t *Widget,
 				}
 			}
 		}
-		
+		end:
 		fclose(fp);
 		fclose(fpout);
 		send_notification("PolCrypt", "Decryption successfully done");
@@ -497,5 +498,5 @@ send_notification (const gchar *title,
 	notify_notification_set_timeout(n, 3000);
 	if (!notify_notification_show (n, NULL))
 		g_printerr ("Failed to send notification.\n");
-        g_object_unrefv(G_OBJECTv(n));
+        g_object_unref(G_OBJECT(n));
 }

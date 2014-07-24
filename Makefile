@@ -5,7 +5,7 @@ LDFLAGS = -Wl,-z,now -Wl,-z,relro -lgcrypt -lnettle -lnotify
 
 #GUI_HASH_SOURCES = src/hashes/md5.c src/hashes/sha1.c src/hashes/sha256.c src/hashes/sha3-256.c src/hashes/sha512.c src/hashes/sha3-512.c src/hashes/whirlpool.c src/hashes/gost94.c
 #GUI_SOURCES = src/main.c src/check_pkcs7.c src/encrypt_file.c src/decrypt_file.c src/hmac.c src/delete_input_file.c src/random_write.c src/zero_write.c src/prepare_text.c
-TMP_GUI = src/main.c src/crypt_file.c
+TMP_GUI = src/*.c
 
 OUT = polcrypt
 
