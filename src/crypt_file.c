@@ -23,9 +23,8 @@ crypt_file(struct widget_t *Widget,
 	struct metadata_t Metadata;
 	gcry_cipher_hd_t hd;
 	
-	guint8 padding[15] = { 0x01,0x02,0x03,0x04,0x05,0x06,0x07,0x08,0x09,0x0A,0x0B,0x0C,0x0D,0x0E,0x0F};
-	guint8 *derivedKey = NULL, *cryptoKey = NULL, *macKey = NULL;
-	
+	guchar padding[15] = { 0x01,0x02,0x03,0x04,0x05,0x06,0x07,0x08,0x09,0x0A,0x0B,0x0C,0x0D,0x0E,0x0F};
+	guchar *derivedKey = NULL, *cryptoKey = NULL, *macKey = NULL;
 	guchar text[16], fileMAC[64], *cryptoBuffer = NULL;
 	
 	gint algo = -1, algoMode = -1, numberOfBlock = -1, blockDone = 0, numberOfPKCS7Bytes, retCode = 0, counterForGoto = 0;	
@@ -63,24 +62,29 @@ crypt_file(struct widget_t *Widget,
 			algo = gcry_cipher_map_name ("aes256");
 			Metadata.algoType = 0;
 		}
-		else if (gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (Widget->radioButton[1]))){
+		else if (gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (Widget->radioButton[1])))
+		{
 			algo = gcry_cipher_map_name ("serpent256");
 			Metadata.algoType = 1;
 		}
-		else if (gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (Widget->radioButton[2]))){
+		else if (gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (Widget->radioButton[2])))
+		{
 			algo = gcry_cipher_map_name ("twofish");
 			Metadata.algoType = 2;
 		}
-		else if (gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (Widget->radioButton[3]))){
+		else if (gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (Widget->radioButton[3])))
+		{
 			algo = gcry_cipher_map_name ("camellia256");
 			Metadata.algoType = 3;
 		}
-		if (gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (Widget->radioButton[4]))){
-			mode = GCRY_CIPHER_MODE_CBC;
+		if (gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (Widget->radioButton[4])))
+		{
+			algoMode = GCRY_CIPHER_MODE_CBC;
 			Metadata.algoMode = 1;
 		}
-		else if (gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (Widget->radioButton[5]))){
-			mode = GCRY_CIPHER_MODE_CTR;
+		else if (gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (Widget->radioButton[5])))
+		{
+			algoMode = GCRY_CIPHER_MODE_CTR;
 			Metadata.algoMode = 2;
 		}
 		
@@ -134,9 +138,6 @@ crypt_file(struct widget_t *Widget,
 	g_utf8_strncpy (inputKey, pwd, pwdLen);
 	inputKey[pwdLen] = '\0';
 	
-	blkLength = gcry_cipher_get_algo_blklen (algo);
-	keyLength = gcry_cipher_get_algo_keylen (algo);
-	
 	if (mode == ENCRYPT)
 	{
 		gcry_create_nonce(Metadata.iv, 16);
@@ -159,7 +160,7 @@ crypt_file(struct widget_t *Widget,
 	}
 	else
 	{
-		fileSize = fileSize - 64 - sizeof (struct metadata_t);
+		fileSize = fileSize-64-sizeof (struct metadata_t);
 	}
 	
 	fp = g_fopen (filename, "r");
@@ -173,8 +174,121 @@ crypt_file(struct widget_t *Widget,
 			fclose (fpout);
 		return -3;
 	}
-
+	
+	if (mode == DECRYPT)
+	{
+		if (fseek (fp, 0, SEEK_SET) == -1)
+		{
+			g_printerr ("decrypt_file: %s\n", strerror(errno));
+			//esci e free
+		}
 		
+		if (fread (&Metadata, sizeof (struct metadata_t), 1, fp) != 1)
+		{
+			g_printerr ( _("decrypt_file: cannot read file metadata_t\n"));
+			//esci e free
+		}
+		
+		switch (Metada.algoType)
+		{
+			case 0:
+				algo = gcry_cipher_map_name("aes256");
+				break;
+			case 1:
+				algo = gcry_cipher_map_name("serpent256");
+				break;
+			case 2:
+				algo = gcry_cipher_map_name("twofish");
+				break;
+			case 3:
+				algo = gcry_cipher_map_name("camellia256");
+				break;
+			default:
+				algo = gcry_cipher_map_name("aes256");
+				break;
+		}
+		
+		switch (Metadata.algoMode)
+		{
+			case 1:
+				algoMode = GCRY_CIPHER_MODE_CBC;
+				break;
+			case 2:
+				algoMode = GCRY_CIPHER_MODE_CTR;
+				break;
+			default:
+				algoMode = GCRY_CIPHER_MODE_CTR;
+				break;
+		}
+	}
+
+	gcry_cipher_open (&hd, algo, algoMode, 0);
+	
+	blkLength = gcry_cipher_get_algo_blklen (algo);
+	keyLength = gcry_cipher_get_algo_keylen (algo);
+	
+	if ((derivedKey = gcry_malloc_secure (64)) == NULL)
+	{
+		g_printerr ( _("encrypt_file: gcry_malloc_secure failed (derived)\n"));
+		gcry_free (inputKey);
+		g_free (filename);
+		g_free (cryptoBuffer);
+		fclose W(fp);
+		if (mode == ENCRYPT)
+			fclose (fpout);		
+		return -4;
+	}
+	
+	if ((cryptoKey = gcry_malloc_secure (32)) == NULL)
+	{
+		g_printerr ( _("encrypt_file: gcry_malloc_secure failed (crypto)\n"));
+		gcry_free (inputKey);
+		g_free (filename);
+		g_free (cryptoBuffer);
+		g_free (derivedKey);
+		fclose (fp);
+		if (mode == ENCRYPT)
+			fclose (fpout);		
+		return -4;
+	}
+	
+	if ((macKey = gcry_malloc_secure (32)) == NULL)
+	{
+		g_printerr ( _("encrypt_file: gcry_malloc_secure failed (mac)\n"));
+		gcry_free (inputKey);
+		g_free (filename);
+		g_free (cryptoBuffer);
+		g_free (derivedKey);
+		g_free (cryptoKey);
+		fclose (fp);
+		if (mode == ENCRYPT)
+			fclose (fpout);		
+		return -4;
+	}
+	
+	tryAgainDerive:
+	if (gcry_kdf_derive (inputKey, pwdLen+1, GCRY_KDF_PBKDF2, GCRY_MD_SHA512, Metadata.salt, 32, 150000, 64, derived_key) != 0)
+	{
+		if (counterForGoto == 3)
+		{
+			g_printerr ( _("encrypt_file: Key derivation error\n"));
+			gcry_free (inputKey);
+			g_free (filename);
+			g_free (cryptoBuffer);
+			g_free (derivedKey);
+			g_free (cryptoKey);
+			fclose (fp);
+			if (mode == ENCRYPT)
+				fclose (fpout);	
+		}
+		counterForGoto += 1;
+		goto tryAgainDerive;
+	}
+	
+	memcpy (cryptoKey, derivedKey, 32);
+	memcpy (macKey, derivedKey+32, 32);
+
+	
 	return 0;
 }	
 

@@ -1,44 +1,5 @@
 void *encrypt_file_gui(struct widget_t *WidgetMain){
 
-	gcry_cipher_open(&hd, algo, mode, 0);
-	
-	if((derived_key = gcry_malloc_secure(64)) == NULL){
-		g_print(_("encrypt_file: gcry_malloc_secure failed (derived)\n"));
-		gcry_free(inputKey);
-		return;
-	}
-	
-	if((crypto_key = gcry_malloc_secure(32)) == NULL){
-		g_print(_("encrypt_file: gcry_malloc_secure failed (crypto)\n"));
-		gcry_free(inputKey);
-		gcry_free(derived_key);
-		return;
-	}
-	
-	if((mac_key = gcry_malloc_secure(32)) == NULL){
-		g_print(_("encrypt_file: gcry_malloc_secure failed (mac)\n"));
-		gcry_free(crypto_key);
-		gcry_free(inputKey);
-		gcry_free(derived_key);
-		return;
-	}
-
-	tryAgainDerive:
-	if(gcry_kdf_derive (inputKey, len+1, GCRY_KDF_PBKDF2, GCRY_MD_SHA512, Metadata.salt, 32, 150000, 64, derived_key) != 0){
-		if(counterForGoto == 3){
-			g_print(_("encrypt_file: Key derivation error\n"));
-			gcry_free(derived_key);
-			gcry_free(crypto_key);
-			gcry_free(mac_key);
-			gcry_free(inputKey);
-			return;
-		}
-		counterForGoto += 1;
-		goto tryAgainDerive;
-	}
-	memcpy(crypto_key, derived_key, 32);
-	memcpy(mac_key, derived_key + 32, 32);
-
 	gcry_cipher_setkey(hd, crypto_key, keyLength);
 	if(mode == GCRY_CIPHER_MODE_CBC)
 		gcry_cipher_setiv(hd, Metadata.iv, blkLength);
