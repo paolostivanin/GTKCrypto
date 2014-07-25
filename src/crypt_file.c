@@ -1,7 +1,6 @@
 #include <gtk/gtk.h>
 #include <glib.h>
 #include <glib/gstdio.h>
-#include <gdk-pixbuf/gdk-pixbuf.h>
 #include <gcrypt.h>
 #include <errno.h>
 #include <fcntl.h>
@@ -11,15 +10,19 @@
 #include <libnotify/notify.h>
 #include "polcrypt.h"
 
-guchar *calculate_hmac(const gchar *, const guchar *, gsize, gint);
-gint delete_input_file(const gchar *, gsize);
-gint check_pkcs7(guchar *, guchar *);
-static void send_notification(const gchar *, const gchar *);
+
 goffset get_file_size (const gchar *);
+guchar *calculate_hmac (const gchar *, const guchar *, gsize, gsize, gint);
+gint delete_input_file (const gchar *, gsize);
+gint check_pkcs7 (guchar *, guchar *);
+static void send_notification (const gchar *, const gchar *);
+static void free_res (gchar *, gchar *, guchar *, guchar *, guchar *, guchar *);
+static void close_file (FILE *, FILE *);
+
 
 gint
-crypt_file(struct widget_t *Widget,
-	   gint mode)
+crypt_file(	struct widget_t *Widget,
+		gint mode)
 {
 	struct metadata_t Metadata;
 	gcry_cipher_hd_t hd;
@@ -31,7 +34,7 @@ crypt_file(struct widget_t *Widget,
 	gint algo = -1, retVal, i, algoMode = -1, numberOfBlock = -1, blockDone = 0, numberOfPKCS7Bytes, counterForGoto = 0;	
 	
 	gchar *inputKey = NULL, *outFilename = NULL, *extBuf = NULL;
-	gchar *filename = g_strdup(Widget->filename); //remember to free it!!
+	gchar *filename = g_strdup(Widget->filename);
 	
 	gfloat divBy16;
 	glong currentFileOffset, bytesBeforeMAC;
@@ -130,9 +133,7 @@ crypt_file(struct widget_t *Widget,
 	if (!g_utf8_validate (pwd, -1, NULL))
 	{
 		send_notification ("ERROR", "The password you chose is not a valid UTF-8 string");
-		g_free (cryptoBuffer);
-		g_free (filename);
-		g_free (outFilename);
+		free_res (filename, outFilename, cryptoBuffer, NULL, NULL, NULL);
 		return -2;
 	}
 	pwdLen = strlen(pwd);
@@ -149,17 +150,6 @@ crypt_file(struct widget_t *Widget,
 		numberOfBlock = (gint) divBy16;
 		if (divBy16 > numberOfBlock)
 			numberOfBlock += 1;
-		
-		fpout = g_fopen (outFilename, "w");
-		if (fpout == NULL)
-		{
-			g_printerr ("%s\n", strerror (errno));
-			gcry_free (inputKey);
-			g_free (filename);
-			g_free (outFilename);
-			g_free (cryptoBuffer);
-			return -3;
-		}
 	}
 	else
 		fileSize = fileSize - 64 - sizeof (struct metadata_t);
@@ -169,11 +159,17 @@ crypt_file(struct widget_t *Widget,
 	{
 		g_printerr ("%s\n", strerror (errno));
 		gcry_free (inputKey);
-		g_free (filename);
-		g_free (outFilename);
-		g_free (cryptoBuffer);
-		if (mode == ENCRYPT)
-			fclose (fpout);
+		free_res (filename, outFilename, cryptoBuffer, NULL, NULL, NULL);
+		return -3;
+	}
+	
+	fpout = g_fopen (outFilename, "a");
+	if (fpout == NULL)
+	{
+		g_printerr ("%s\n", strerror (errno));
+		gcry_free (inputKey);
+		free_res (filename, outFilename, cryptoBuffer, NULL, NULL, NULL);
+		fclose (fp);
 		return -3;
 	}
 	
@@ -182,13 +178,17 @@ crypt_file(struct widget_t *Widget,
 		if (fseek (fp, 0, SEEK_SET) == -1)
 		{
 			g_printerr ("decrypt_file: %s\n", strerror(errno));
-			//esci e free
+			free_res (filename, outFilename, cryptoBuffer, NULL, NULL, NULL);
+			close_file (fp, fpout);
+			return -4;
 		}
 		
 		if (fread (&Metadata, sizeof (struct metadata_t), 1, fp) != 1)
 		{
 			g_printerr ( _("decrypt_file: cannot read file metadata_t\n"));
-			//esci e free
+			free_res (filename, outFilename, cryptoBuffer, NULL, NULL, NULL);
+			close_file (fp, fpout);
+			return -4;
 		}
 				
 		switch (Metadata.algoType)
@@ -233,42 +233,27 @@ crypt_file(struct widget_t *Widget,
 	{
 		g_printerr ( _("encrypt_file: gcry_malloc_secure failed (derived)\n"));
 		gcry_free (inputKey);
-		g_free (filename);
-		g_free (outFilename);
-		g_free (cryptoBuffer);
-		fclose (fp);
-		if (mode == ENCRYPT)
-			fclose (fpout);		
-		return -4;
+		free_res (filename, outFilename, cryptoBuffer, NULL, NULL, NULL);
+		close_file (fp, fpout);	
+		return -1;
 	}
 	
 	if ((cryptoKey = gcry_malloc_secure (32)) == NULL)
 	{
 		g_printerr ( _("encrypt_file: gcry_malloc_secure failed (crypto)\n"));
 		gcry_free (inputKey);
-		g_free (filename);
-		g_free (outFilename);
-		g_free (cryptoBuffer);
-		g_free (derivedKey);
-		fclose (fp);
-		if (mode == ENCRYPT)
-			fclose (fpout);		
-		return -4;
+		free_res (filename, outFilename, cryptoBuffer, derivedKey, NULL, NULL);
+		close_file (fp, fpout);		
+		return -1;
 	}
 	
 	if ((macKey = gcry_malloc_secure (32)) == NULL)
 	{
 		g_printerr ( _("encrypt_file: gcry_malloc_secure failed (mac)\n"));
 		gcry_free (inputKey);
-		g_free (filename);
-		g_free (outFilename);
-		g_free (cryptoBuffer);
-		g_free (derivedKey);
-		g_free (cryptoKey);
-		fclose (fp);
-		if (mode == ENCRYPT)
-			fclose (fpout);		
-		return -4;
+		free_res (filename, outFilename, cryptoBuffer, derivedKey, cryptoKey, NULL);
+		close_file (fp, fpout);		
+		return -1;
 	}
 	
 	tryAgainDerive:
@@ -278,14 +263,8 @@ crypt_file(struct widget_t *Widget,
 		{
 			g_printerr ( _("encrypt_file: Key derivation error\n"));
 			gcry_free (inputKey);
-			g_free (filename);
-			g_free (outFilename);
-			g_free (cryptoBuffer);
-			g_free (derivedKey);
-			g_free (cryptoKey);
-			fclose (fp);
-			if (mode == ENCRYPT)
-				fclose (fpout);	
+			free_res (filename, outFilename, cryptoBuffer, derivedKey, cryptoKey, macKey);
+			close_file (fp, fpout);
 		}
 		counterForGoto += 1;
 		goto tryAgainDerive;
@@ -304,45 +283,57 @@ crypt_file(struct widget_t *Widget,
 	{
 		numberOfBlock = fileSize / 16;
 		bytesBeforeMAC = fileSize + sizeof(struct metadata_t);
-		
-		fpout = g_fopen (outFilename, "a");
 				
 		if ((currentFileOffset = ftell (fp)) == -1)
 		{
 			g_printerr ("decrypt_file: %s\n", strerror (errno));
-			//free e return
+			free_res (filename, outFilename, cryptoBuffer, derivedKey, cryptoKey, macKey);
+			close_file (fp, fpout);
+			return -4;
 		}
 		
 		if (fseek (fp, bytesBeforeMAC, SEEK_SET) == -1)
 		{
 			g_printerr ("decrypt_file: %s\n", strerror (errno));
-			//free e return
+			free_res (filename, outFilename, cryptoBuffer, derivedKey, cryptoKey, macKey);
+			close_file (fp, fpout);
+			return -4;
 		}
 		
 		if (fread (fileMAC, 1, 64, fp) != 64)
 		{
 			g_printerr ("decrypt_file: %s\n", strerror (errno));
-			//free e return
+			free_res (filename, outFilename, cryptoBuffer, derivedKey, cryptoKey, macKey);
+			close_file (fp, fpout);
+			return -4;
 		}
-				
-		guchar *hmac = calculate_hmac(filename, macKey, keyLength, 1);
+
+		guchar *hmac = calculate_hmac(filename, macKey, keyLength, fileSize, 1);
 		if (hmac == (guchar *)1)
 		{
 			g_printerr ( _("Error during HMAC calculation\n"));
-			//free e return
+			gcry_free (inputKey);
+			free_res (filename, outFilename, cryptoBuffer, derivedKey, cryptoKey, macKey);
+			close_file (fp, fpout);
+			return -4;
 		}	
-		
+
 		if (memcmp (fileMAC, hmac, 64) != 0)
 		{
 			send_notification("PolCrypt", "HMAC doesn't match. This is caused by\n1) wrong password\nor\n2) corrupted file\n");
-			//free e return
+			free_res (filename, outFilename, cryptoBuffer, derivedKey, cryptoKey, macKey); //docazzooooooooooooooo
+			free(hmac);
+			close_file (fp, fpout);
+			return -5;
 		}
 		free(hmac);
 				
 		if (fseek (fp, currentFileOffset, SEEK_SET) == -1)
 		{
 			g_printerr ("decrypt_file: %s\n", strerror (errno));
-			//free e return	
+			free_res (filename, outFilename, cryptoBuffer, derivedKey, cryptoKey, macKey);
+			close_file (fp, fpout);
+			return -4;
 		}		
 	}
 	
@@ -360,21 +351,21 @@ crypt_file(struct widget_t *Widget,
 				{
 					for(i = retVal; i < 16; i++)
 					{
-						if(retVal == 1) text[i] = padding[14];
-						if(retVal == 2) text[i] = padding[13];
-						if(retVal == 3) text[i] = padding[12];
-						if(retVal == 4) text[i] = padding[11];
-						if(retVal == 5) text[i] = padding[10];
-						if(retVal == 6) text[i] = padding[9];
-						if(retVal == 7) text[i] = padding[8];
-						if(retVal == 8) text[i] = padding[7];
-						if(retVal == 9) text[i] = padding[6];
-						if(retVal == 10) text[i] = padding[5];
-						if(retVal == 11) text[i] = padding[4];
-						if(retVal == 12) text[i] = padding[3];
-						if(retVal == 13) text[i] = padding[2];
-						if(retVal == 14) text[i] = padding[1];
-						if(retVal == 15) text[i] = padding[0];
+						if (retVal == 1) text[i] = padding[14];
+						else if (retVal == 2) text[i] = padding[13];
+						else if (retVal == 3) text[i] = padding[12];
+						else if (retVal == 4) text[i] = padding[11];
+						else if (retVal == 5) text[i] = padding[10];
+						else if (retVal == 6) text[i] = padding[9];
+						else if (retVal == 7) text[i] = padding[8];
+						else if (retVal == 8) text[i] = padding[7];
+						else if (retVal == 9) text[i] = padding[6];
+						else if (retVal == 10) text[i] = padding[5];
+						else if (retVal == 11) text[i] = padding[4];
+						else if (retVal == 12) text[i] = padding[3];
+						else if (retVal == 13) text[i] = padding[2];
+						else if (retVal == 14) text[i] = padding[1];
+						else if (retVal == 15) text[i] = padding[0];
 					}
 				}
 				gcry_cipher_encrypt (hd, cryptoBuffer, 16, text, 16);
@@ -393,14 +384,14 @@ crypt_file(struct widget_t *Widget,
 			}
 		}
 		
-		fclose(fpout);
-		fclose(fp);
+		close_file (fp, fpout);
 		
-		guchar *hmac = calculate_hmac (outFilename, macKey, keyLength, 0);
+		guchar *hmac = calculate_hmac (outFilename, macKey, keyLength, fileSize, 0);
 		if (hmac == (guchar *)1)
 		{
 			g_printerr ( _("Error during HMAC calculation"));
-			//free e return
+			free_res (filename, outFilename, cryptoBuffer, derivedKey, cryptoKey, macKey);
+			return -4;
 		}
 		
 		fpout = g_fopen (outFilename, "a");
@@ -457,8 +448,9 @@ crypt_file(struct widget_t *Widget,
 			}
 		}
 		end:
-		fclose(fp);
-		fclose(fpout);
+		gcry_free (inputKey);
+		free_res (filename, outFilename, cryptoBuffer, derivedKey, cryptoKey, macKey);
+		close_file (fp, fpout);
 		send_notification("PolCrypt", "Decryption successfully done");
 	}
 
@@ -489,8 +481,8 @@ get_file_size (const gchar *filePath)
 
 
 static void
-send_notification (const gchar *title,
-		   const gchar *message)
+send_notification (	const gchar *title,
+			const gchar *message)
 {
 	NotifyNotification *n;
 	notify_init ("org.gtk.polcrypt");
@@ -499,4 +491,28 @@ send_notification (const gchar *title,
 	if (!notify_notification_show (n, NULL))
 		g_printerr ("Failed to send notification.\n");
         g_object_unref(G_OBJECT(n));
+}
+
+static void
+free_res (	gchar *inFl,
+		gchar *outFl,
+		guchar *buf,
+		guchar *dKey,
+		guchar *crKey,
+		guchar *mKey)
+{
+	if (inFl) g_free (inFl);
+	if (outFl) g_free (outFl);
+	if (buf) gcry_free (buf);
+	if (dKey) gcry_free (dKey);
+	if (crKey) gcry_free (crKey);
+	if (mKey) gcry_free (mKey);
+}
+
+static void
+close_file (	FILE *fpIn,
+		FILE *fpOut)
+{
+	if (fpIn) fclose (fpIn);
+	if (fpOut) fclose (fpOut);
 }

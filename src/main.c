@@ -13,6 +13,12 @@
 
 GCRY_THREAD_OPTION_PTHREAD_IMPL;
 
+/* ToDo:
+ * - hash;
+ * - thread;
+ * - when an error occurs show up a dialog instead of a notification
+ */
+
 GtkWidget *do_mainwin (GtkApplication *, struct widget_t *);
 static void choose_file (GtkWidget *, struct widget_t *);
 static void pwd_dialog (GtkWidget *, struct widget_t *, gint);
@@ -72,8 +78,8 @@ about (	GSimpleAction *action,
 
 
 static void
-startup (GtkApplication *application,
-	 gpointer data)
+startup (	GtkApplication *application,
+		gpointer data)
 {
 	static const GActionEntry actions[] = {
 		{ "about", about },
@@ -110,8 +116,8 @@ startup (GtkApplication *application,
 
 
 static void
-activate (GtkApplication *app,
-	  struct widget_t *Widget)
+activate (	GtkApplication *app,
+		struct widget_t *Widget)
 {
 	if (glib_check_version (2, 36, 0) != NULL){
 		fprintf(stderr, "The required version of GLib is 2.36.0 or greater.");
@@ -217,8 +223,8 @@ main (	int argc,
 
 
 GtkWidget
-*do_mainwin(GtkApplication *app,
-	    struct widget_t *Widget)
+*do_mainwin(	GtkApplication *app,
+		struct widget_t *Widget)
 {
 	static GtkWidget *window = NULL;
 	const gchar *my_icon = "/usr/share/icons/hicolor/128x128/apps/polcrypt.png";
@@ -254,8 +260,8 @@ GtkWidget
 
 
 static void
-choose_file (GtkWidget *button,
-	     struct widget_t *Widget)
+choose_file (	GtkWidget *button,
+		struct widget_t *Widget)
 {
 	GtkWidget *fileDialog;
 	GtkFileChooserAction action = GTK_FILE_CHOOSER_ACTION_OPEN;
@@ -289,9 +295,9 @@ choose_file (GtkWidget *button,
 
 
 static void
-pwd_dialog (GtkWidget *fileDialog,
-	    struct widget_t *Widget,
-	    gint cryptMode)
+pwd_dialog (	GtkWidget *fileDialog,
+		struct widget_t *Widget,
+		gint cryptMode)
 {
 	gtk_widget_hide (fileDialog);
 	
@@ -424,8 +430,9 @@ pwd_dialog (GtkWidget *fileDialog,
 			}
 			else
 			{
-				crypt_file (Widget, DECRYPT);
+				result = crypt_file (Widget, DECRYPT);
 				gtk_widget_destroy (dialog);
+				if (result == -5) goto restart;
 			}
 			break;
 			
@@ -441,8 +448,8 @@ pwd_dialog (GtkWidget *fileDialog,
 
 
 static gint
-check_pwd (GtkWidget *passEntry1,
-	   GtkWidget *passEntry2)
+check_pwd (	GtkWidget *passEntry1,
+		GtkWidget *passEntry2)
 {
 	const gchar *pw1 = gtk_entry_get_text (GTK_ENTRY (passEntry1));
 	const gchar *pw2 = gtk_entry_get_text (GTK_ENTRY (passEntry2));
@@ -459,9 +466,9 @@ check_pwd (GtkWidget *passEntry1,
 
 
 static GtkWidget
-*create_popover (GtkWidget *parent,
-		 GtkPositionType pos,
-		 struct widget_t *Widget)
+*create_popover (	GtkWidget *parent,
+			GtkPositionType pos,
+			struct widget_t *Widget)
 {
 
 	GtkWidget *popover, *box[3], *label[2], *hline[2], *vline;
@@ -523,8 +530,8 @@ hide_menu (struct widget_t *Widget)
 }
 
 static void
-toggle_changed_cb (GtkToggleButton *button,
-		   GtkWidget *popover)
+toggle_changed_cb (	GtkToggleButton *button,
+			GtkWidget *popover)
 {
 	gtk_widget_set_visible (popover, gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (button)));
 }

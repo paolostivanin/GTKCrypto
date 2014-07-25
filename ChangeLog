@@ -50,7 +50,7 @@
 	* ADDED: encryption and decryption processes now use thread
 	* ADDED: possibility to choose between CBC and CTR mode
 
-??/09/2014 - v2.2.0-beta2
+??/08/2014 - v2.2.0-rc
 	* FIXED: #18 and #19
 	* IMPROVED: codebase rewritten
 
