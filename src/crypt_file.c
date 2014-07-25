@@ -11,6 +11,7 @@
 #include "polcrypt.h"
 
 
+static goffset get_file_size (const gchar *);
 goffset get_file_size (const gchar *);
 guchar *calculate_hmac (const gchar *, const guchar *, gsize, gsize, gint);
 gint delete_input_file (const gchar *, gsize);
@@ -459,7 +460,7 @@ crypt_file(	struct widget_t *Widget,
 }	
 
 
-goffset
+static goffset
 get_file_size (const gchar *filePath)
 {
 	GFileInfo *info;
@@ -493,6 +494,7 @@ send_notification (	const gchar *title,
         g_object_unref(G_OBJECT(n));
 }
 
+
 static void
 free_res (	gchar *inFl,
 		gchar *outFl,
@@ -508,6 +510,7 @@ free_res (	gchar *inFl,
 	if (crKey) gcry_free (crKey);
 	if (mKey) gcry_free (mKey);
 }
+
 
 static void
 close_file (	FILE *fpIn,

@@ -27,6 +27,9 @@ static GtkWidget *create_popover (GtkWidget *, GtkPositionType, struct widget_t 
 static void hide_menu (struct widget_t *);
 static gint check_pwd (GtkWidget *, GtkWidget *);
 static void toggle_changed_cb (GtkToggleButton *, GtkWidget *);
+static void compute_sha2 (struct hashWidget_t *, gint);
+static void compute_sha3 (struct hashWidget_t *, gint);
+
 
 static void
 quit (	GSimpleAction *action,
@@ -223,7 +226,7 @@ main (	int argc,
 
 
 GtkWidget
-*do_mainwin(	GtkApplication *app,
+*do_mainwin (	GtkApplication *app,
 		struct widget_t *Widget)
 {
 	static GtkWidget *window = NULL;

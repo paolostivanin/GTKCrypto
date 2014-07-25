@@ -18,6 +18,7 @@
 #include <glib.h>
 #include <gtk/gtk.h>
 
+
 struct metadata_t{
 	gint8 algoType; //(NULL|0=aes),(1=serpent),(2=twofish),(3=camellia)
 	gint8 algoMode; //1=CBC,2=CTR

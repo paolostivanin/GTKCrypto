@@ -3,13 +3,12 @@ TMP_CF = -Wall -Wextra -D_FILE_OFFSET_BITS=64 -U_FORTIFY_SOURCE -D_FORTIFY_SOURC
 
 LDFLAGS = -Wl,-z,now -Wl,-z,relro -lgcrypt -lnettle -lnotify
 
-#GUI_HASH_SOURCES = src/hashes/md5.c src/hashes/sha1.c src/hashes/sha256.c src/hashes/sha3-256.c src/hashes/sha512.c src/hashes/sha3-512.c src/hashes/whirlpool.c src/hashes/gost94.c
-#GUI_SOURCES = src/main.c src/check_pkcs7.c src/encrypt_file.c src/decrypt_file.c src/hmac.c src/delete_input_file.c src/random_write.c src/zero_write.c src/prepare_text.c
-TMP_GUI = src/*.c
+SOURCES = src/main.c src/crypt_file.c src/sha2.c src/sha3.c src/check_pkcs7.c src/delete_input_file.c src/hmac.c src/random_write.c src/zero_write.c
 
 OUT = polcrypt
 
 all: polcrypt
+
 install:
 	mkdir -v /usr/share/polcrypt
 	test -s polcrypt && cp -v polcrypt /usr/bin/ || echo "--> GUI not built, please type make before make install"
@@ -22,9 +21,5 @@ uninstall:
 	rm -vr /usr/share/polcrypt
 	rm -v /usr/bin/polcrypt
 
-$(OUT): $(TMP_GUI)
-	$(CC) $(TMP_GUI) ${TMP_CF} -o $(OUT) $(LDFLAGS) `pkg-config --cflags --libs gtk+-3.0`
-
-#$(OUT): $(GUI_SOURCES)
-#	$(CC) $(CFLAGS) $(GUI_SOURCES) $(GUI_HASH_SOURCES) -o $(OUT) $(LDFLAGS) `pkg-config --cflags --libs gtk+-3.0`
-
+$(OUT): $(SOURCES)
+	$(CC) $(SOURCES) ${TMP_CF} -o $(OUT) $(LDFLAGS) `pkg-config --cflags --libs gtk+-3.0`
