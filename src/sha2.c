@@ -16,7 +16,7 @@
 static goffset get_file_size (const gchar *);
 
 
-static void
+void
 compute_sha2 (	struct hashWidget_t *HashWidget,
 		gint bit)
 {
@@ -79,7 +79,7 @@ compute_sha2 (	struct hashWidget_t *HashWidget,
 	fd = g_open (HashWidget->filename, O_RDONLY | O_NOFOLLOW);
 	if (fd == -1)
 	{
-		g_printerr ("sha2: %s\n", g_strerror(errno));
+		g_printerr ("sha2: %s\n", g_strerror (errno));
 		return;
 	}
   	
@@ -95,7 +95,7 @@ compute_sha2 (	struct hashWidget_t *HashWidget,
 		fAddr = mmap (NULL, fileSize, PROT_READ, MAP_FILE | MAP_SHARED, fd, 0);
 		if (fAddr == MAP_FAILED)
 		{
-			g_printerr ("sha2: %s\n", g_strerror(errno));
+			g_printerr ("sha2: %s\n", g_strerror (errno));
 			g_free (digest);
 			g_free (hash);
 			g_close (fd, &err);
@@ -109,7 +109,7 @@ compute_sha2 (	struct hashWidget_t *HashWidget,
 		retVal = munmap (fAddr, fileSize);
 		if (retVal == -1)
 		{
-			g_printerr ("sha2: %s\n", g_strerror(errno));
+			g_printerr ("sha2: %s\n", g_strerror (errno));
 			g_free (digest);
 			g_free (hash);
 			g_close (fd, &err);
@@ -123,7 +123,7 @@ compute_sha2 (	struct hashWidget_t *HashWidget,
 		fAddr = mmap (NULL, BUF_FILE, PROT_READ, MAP_FILE | MAP_SHARED, fd, offset);
 		if (fAddr == MAP_FAILED)
 		{
-			g_printerr ("sha2: %s\n", g_strerror(errno));
+			g_printerr ("sha2: %s\n", g_strerror (errno));
 			g_free (digest);
 			g_free (hash);
 			g_close (fd, &err);
@@ -144,7 +144,7 @@ compute_sha2 (	struct hashWidget_t *HashWidget,
 			fAddr = mmap (NULL, diff, PROT_READ, MAP_FILE | MAP_SHARED, fd, offset);
 			if (fAddr == MAP_FAILED)
 			{
-				g_printerr ("sha2: %s\n", g_strerror(errno));
+				g_printerr ("sha2: %s\n", g_strerror (errno));
 				g_free (digest);
 				g_free (hash);
 				g_close (fd, &err);
@@ -158,7 +158,7 @@ compute_sha2 (	struct hashWidget_t *HashWidget,
 				
 			retVal = munmap(fAddr, BUF_FILE);
 			if(retVal == -1){
-				g_printerr ("sha2: %s\n", g_strerror(errno));
+				g_printerr ("sha2: %s\n", g_strerror (errno));
 				g_free (digest);
 				g_free (hash);
 				g_close (fd, &err);
@@ -170,7 +170,7 @@ compute_sha2 (	struct hashWidget_t *HashWidget,
 		retVal = munmap(fAddr, BUF_FILE);
 		if(retVal == -1)
 		{
-			g_printerr ("sha2: %s\n", g_strerror(errno));
+			g_printerr ("sha2: %s\n", g_strerror (errno));
 			g_free (digest);
 			g_free (hash);
 			g_close (fd, &err);
@@ -182,18 +182,18 @@ compute_sha2 (	struct hashWidget_t *HashWidget,
 	if (bit == 256)
 	{
 		sha256_digest(&ctx256, SHA256_DIGEST_SIZE, digest);
-		for(i=0; i<32; i++){
-			sprintf(hash+(i*2), "%02x", digest[i]);
-		}
+		for(i=0; i<32; i++)
+			g_sprintf (hash+(i*2), "%02x", digest[i]);
+
 		hash[64] = '\0';
 		gtk_entry_set_text (GTK_ENTRY (HashWidget->hashEntry[2]), hash);		
 	}
 	else
 	{
 		sha512_digest(&ctx512, SHA512_DIGEST_SIZE, digest);
-		for(i=0; i<64; i++){
-			sprintf(hash+(i*2), "%02x", digest[i]);
-		}
+		for(i=0; i<64; i++)
+			g_sprintf (hash+(i*2), "%02x", digest[i]);
+
 		hash[128] = '\0';
 		gtk_entry_set_text (GTK_ENTRY (HashWidget->hashEntry[4]), hash);		
 	}

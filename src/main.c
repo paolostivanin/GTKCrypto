@@ -27,8 +27,13 @@ static GtkWidget *create_popover (GtkWidget *, GtkPositionType, struct widget_t 
 static void hide_menu (struct widget_t *);
 static gint check_pwd (GtkWidget *, GtkWidget *);
 static void toggle_changed_cb (GtkToggleButton *, GtkWidget *);
-static void compute_sha2 (struct hashWidget_t *, gint);
-static void compute_sha3 (struct hashWidget_t *, gint);
+static void compute_hash();
+
+void compute_sha2 (struct hashWidget_t *, gint);
+void compute_sha3 (struct hashWidget_t *, gint);
+void compute_md5 (struct hashWidget_t *);
+void compute_gost94 (struct hashWidget_t *);
+void compute_whir (struct hashWidget_t *);
 
 
 static void
@@ -171,7 +176,7 @@ activate (	GtkApplication *app,
 	g_signal_connect (button[1], "clicked", G_CALLBACK (choose_file), Widget);
 	g_signal_connect (button[2], "clicked", G_CALLBACK (quit), app);
 	g_signal_connect (button[3], "clicked", G_CALLBACK (quit), app);
-	g_signal_connect (button[4], "clicked", G_CALLBACK (quit), app);
+	g_signal_connect (button[4], "clicked", G_CALLBACK (choose_file), NULL);
 	g_signal_connect (button[5], "clicked", G_CALLBACK (quit), app);
 	
 	grid = gtk_grid_new();
@@ -285,6 +290,8 @@ choose_file (	GtkWidget *button,
 				pwd_dialog (fileDialog, Widget, ENCRYPT);
 			else if (g_strcmp0 (name, "butDe") == 0)
 				pwd_dialog (fileDialog, Widget, DECRYPT);
+			else if (g_strcmp0 (name, "butHa") == 0)
+				compute_hash();
 				
 			g_free (Widget->filename);
 			break;
@@ -537,4 +544,10 @@ toggle_changed_cb (	GtkToggleButton *button,
 			GtkWidget *popover)
 {
 	gtk_widget_set_visible (popover, gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (button)));
+}
+
+static void
+compute_hash()
+{
+	struct hashWidget_t HashWidget;
 }

@@ -3,7 +3,7 @@ TMP_CF = -Wall -Wextra -D_FILE_OFFSET_BITS=64 -U_FORTIFY_SOURCE -D_FORTIFY_SOURC
 
 LDFLAGS = -Wl,-z,now -Wl,-z,relro -lgcrypt -lnettle -lnotify
 
-SOURCES = src/main.c src/crypt_file.c src/sha2.c src/sha3.c src/check_pkcs7.c src/delete_input_file.c src/hmac.c src/random_write.c src/zero_write.c
+SOURCES = src/*.c
 
 OUT = polcrypt
 
