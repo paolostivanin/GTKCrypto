@@ -17,9 +17,16 @@ static goffset get_file_size (const gchar *);
 
 
 void
-compute_sha2 (	struct hashWidget_t *HashWidget,
-		gint bit)
+compute_sha2 (	GtkWidget *checkBt,
+		struct hashWidget_t *HashWidget)
 {
+	gint bit;
+	
+	if (g_strcmp0 (gtk_widget_get_name (checkBt), "BtSha256") == 0)
+		bit = 256;
+	else if (g_strcmp0 (gtk_widget_get_name (checkBt), "BtSha512") == 0)
+		bit = 512;
+	
 	if (bit == 256)
 	{
 		if (!gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (HashWidget->hashCheck[2])))
@@ -32,7 +39,7 @@ compute_sha2 (	struct hashWidget_t *HashWidget,
 	}
 	else
 	{
-		if (!gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (HashWidget->hashCheck[2])))
+		if (!gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (HashWidget->hashCheck[4])))
 		{
 			gtk_entry_set_text (GTK_ENTRY (HashWidget->hashEntry[4]), "");
 			goto fine;

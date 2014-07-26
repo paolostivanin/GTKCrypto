@@ -10,13 +10,13 @@
 #define NUM_OF_BUTTONS 6
 #define NUM_OF_FRAMES 2
 #define NUM_OF_BOXES 2
+#define NUM_OF_HASH 8
 
 GCRY_THREAD_OPTION_PTHREAD_IMPL;
 
 /* ToDo:
- * - hash;
- * - thread;
- * - when an error occurs show up a dialog instead of a notification
+ * - threads;
+ * - info dialog on error
  */
 
 GtkWidget *do_mainwin (GtkApplication *, struct widget_t *);
@@ -27,13 +27,14 @@ static GtkWidget *create_popover (GtkWidget *, GtkPositionType, struct widget_t 
 static void hide_menu (struct widget_t *);
 static gint check_pwd (GtkWidget *, GtkWidget *);
 static void toggle_changed_cb (GtkToggleButton *, GtkWidget *);
-static void compute_hash();
+static void compute_hash (GtkWidget *, GtkWidget *, const gchar *);
 
-void compute_sha2 (struct hashWidget_t *, gint);
-void compute_sha3 (struct hashWidget_t *, gint);
+void compute_sha2 (struct hashWidget_t *, GtkWidget *);
+void compute_sha3 (struct hashWidget_t *, GtkWidget *);
 void compute_md5 (struct hashWidget_t *);
+void compute_sha1 (struct hashWidget_t *);
 void compute_gost94 (struct hashWidget_t *);
-void compute_whir (struct hashWidget_t *);
+void compute_whirlpool (struct hashWidget_t *);
 
 
 static void
@@ -176,7 +177,7 @@ activate (	GtkApplication *app,
 	g_signal_connect (button[1], "clicked", G_CALLBACK (choose_file), Widget);
 	g_signal_connect (button[2], "clicked", G_CALLBACK (quit), app);
 	g_signal_connect (button[3], "clicked", G_CALLBACK (quit), app);
-	g_signal_connect (button[4], "clicked", G_CALLBACK (choose_file), NULL);
+	g_signal_connect (button[4], "clicked", G_CALLBACK (choose_file), Widget);
 	g_signal_connect (button[5], "clicked", G_CALLBACK (quit), app);
 	
 	grid = gtk_grid_new();
@@ -291,7 +292,7 @@ choose_file (	GtkWidget *button,
 			else if (g_strcmp0 (name, "butDe") == 0)
 				pwd_dialog (fileDialog, Widget, DECRYPT);
 			else if (g_strcmp0 (name, "butHa") == 0)
-				compute_hash();
+				compute_hash (fileDialog, Widget->mainwin, Widget->filename);
 				
 			g_free (Widget->filename);
 			break;
@@ -547,7 +548,103 @@ toggle_changed_cb (	GtkToggleButton *button,
 }
 
 static void
-compute_hash()
+compute_hash (GtkWidget *fileDialog, GtkWidget *mainwin, const gchar *filename)
 {
+	gtk_widget_hide (GTK_WIDGET (fileDialog));
+	
 	struct hashWidget_t HashWidget;
+	
+	gsize lenFilename = g_utf8_strlen (filename, -1);
+	
+	HashWidget.filename = g_malloc (lenFilename + 1);
+	if (HashWidget.filename == NULL)
+	{
+		g_printerr ("Error during memory allocation\n");
+		return;
+	}
+	g_utf8_strncpy (HashWidget.filename, filename, lenFilename);
+	HashWidget.filename[lenFilename] = '\0';
+	
+	gint i, result;
+	const gchar *label[] = {"MD5", "SHA-1", "SHA-256", "SHA3-256", "SHA512", "SHA3-512", "WHIRLPOOL", "GOST94"};
+	GtkWidget *contentArea, *grid, *dialog;
+	GtkDialogFlags flags = GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT;
+
+	PangoFontDescription *newFont = pango_font_description_new ();
+	pango_font_description_set_family (newFont, "monospace");
+	
+	dialog = gtk_dialog_new_with_buttons ("Select Hash",
+				     GTK_WINDOW (mainwin),
+				     flags,
+				     _("Cancel"), GTK_RESPONSE_REJECT,
+				     NULL);
+
+	gtk_widget_set_size_request (dialog, 250, 150);
+	
+	contentArea = gtk_dialog_get_content_area (GTK_DIALOG (dialog));
+	
+	for (i = 0; i < NUM_OF_HASH; i++)
+	{
+		HashWidget.hashCheck[i] = gtk_check_button_new_with_label (label[i]);
+		HashWidget.hashEntry[i] = gtk_entry_new ();
+		gtk_editable_set_editable (GTK_EDITABLE (HashWidget.hashEntry[i]), FALSE);
+		gtk_widget_override_font (GTK_WIDGET (HashWidget.hashEntry[i]), newFont);
+	}
+	
+	pango_font_description_free (newFont);
+	
+	grid = gtk_grid_new ();
+	gtk_grid_set_row_homogeneous (GTK_GRID (grid), TRUE);
+	gtk_grid_set_column_homogeneous (GTK_GRID (grid), TRUE);
+	gtk_grid_set_row_spacing (GTK_GRID (grid), 5);
+	
+	gtk_grid_attach (GTK_GRID (grid), HashWidget.hashCheck[0], 0, 0, 1, 1);
+	gtk_grid_attach (GTK_GRID (grid), HashWidget.hashEntry[0], 2, 0, 6, 1);
+
+	gtk_grid_attach (GTK_GRID (grid), HashWidget.hashCheck[1], 0, 1, 1, 1);
+	gtk_grid_attach (GTK_GRID (grid), HashWidget.hashEntry[1], 2, 1, 6, 1);
+
+	gtk_grid_attach (GTK_GRID (grid), HashWidget.hashCheck[2], 0, 2, 1, 1);
+	gtk_grid_attach (GTK_GRID (grid), HashWidget.hashEntry[2], 2, 2, 6, 1);
+
+	gtk_grid_attach (GTK_GRID (grid), HashWidget.hashCheck[3], 0, 3, 1, 1);
+	gtk_grid_attach (GTK_GRID (grid), HashWidget.hashEntry[3], 2, 3, 6, 1);
+
+	gtk_grid_attach (GTK_GRID (grid), HashWidget.hashCheck[4], 0, 4, 1, 1);
+	gtk_grid_attach (GTK_GRID (grid), HashWidget.hashEntry[4], 2, 4, 6, 1);
+
+	gtk_grid_attach (GTK_GRID (grid), HashWidget.hashCheck[5], 0, 5, 1, 1);
+	gtk_grid_attach (GTK_GRID (grid), HashWidget.hashEntry[5], 2, 5, 6, 1);
+
+	gtk_grid_attach (GTK_GRID (grid), HashWidget.hashCheck[6], 0, 6, 1, 1);
+	gtk_grid_attach (GTK_GRID (grid), HashWidget.hashEntry[6], 2, 6, 6, 1);
+
+	gtk_grid_attach (GTK_GRID (grid), HashWidget.hashCheck[7], 0, 7, 1, 1);
+	gtk_grid_attach (GTK_GRID (grid), HashWidget.hashEntry[7], 2, 7, 6, 1);
+
+	gtk_container_add (GTK_CONTAINER (contentArea), grid);
+	gtk_widget_show_all (dialog);
+	
+	gtk_widget_set_name (GTK_WIDGET (HashWidget.hashCheck[2]), "BtSha256");
+	gtk_widget_set_name (GTK_WIDGET (HashWidget.hashCheck[3]), "BtSha3_256");
+	gtk_widget_set_name (GTK_WIDGET (HashWidget.hashCheck[4]), "BtSha512");
+	gtk_widget_set_name (GTK_WIDGET (HashWidget.hashCheck[5]), "BtSha3_512");
+	
+	g_signal_connect_swapped (HashWidget.hashCheck[0], "clicked", G_CALLBACK (compute_md5), &HashWidget);
+	g_signal_connect_swapped (HashWidget.hashCheck[1], "clicked", G_CALLBACK (compute_sha1), &HashWidget);
+	g_signal_connect (HashWidget.hashCheck[2], "clicked", G_CALLBACK (compute_sha2), &HashWidget);
+	g_signal_connect (HashWidget.hashCheck[3], "clicked", G_CALLBACK (compute_sha3), &HashWidget);
+	g_signal_connect (HashWidget.hashCheck[4], "clicked", G_CALLBACK (compute_sha2), &HashWidget);
+	g_signal_connect (HashWidget.hashCheck[5], "clicked", G_CALLBACK (compute_sha3), &HashWidget);
+	g_signal_connect_swapped (HashWidget.hashCheck[6], "clicked", G_CALLBACK (compute_whirlpool), &HashWidget);
+	g_signal_connect_swapped (HashWidget.hashCheck[7], "clicked", G_CALLBACK (compute_gost94), &HashWidget);
+	
+	result = gtk_dialog_run (GTK_DIALOG (dialog));
+	switch (result)
+	{
+		case GTK_RESPONSE_REJECT:
+			g_free (HashWidget.filename);
+			gtk_widget_destroy (dialog);
+			break;
+	}
 }
