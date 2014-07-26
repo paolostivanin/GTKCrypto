@@ -1,167 +1,104 @@
-#: src/decrypt_file.c:41
-#, c-format
-msgid "decrypt_file: error during memory allocation"
+#: src/crypt_file.c:59
+msgid "crypt_file: error during memory allocation (decBuffer)"
 msgstr ""
 
-#: src/decrypt_file.c:98
-#, c-format
+#: src/crypt_file.c:108
+msgid "crypt_file: error during memory allocation (extBuf)"
+msgstr ""
+
+#: src/crypt_file.c:189
 msgid "decrypt_file: cannot read file metadata_t\n"
 msgstr ""
 
-#: src/decrypt_file.c:142
-#, c-format
-msgid "decrypt_file: gcry_malloc_secure failed at line 108\n"
+#: src/crypt_file.c:235
+msgid "encrypt_file: gcry_malloc_secure failed (derived)\n"
 msgstr ""
 
-#: src/decrypt_file.c:148
-#, c-format
-msgid "decrypt_file: gcry_malloc_secure failed at line 114\n"
+#: src/crypt_file.c:244
+msgid "encrypt_file: gcry_malloc_secure failed (crypto)\n"
 msgstr ""
 
-#: src/decrypt_file.c:154
-#, c-format
-msgid "decrypt_file: gcry_malloc_secure failed at line 120\n"
+#: src/crypt_file.c:253
+msgid "encrypt_file: gcry_malloc_secure failed (mac)\n"
 msgstr ""
 
-#: src/decrypt_file.c:162
-#, c-format
-msgid "decrypt_file: Key derivation error\n"
-msgstr ""
-
-#: src/decrypt_file.c:201
-#, c-format
-msgid "decrypt_file: fread mac error\n"
-msgstr ""
-
-#: src/decrypt_file.c:210
-msgid "Error during HMAC calculation\n"
-msgstr ""
-
-#: src/decrypt_file.c:218
-msgid ""
-"HMAC doesn't match. This is caused by\n"
-"1) wrong password\n"
-"or\n"
-"2) corrupted file\n"
-msgstr ""
-
-#: src/encrypt_file.c:131
-#, c-format
-msgid "encrypt_file: gcry_malloc_secure failed at line 86\n"
-msgstr ""
-
-#: src/encrypt_file.c:136
-#, c-format
-msgid "encrypt_file: gcry_malloc_secure failed at line 91\n"
-msgstr ""
-
-#: src/encrypt_file.c:143
-#, c-format
-msgid "encrypt_file: gcry_malloc_secure failed at line 98\n"
-msgstr ""
-
-#: src/encrypt_file.c:153
-#, c-format
+#: src/crypt_file.c:265
 msgid "encrypt_file: Key derivation error\n"
 msgstr ""
 
-#: src/encrypt_file.c:214
+#: src/crypt_file.c:315
+msgid "Error during HMAC calculation\n"
+msgstr ""
+
+#: src/crypt_file.c:393
 msgid "Error during HMAC calculation"
 msgstr ""
 
-#: src/encrypt_file.c:227
+#: src/crypt_file.c:404
 msgid "Secure file deletion failed, overwrite it manually"
 msgstr ""
 
-#: src/encrypt_file.c:229
+#: src/crypt_file.c:406
 msgid "File unlink failed, remove it manually"
 msgstr ""
 
-#: src/main.c:87
+#: src/main.c:69
+msgid "Encrypt and decrypt a file using different cipher algo and different ciper mode or compute its hash using different hash algo"
+msgstr ""
+
+#: src/main.c:113
 msgid "About"
 msgstr ""
 
-#: src/main.c:88
+#: src/main.c:118
 msgid "Quit"
 msgstr ""
 
-#: src/main.c:119
+#: src/main.c:254
 #, c-format
-msgid "Welcome to PolCrypt %s"
+msgid "PolCrypt %s"
 msgstr ""
 
-#: src/main.c:126
-msgid "Encrypt File"
-msgstr ""
-
-#: src/main.c:127
-msgid "Decrypt File"
-msgstr ""
-
-#: src/main.c:128
-msgid "Compute Hash"
-msgstr ""
-
-#: src/main.c:165
+#: src/main.c:278
 msgid "Choose File"
 msgstr ""
 
-#: src/main.c:165
-msgid "_Cancel"
+#: src/main.c:281 src/main.c:352
+msgid "OK"
 msgstr ""
 
-#: src/main.c:165 src/main.c:187 src/main.c:263
-msgid "_Ok"
+#: src/main.c:282 src/main.c:353 src/main.c:579
+msgid "Cancel"
 msgstr ""
 
-#: src/main.c:187
+#: src/main.c:328
 msgid "Encryption Password"
 msgstr ""
 
-#: src/main.c:187 src/main.c:263 src/main.c:337
-msgid "_Quit"
+#: src/main.c:339
+msgid "Settings"
 msgstr ""
 
-#: src/main.c:200 src/main.c:266
+#: src/main.c:364
 msgid "Type password"
 msgstr ""
 
-#: src/main.c:201
+#: src/main.c:367
 msgid "Retype password"
 msgstr ""
 
-#: src/main.c:202
-msgid "Select Algo"
-msgstr ""
-
-#: src/main.c:211
+#: src/main.c:380
 msgid "Encrypting and deleting the file can take some minutes depending on the file size..."
 msgstr ""
 
-#: src/main.c:251
-msgid "Password are different, try again!"
-msgstr ""
-
-#: src/main.c:252
-msgid "Your password is too short (less than 8 chars)"
-msgstr ""
-
-#: src/main.c:263
-msgid "Decryption Password"
-msgstr ""
-
-#: src/main.c:273
+#: src/main.c:382
 msgid "Decrypting the file can take some minutes depending on the file size..."
 msgstr ""
 
-#: src/main.c:337
-msgid "Select Hash"
+#: src/main.c:489
+msgid "Cipher Algo"
 msgstr ""
 
-#: src/main.c:439
-msgid "Encrypt files using single or multiple encryption and compute different type of hash"
-msgstr ""
-
-#: src/main.c:480
-msgid "Error"
+#: src/main.c:490
+msgid "Cipher Mode"
 msgstr ""

@@ -14,8 +14,8 @@ Security
 * Confidentiality is given by AES/Twofish/Serpent/Camellia;
 * Integrity is given by the MAC calculation (MAC = HMAC+SHA512);
 * The input key is derived using PBKDF2 with 150'000 iterations and using SHA512 as hash algo;
-* High security because your key is temporarly stored into a secure memory that will be destroyed when the program exit;
-* The input file will be overwritten prior its removing (secure file deletion);
+* The key is temporarly stored inside a secure memory that will be destroyed when the program exits;
+* The original file will be overwritten prior its removing (secure file deletion);
 
 
 Latest release
