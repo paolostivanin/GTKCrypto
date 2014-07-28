@@ -5,9 +5,9 @@
 #define BUFSIZE 2097152  /* 2 MiB memory buffer (delete_input_file) */
 
 #define GCRYPT_MIN_VER "1.5.0"
-#define VERSION "2.2.0-beta3"
+#define VERSION "3.0-beta"
 
-#define HEADERBAR_BUF 22 /* buffer for the headerbar's title */
+#define HEADERBAR_BUF 19 /* buffer for the headerbar's title */
 
 #define ENCRYPT 0
 #define DECRYPT 1

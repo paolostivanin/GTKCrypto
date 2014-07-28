@@ -14,11 +14,6 @@
 
 GCRY_THREAD_OPTION_PTHREAD_IMPL;
 
-/* ToDo:
- * - threads;
- * - info dialog on error
- */
-
 GtkWidget *do_mainwin (GtkApplication *, struct widget_t *);
 static void choose_file (GtkWidget *, struct widget_t *);
 static void pwd_dialog (GtkWidget *, struct widget_t *, gint);
@@ -128,8 +123,8 @@ static void
 activate (	GtkApplication *app,
 		struct widget_t *Widget)
 {
-	if (glib_check_version (2, 36, 0) != NULL){
-		fprintf(stderr, "The required version of GLib is 2.36.0 or greater.");
+	if (glib_check_version (2, 40, 0) != NULL){
+		fprintf(stderr, "The required version of GLib is 2.40.0 or greater.");
 		return;
 	}
 	if (gtk_check_version (3, 12, 0) != NULL){
