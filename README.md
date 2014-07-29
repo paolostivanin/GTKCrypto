@@ -20,7 +20,7 @@ Security
 
 Latest release
 --------------
-The latest stable release (v2.2.0) can be found in the 'master' branch, just clone it :)
+The latest can be found here: https://github.com/polslinux/PolCrypt/releases
 
 
 Requirements
