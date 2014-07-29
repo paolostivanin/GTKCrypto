@@ -44,6 +44,7 @@
 27/03/2014 - v2.1.1
 	* REMOVED: multiple encryption (it isn't really useful)
 
+<<<<<<< HEAD
 3w/06/2014 - v2.2.0
 	* ADDED: possibility to choose between file or text encryption
 	* ADDED: new gui (header bar, popover, new main gui)
@@ -54,3 +55,16 @@
 	* ADDED: multiple file selection for en/de/cryption
 	* ADDED: asymmetric encryption support (with RSA or with a ECC algo)
 	* ADDED: compression using zlib
+=======
+??/08/2014 - v3.0
+	* NEW: codebase completely rewritten
+	* NEW: possibility to choose between file or text encryption
+	* NEW: gui (header bar, popover, new main gui)
+	* NEW: possibility to choose between CBC and CTR mode
+	* NEW: multiple file selection for en/de/cryption
+	* IMPROVED: encryption and decryption processes now use thread
+	
+??/11/2014 - v3.1.0
+	* NEW: asymmetric encryption support (with RSA or with a ECC algo)
+	* NEW: compression using zlib
+>>>>>>> 2.2.0-dev

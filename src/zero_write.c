@@ -1,36 +1,43 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <fcntl.h>
+#include <gtk/gtk.h>
 #include <glib.h>
-#include <unistd.h>
+#include <glib/gstdio.h>
+#include <gcrypt.h>
 #include <errno.h>
-#include <sys/types.h>
-#include <sys/stat.h>
+#include <fcntl.h>
 #include "polcrypt.h"
 
-gint zero_write(gint file, size_t fSize, gint isBigger){
-	if(isBigger  == 0){
+gint
+zero_write (	gint file,
+		size_t fSize,
+		gint isBigger)
+{
+	if (isBigger  == 0)
+	{
 		guchar zBuf[fSize];
-		memset(zBuf, 0, sizeof(zBuf));
-		write(file, zBuf, sizeof(zBuf));
-		if(fsync(file) == -1){
-			fprintf(stderr, "zero_write fsync: %s\n", strerror(errno));
+		memset (zBuf, 0, sizeof (zBuf));
+		write (file, zBuf, sizeof (zBuf));
+		if (fsync (file) == -1)
+		{
+			g_printerr ("zero_write fsync: %s\n", g_strerror(errno));
 			return -1;
 		}
 		return 0;
 	}
-	else{
+	else
+	{
 		guchar zBuf[BUFSIZE];
-		memset(zBuf, 0, sizeof(zBuf));
-		size_t doneSize = 0, writeBytes = 0;
-		while(fSize > doneSize){
-			writeBytes = write(file, zBuf, sizeof(zBuf));
+		memset (zBuf, 0, sizeof (zBuf));
+		gsize doneSize = 0, writeBytes = 0;
+		while (fSize > doneSize)
+		{
+			writeBytes = write (file, zBuf, sizeof (zBuf));
 			doneSize += writeBytes;
-			if((fSize-doneSize) > 0 && (fSize-doneSize) < BUFSIZE){
-				write(file, zBuf, (fSize-doneSize));
-				if(fsync(file) == -1){
-					fprintf(stderr, "zero_write fsync: %s\n", strerror(errno));
+			if ((fSize-doneSize) > 0 && (fSize-doneSize) < BUFSIZE)
+			{
+				write (file, zBuf, (fSize-doneSize));
+				if (fsync (file) == -1)
+				{
+					g_printerr ("zero_write fsync: %s\n", g_strerror(errno));
 					return -1;
 				}
 				break;

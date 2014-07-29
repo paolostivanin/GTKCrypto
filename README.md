@@ -2,10 +2,11 @@ PolCrypt
 ========
 
 This software let you to:
-* Encrypt and decrypt files using AES, Twofish, Serpent or Camellia (all with a 256bit key and in CBC mode);
+* Encrypt and decrypt files using AES, Twofish, Serpent or Camellia (256bit, CBC or CTR mode);
+* Encrypt and decrypt text using AES, Twofish, Serpent or Camellia (256bit, CTR mode)
 * Compute the hash of a given file (supported hashes are MD5, GOST94, SHA-1, SHA-256, SHA3-256, SHA-512, SHA3-512 and Whirlpool);
 
-This software is developed by Paolo Stivanin (a.k.a Polslinux)
+This software is developed by Paolo "Polslinux" Stivanin (https://www.paolostivanin.com)
 
 
 Security
@@ -13,22 +14,22 @@ Security
 * Confidentiality is given by AES/Twofish/Serpent/Camellia;
 * Integrity is given by the MAC calculation (MAC = HMAC+SHA512);
 * The input key is derived using PBKDF2 with 150'000 iterations and using SHA512 as hash algo;
-* High security because your key is temporarly stored into a secure memory that will be destroyed when the program exit;
-* The input file will be overwritten prior its removing (secure file deletion);
+* The key is temporarly stored inside a secure memory that will be destroyed when the program exits;
+* The original file will be overwritten prior its removing (secure file deletion);
 
 
 Latest release
 --------------
-The latest stable release (v2.1.1) can be found in the 'master' branch, just clone it :)
+The latest can be found here: https://github.com/polslinux/PolCrypt/releases
 
 
 Requirements
 ------------
-* GCC or Clang	: required version of Clang **>= 3.1**, of GCC **>= 4.4.0**;
+* GCC or Clang	: required version of Clang **>= 3.2**, of GCC **>= 4.6.0**;
 * Gcrypt	: required version **>=1.5.0**;
 * Nettle	: required version **>=2.6.0**;
-* GTK+		: required version **>=3.4.0**;
-* Glib		: required version **>=2.36.0**;
+* GTK+		: required version **>=3.12.0**;
+* Glib		: required version **>=2.40.0**;
 
 
 How to compile
