@@ -85,7 +85,7 @@ compute_md5 (struct hashWidget_t *HashWidget)
 				return;
 			}
 			md5_update (&ctx, diff, fAddr);
-			retVal = munmap (fAddr, BUF_FILE);
+			retVal = munmap (fAddr, diff);
 			if (retVal == -1)
 			{
 				g_printerr ("md5: munmap error\n");

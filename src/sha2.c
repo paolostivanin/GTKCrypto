@@ -20,7 +20,7 @@ void
 compute_sha2 (	GtkWidget *checkBt,
 		struct hashWidget_t *HashWidget)
 {
-	gint bit;
+	gint bit = 0;
 	
 	if (g_strcmp0 (gtk_widget_get_name (checkBt), "BtSha256") == 0)
 		bit = 256;
@@ -163,7 +163,7 @@ compute_sha2 (	GtkWidget *checkBt,
 			else
 				sha512_update(&ctx512, diff, fAddr);
 				
-			retVal = munmap(fAddr, BUF_FILE);
+			retVal = munmap(fAddr, diff);
 			if(retVal == -1){
 				g_printerr ("sha2: %s\n", g_strerror (errno));
 				g_free (digest);
@@ -184,7 +184,7 @@ compute_sha2 (	GtkWidget *checkBt,
 			return;
 		}
 	}
-	
+
 	nowhile:
 	if (bit == 256)
 	{

@@ -85,7 +85,7 @@ compute_gost94 (struct hashWidget_t *HashWidget)
 				return;
 			}
 			gosthash94_update (&ctx, diff, fAddr);
-			retVal = munmap (fAddr, BUF_FILE);
+			retVal = munmap (fAddr, diff);
 			if (retVal == -1)
 			{
 				g_printerr ("gost94: munmap error\n");

@@ -85,7 +85,7 @@ compute_sha1 (struct hashWidget_t *HashWidget)
 				return;
 			}
 			sha1_update (&ctx, diff, fAddr);
-			retVal = munmap (fAddr, BUF_FILE);
+			retVal = munmap (fAddr, diff);
 			if (retVal == -1)
 			{
 				g_printerr ("sha1: munmap error");

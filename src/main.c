@@ -12,9 +12,9 @@
 #define NUM_OF_BOXES 2
 #define NUM_OF_HASH 8
 
-GCRY_THREAD_OPTION_PTHREAD_IMPL;
+//GCRY_THREAD_OPTION_PTHREAD_IMPL;
 
-GtkWidget *do_mainwin (GtkApplication *, struct widget_t *);
+GtkWidget *do_mainwin (GtkApplication *);
 static void choose_file (GtkWidget *, struct widget_t *);
 static void pwd_dialog (GtkWidget *, struct widget_t *, gint);
 gint crypt_file (struct widget_t *, gint);
@@ -24,8 +24,8 @@ static gint check_pwd (GtkWidget *, GtkWidget *);
 static void toggle_changed_cb (GtkToggleButton *, GtkWidget *);
 static void compute_hash (GtkWidget *, GtkWidget *, const gchar *);
 
-void compute_sha2 (struct hashWidget_t *, GtkWidget *);
-void compute_sha3 (struct hashWidget_t *, GtkWidget *);
+void compute_sha2 (GtkWidget *, struct hashWidget_t *);
+void compute_sha3 (GtkWidget *, struct hashWidget_t *);
 void compute_md5 (struct hashWidget_t *);
 void compute_sha1 (struct hashWidget_t *);
 void compute_gost94 (struct hashWidget_t *);
@@ -33,17 +33,17 @@ void compute_whirlpool (struct hashWidget_t *);
 
 
 static void
-quit (	GSimpleAction *action,
-	GVariant *parameter,
+quit (	GSimpleAction __attribute__((__unused__)) *action,
+	GVariant __attribute__((__unused__)) *parameter,
 	gpointer app)
 {
 	g_application_quit (G_APPLICATION(app));
 }
 
 static void
-about (	GSimpleAction *action, 
-	GVariant *parameter,
-	gpointer data)
+about (	GSimpleAction __attribute__((__unused__)) *action, 
+	GVariant __attribute__((__unused__)) *parameter,
+	gpointer __attribute__((__unused__)) data)
 {
         const gchar *authors[] =
         {
@@ -83,7 +83,7 @@ about (	GSimpleAction *action,
 
 static void
 startup (	GtkApplication *application,
-		gpointer data)
+		gpointer __attribute__((__unused__)) data)
 {
 	static const GActionEntry actions[] = {
 		{ "about", about },
@@ -143,7 +143,7 @@ activate (	GtkApplication *app,
 	const gchar *frameLabel[] = {"Encrypt", "Decrypt"};
 	const gchar *buttonName[] = {"butEn", "butDe", "butEnTxt", "butDeTxt", "butHa", "butQ"}; //button 0,1,2,3,4,5
 
-	Widget->mainwin = do_mainwin(app, Widget);
+	Widget->mainwin = do_mainwin (app);
 	
 	for (i=0; i<NUM_OF_BUTTONS; i++){
 		if(i == 5) j++;
@@ -195,7 +195,7 @@ gint
 main (	int argc,
 	char *argv[])
 {
-	gcry_control (GCRYCTL_SET_THREAD_CBS, &gcry_threads_pthread);
+	//gcry_control (GCRYCTL_SET_THREAD_CBS, &gcry_threads_pthread);
 	if (!gcry_check_version (GCRYPT_MIN_VER)){
 		fprintf(stderr, "libgcrypt min version required: %s\n", GCRYPT_MIN_VER);
 		return -1;
@@ -227,8 +227,7 @@ main (	int argc,
 
 
 GtkWidget
-*do_mainwin (	GtkApplication *app,
-		struct widget_t *Widget)
+*do_mainwin (GtkApplication *app)
 {
 	static GtkWidget *window = NULL;
 	const gchar *my_icon = "/usr/share/icons/hicolor/128x128/apps/polcrypt.png";
@@ -543,7 +542,9 @@ toggle_changed_cb (	GtkToggleButton *button,
 }
 
 static void
-compute_hash (GtkWidget *fileDialog, GtkWidget *mainwin, const gchar *filename)
+compute_hash (	GtkWidget *fileDialog,
+		GtkWidget *mainwin,
+		const gchar *filename)
 {
 	gtk_widget_hide (GTK_WIDGET (fileDialog));
 	
