@@ -84,7 +84,7 @@ compute_whirlpool (struct hashWidget_t *HashWidget)
 				return;
 			}
 			gcry_md_write (hd, fAddr, diff);
-			retVal = munmap (fAddr, BUF_FILE);
+			retVal = munmap (fAddr, diff);
 			if (retVal == -1)
 			{
 				g_printerr ("whirlpool: munmap error");
