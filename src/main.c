@@ -14,6 +14,7 @@
 
 //GCRY_THREAD_OPTION_PTHREAD_IMPL;
 
+static GdkPixbuf *create_logo (gint);
 GtkWidget *do_mainwin (GtkApplication *);
 static void choose_file (GtkWidget *, struct widget_t *);
 static void pwd_dialog (GtkWidget *, struct widget_t *, gint);
@@ -40,6 +41,27 @@ quit (	GSimpleAction __attribute__((__unused__)) *action,
 	g_application_quit (G_APPLICATION(app));
 }
 
+
+static GdkPixbuf
+*create_logo (gint aboutWindow)
+{
+	GError *err = NULL;
+	GdkPixbuf *logo;
+	
+	const gchar *myIcon = "/usr/share/icons/hicolor/128x128/apps/polcrypt.png";
+	
+	if (!aboutWindow)
+		logo = gdk_pixbuf_new_from_file (myIcon, &err);
+	else
+		logo = gdk_pixbuf_new_from_file_at_size (myIcon, 64, 64, &err);
+	
+	if (err != NULL)
+		g_printerr ("%s\n", err->message);
+
+	return logo;
+}
+
+
 static void
 about (	GSimpleAction __attribute__((__unused__)) *action, 
 	GVariant __attribute__((__unused__)) *parameter,
@@ -50,14 +72,14 @@ about (	GSimpleAction __attribute__((__unused__)) *action,
                 "Paolo Stivanin <info@paolostivanin.com>",
                 NULL,
         };
-		
-		const gchar *my_icon = "/usr/share/icons/hicolor/128x128/apps/polcrypt.png";
-        GError *error = NULL;
-        GdkPixbuf *logo_about = gdk_pixbuf_new_from_file_at_size(my_icon, 64, 64, &error);
+	
+	GdkPixbuf *logo = create_logo (1);
 
         GtkWidget *a_dialog = gtk_about_dialog_new ();
         gtk_about_dialog_set_program_name (GTK_ABOUT_DIALOG (a_dialog), "PolCrypt");
-        gtk_about_dialog_set_logo (GTK_ABOUT_DIALOG (a_dialog), logo_about);
+        if (logo != NULL)
+		gtk_about_dialog_set_logo (GTK_ABOUT_DIALOG (a_dialog), logo);
+       
         gtk_about_dialog_set_version (GTK_ABOUT_DIALOG (a_dialog), VERSION);
         gtk_about_dialog_set_copyright (GTK_ABOUT_DIALOG (a_dialog), "Copyright (C) 2014");
         gtk_about_dialog_set_comments (GTK_ABOUT_DIALOG (a_dialog),
@@ -204,8 +226,6 @@ main (	int argc,
 	gcry_control (GCRYCTL_INITIALIZATION_FINISHED, 0);
 	
 	struct widget_t Widget;
-	
-	const gchar *my_icon = "/usr/share/icons/hicolor/128x128/apps/polcrypt.png";
 
 	setlocale (LC_ALL, "");
 	bindtextdomain (PACKAGE, LOCALE_DIR);
@@ -213,9 +233,11 @@ main (	int argc,
 
 	GtkApplication *app;
 	gint status;
-	GError *err = NULL;
-	GdkPixbuf *logo = gdk_pixbuf_new_from_file (my_icon, &err);
-	gtk_window_set_default_icon (logo);
+	
+	GdkPixbuf *logo = create_logo (0);
+	
+	if (logo != NULL)
+		gtk_window_set_default_icon (logo);
 	
 	app = gtk_application_new ("org.gtk.polcrypt", G_APPLICATION_FLAGS_NONE);
 	g_signal_connect (app, "startup", G_CALLBACK (startup), NULL);
@@ -230,16 +252,19 @@ GtkWidget
 *do_mainwin (GtkApplication *app)
 {
 	static GtkWidget *window = NULL;
-	const gchar *my_icon = "/usr/share/icons/hicolor/128x128/apps/polcrypt.png";
 	GtkWidget *headerBar;
 	GtkWidget *box;
-	GError *err = NULL;
+	
+	GdkPixbuf *logo = create_logo (0);
 
 	window = gtk_application_window_new(app);
 	gtk_window_set_application (GTK_WINDOW (window), GTK_APPLICATION (app));
 	gtk_window_set_position (GTK_WINDOW (window), GTK_WIN_POS_CENTER);
 	gtk_window_set_resizable (GTK_WINDOW (window), FALSE);
-	gtk_window_set_icon_from_file (GTK_WINDOW (window), my_icon, &err);
+	
+	if (logo != NULL)
+		gtk_window_set_icon (GTK_WINDOW (window), logo);
+		
 	gtk_container_set_border_width (GTK_CONTAINER (window), 10);
 	
 	gtk_widget_set_size_request (GTK_WIDGET (window), 350, 400);
@@ -527,6 +552,7 @@ static GtkWidget
 	return popover; 
 }
 
+
 static void
 hide_menu (struct widget_t *Widget)
 {
@@ -534,12 +560,14 @@ hide_menu (struct widget_t *Widget)
 		gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (Widget->menu), FALSE);
 }
 
+
 static void
 toggle_changed_cb (	GtkToggleButton *button,
 			GtkWidget *popover)
 {
 	gtk_widget_set_visible (popover, gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (button)));
 }
+
 
 static void
 compute_hash (	GtkWidget *fileDialog,
@@ -564,8 +592,10 @@ compute_hash (	GtkWidget *fileDialog,
 	HashWidget.filename[lenFilename] = '\0';
 	
 	gint i, result;
+	
 	const gchar *label[] = {"MD5", "SHA-1", "SHA-256", "SHA3-256", "SHA512", "SHA3-512", "WHIRLPOOL", "GOST94"};
 	gsize labeLen;
+	
 	GtkWidget *contentArea, *grid, *dialog;
 	GtkDialogFlags flags = GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT;
 
