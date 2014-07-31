@@ -1,3 +1,4 @@
 * threads;
 * info dialog on error;
 * better errors resolution;
+* hashtable for hashes computation (store result so it doesn't have to re-compute it every time);
