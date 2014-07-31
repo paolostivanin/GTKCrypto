@@ -38,8 +38,10 @@ extern struct widget_t Widget;
 
 struct hashWidget_t{
 	gchar *filename;
+	GHashTable *hashTable;
 	GtkWidget *hashEntry[8]; //md5, sha1, sha256, sha3-256, sha512, sha3-512, whir, gostr
 	GtkWidget *hashCheck[8]; //md5, sha1, sha256, sha3-256, sha512, sha3-512, whir, gostr
+	gchar *key[8];
 };
 extern struct hashWidget_t HashWidget;
 

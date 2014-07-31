@@ -26,6 +26,13 @@ compute_md5 (struct hashWidget_t *HashWidget)
 	}
 	else if (g_utf8_strlen (gtk_entry_get_text (GTK_ENTRY (HashWidget->hashEntry[0])), -1) == 32)
 		goto fine;
+		
+	gpointer ptr = g_hash_table_lookup (HashWidget->hashTable, HashWidget->key[0]);
+	if (ptr != NULL)
+	{
+		gtk_entry_set_text (GTK_ENTRY (HashWidget->hashEntry[0]), (gchar *)g_hash_table_lookup (HashWidget->hashTable, HashWidget->key[0]));
+		goto fine;
+	}
 	
 	struct md5_ctx ctx;
 	guint8 digest[MD5_DIGEST_SIZE];
@@ -108,9 +115,10 @@ compute_md5 (struct hashWidget_t *HashWidget)
 
  	hash[32] = '\0';
  	gtk_entry_set_text (GTK_ENTRY (HashWidget->hashEntry[0]), hash);
+ 	g_hash_table_insert (HashWidget->hashTable, HashWidget->key[0], strdup(hash));
  	
 	g_close(fd, &err);
-	
+		
 	fine:
 	return;
 }

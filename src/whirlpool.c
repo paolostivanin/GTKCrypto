@@ -23,15 +23,24 @@ compute_whirlpool (struct hashWidget_t *HashWidget)
 		gtk_entry_set_text (GTK_ENTRY (HashWidget->hashEntry[6]), "");
 		goto fine;
 	}
+	
 	else if (g_utf8_strlen (gtk_entry_get_text (GTK_ENTRY (HashWidget->hashEntry[6])), -1) == 128)
 		goto fine;
+		
+	gpointer ptr = g_hash_table_lookup (HashWidget->hashTable, HashWidget->key[6]);
+	if (ptr != NULL)
+	{
+		gtk_entry_set_text (GTK_ENTRY (HashWidget->hashEntry[6]), (gchar *)g_hash_table_lookup (HashWidget->hashTable, HashWidget->key[6]));
+		goto fine;
+	}
 
 	gint algo, i, fd, retVal;
-	gchar whirlpoolhash[129];
+	gchar hash[129];
 	guint8 *fAddr;
 	const gchar *name = gcry_md_algo_name(GCRY_MD_WHIRLPOOL);
 	algo = gcry_md_map_name(name);
 	goffset fileSize = 0, doneSize = 0, diff = 0, offset = 0;
+	GError *err = NULL;
 
 	fd = g_open (HashWidget->filename, O_RDONLY | O_NOFOLLOW);
 	if (fd == -1)
@@ -104,11 +113,14 @@ compute_whirlpool (struct hashWidget_t *HashWidget)
 	gcry_md_final (hd);
 	guchar *whirlpool = gcry_md_read (hd, algo);
  	for (i=0; i<64; i++)
- 		g_sprintf (whirlpoolhash+(i*2), "%02x", whirlpool[i]);
+ 		g_sprintf (hash+(i*2), "%02x", whirlpool[i]);
  	
- 	whirlpoolhash[128] = '\0';
- 	gtk_entry_set_text (GTK_ENTRY (HashWidget->hashEntry[6]), whirlpoolhash);
+ 	hash[128] = '\0';
+ 	gtk_entry_set_text (GTK_ENTRY (HashWidget->hashEntry[6]), hash);
+ 	g_hash_table_insert (HashWidget->hashTable, HashWidget->key[6], strdup(hash));
+ 	
 	gcry_md_close (hd);
+	g_close(fd, &err);
 	
 	fine:
 	return;

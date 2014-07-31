@@ -26,6 +26,13 @@ compute_sha1 (struct hashWidget_t *HashWidget)
 	}
 	else if (g_utf8_strlen (gtk_entry_get_text (GTK_ENTRY (HashWidget->hashEntry[1])), -1) == 40)
 		goto fine;
+	
+	gpointer ptr = g_hash_table_lookup (HashWidget->hashTable, HashWidget->key[1]);
+	if (ptr != NULL)
+	{
+		gtk_entry_set_text (GTK_ENTRY (HashWidget->hashEntry[1]), (gchar *)g_hash_table_lookup (HashWidget->hashTable, HashWidget->key[1]));
+		goto fine;
+	}
 
 	struct sha1_ctx ctx;
 	guint8 digest[SHA1_DIGEST_SIZE];
@@ -108,6 +115,7 @@ compute_sha1 (struct hashWidget_t *HashWidget)
  		
  	hash[40] = '\0';
  	gtk_entry_set_text (GTK_ENTRY (HashWidget->hashEntry[1]), hash);
+ 	g_hash_table_insert (HashWidget->hashTable, HashWidget->key[1], strdup(hash));
  	
 	g_close(fd, &err);
 	

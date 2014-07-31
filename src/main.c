@@ -550,6 +550,8 @@ compute_hash (	GtkWidget *fileDialog,
 	
 	struct hashWidget_t HashWidget;
 	
+	HashWidget.hashTable = g_hash_table_new_full (g_str_hash, g_str_equal, g_free, g_free);
+	
 	gsize lenFilename = g_utf8_strlen (filename, -1);
 	
 	HashWidget.filename = g_malloc (lenFilename + 1);
@@ -563,6 +565,7 @@ compute_hash (	GtkWidget *fileDialog,
 	
 	gint i, result;
 	const gchar *label[] = {"MD5", "SHA-1", "SHA-256", "SHA3-256", "SHA512", "SHA3-512", "WHIRLPOOL", "GOST94"};
+	gsize labeLen;
 	GtkWidget *contentArea, *grid, *dialog;
 	GtkDialogFlags flags = GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT;
 
@@ -578,6 +581,13 @@ compute_hash (	GtkWidget *fileDialog,
 	gtk_widget_set_size_request (dialog, 250, 150);
 	
 	contentArea = gtk_dialog_get_content_area (GTK_DIALOG (dialog));
+	
+	for(i = 0; i < NUM_OF_HASH; i++)
+	{
+		labeLen = g_utf8_strlen (label[i], -1);
+		HashWidget.key[i] = g_malloc (labeLen + 1);
+		g_utf8_strncpy (HashWidget.key[i], label[i], labeLen + 1);
+	}
 	
 	for (i = 0; i < NUM_OF_HASH; i++)
 	{
@@ -640,6 +650,7 @@ compute_hash (	GtkWidget *fileDialog,
 	{
 		case GTK_RESPONSE_REJECT:
 			g_free (HashWidget.filename);
+			g_hash_table_destroy (HashWidget.hashTable);
 			gtk_widget_destroy (dialog);
 			break;
 	}

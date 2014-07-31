@@ -24,8 +24,16 @@ compute_gost94 (struct hashWidget_t *HashWidget)
 		gtk_entry_set_text (GTK_ENTRY (HashWidget->hashEntry[7]), "");
 		goto fine;
 	}
+	
 	else if (g_utf8_strlen (gtk_entry_get_text (GTK_ENTRY (HashWidget->hashEntry[7])), -1) == 32)
 		goto fine;
+		
+	gpointer ptr = g_hash_table_lookup (HashWidget->hashTable, HashWidget->key[7]);
+	if (ptr != NULL)
+	{
+		gtk_entry_set_text (GTK_ENTRY (HashWidget->hashEntry[7]), (gchar *)g_hash_table_lookup (HashWidget->hashTable, HashWidget->key[7]));
+		goto fine;
+	}
 
 	struct gosthash94_ctx ctx;
 	guint8 digest[GOSTHASH94_DIGEST_SIZE];
@@ -108,6 +116,7 @@ compute_gost94 (struct hashWidget_t *HashWidget)
 
  	hash[32] = '\0';
  	gtk_entry_set_text (GTK_ENTRY (HashWidget->hashEntry[7]), hash);
+ 	g_hash_table_insert (HashWidget->hashTable, HashWidget->key[7], strdup(hash));
  	
 	g_close(fd, &err);
 	
