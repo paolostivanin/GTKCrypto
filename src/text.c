@@ -8,247 +8,240 @@
 #include <libintl.h>
 #include "polcrypt.h"
 
-struct _widget
-{
-	GtkWidget *dialog;
-	GtkWidget *text_view;
-	GtkWidget *enPWD, *cmpEnPWD;	
-	GtkTextBuffer *buffer;
-	gchar *text;
-	guchar *binaryEncText;
-	guchar *binaryDecText;
-	gchar *decoded_text;
-	gsize totalLen;
-	gsize outLen;
-	gint8 action; // 1=enc, 2=dec
-} Widgets;
 
-static void enc_dec_text(struct _widget *);
-static void on_button_clicked(struct _widget *);
-gint check_pwd(struct _widget *);
-static void show_error(struct _widget *, const gchar *);
-static void close_dialog(GtkWidget *);
+struct textWidget_t TextWidget;
+
+static void prepare_text (struct textWidget_t *);
+static void enc_dec_text (struct textWidget_t *);
+gint check_pwd (struct textWidget_t *);
+static void show_error (const gchar *);
 
 void
-insert_text (GtkWidget *clickedButton)
-{
-	GtkWidget *scrolledwin;
+text_dialog (GtkWidget *clickedButton)
+{	
+	GtkWidget *dialog;
+	GtkWidget *contentArea;
+	GtkWidget *scrolledWin;
 	GtkWidget *box;
-	GtkWidget *content_area;
-	GtkWidget *okbt, *clbt;
+	GtkWidget *button[2];
+		
+	const gchar *btLabel = gtk_widget_get_name (clickedButton);
+	if (g_strcmp0 (btLabel, "butEnTxt") == 0)
+		TextWidget.action = 0;
+	else
+		TextWidget.action = 1;
+		
+	dialog = gtk_dialog_new ();
+	gtk_window_set_title (GTK_WINDOW (dialog), _("Insert Text"));
+	gtk_window_set_position (GTK_WINDOW (dialog), GTK_WIN_POS_CENTER);
+	contentArea = gtk_dialog_get_content_area (GTK_DIALOG (dialog));
 	
-	if (clickedButton != NULL)
-	{
-		const gchar *btLabel = gtk_widget_get_name (clickedButton);
-		if (g_strcmp0 (btLabel, "butEnText") == 0)
-			Widgets.action = 1;
-		else
-			Widgets.action = 2;
-	}
-	else Widgets.action = 1;
-	
-	Widgets.dialog = gtk_dialog_new ();
-	gtk_window_set_title (GTK_WINDOW (Widgets.dialog), _("Insert Text"));
-	gtk_window_set_position (GTK_WINDOW (Widgets.dialog), GTK_WIN_POS_CENTER);
-	content_area = gtk_dialog_get_content_area (GTK_DIALOG (Widgets.dialog));
-	
-	scrolledwin = gtk_scrolled_window_new (NULL, NULL);
+	scrolledWin = gtk_scrolled_window_new (NULL, NULL);
 	
 	box = gtk_box_new (GTK_ORIENTATION_HORIZONTAL, 0);
 
-	gtk_widget_set_size_request (Widgets.dialog, 800, 600);
+	gtk_widget_set_size_request (dialog, 800, 600);
 	
-	Widgets.enPWD = gtk_entry_new ();
-	Widgets.cmpEnPWD = gtk_entry_new ();
+	TextWidget.pwd[0] = gtk_entry_new ();
+	TextWidget.pwd[1] = gtk_entry_new ();
 	
-	gtk_entry_set_visibility (GTK_ENTRY (Widgets.enPWD), FALSE);
-	gtk_entry_set_visibility (GTK_ENTRY (Widgets.cmpEnPWD), FALSE);
+	gtk_entry_set_visibility (GTK_ENTRY (TextWidget.pwd[0]), FALSE);
+	gtk_entry_set_visibility (GTK_ENTRY (TextWidget.pwd[1]), FALSE);
 	
-	gtk_entry_set_placeholder_text (GTK_ENTRY (Widgets.enPWD), _("Type Password"));
-	gtk_entry_set_placeholder_text (GTK_ENTRY (Widgets.cmpEnPWD), _("Retype Password"));
+	gtk_entry_set_placeholder_text (GTK_ENTRY (TextWidget.pwd[0]), _("Type Password"));
+	gtk_entry_set_placeholder_text (GTK_ENTRY (TextWidget.pwd[1]), _("Retype Password"));
 		
-	Widgets.text_view = gtk_text_view_new ();
-	gtk_container_add (GTK_CONTAINER (scrolledwin), Widgets.text_view);
+	TextWidget.textView = gtk_text_view_new ();
+	gtk_container_add (GTK_CONTAINER (scrolledWin), TextWidget.textView);
 	
-	gtk_box_pack_start (GTK_BOX(box), Widgets.enPWD, TRUE, TRUE, 0);
-	if (Widgets.action == 1)
-		gtk_box_pack_start (GTK_BOX (box), Widgets.cmpEnPWD, TRUE, TRUE, 0);
+	PangoFontDescription *newFont = pango_font_description_new ();
+	pango_font_description_set_family (newFont, "monospace");
+	gtk_widget_override_font (GTK_WIDGET (TextWidget.textView), newFont);
+	pango_font_description_free (newFont);
 	
-	g_object_set (Widgets.text_view, "expand", TRUE, NULL);
+	gtk_box_pack_start (GTK_BOX(box), TextWidget.pwd[0], TRUE, TRUE, 0);
+	if (!TextWidget.action)
+		gtk_box_pack_start (GTK_BOX (box), TextWidget.pwd[1], TRUE, TRUE, 0);
 	
-	gtk_container_add (GTK_CONTAINER (content_area), scrolledwin);
-	gtk_container_add (GTK_CONTAINER (content_area), box);
+	g_object_set (TextWidget.textView, "expand", TRUE, NULL);
 	
-	clbt = gtk_dialog_add_button (GTK_DIALOG (Widgets.dialog), _("Cancel"), GTK_RESPONSE_CANCEL);
-	okbt = gtk_dialog_add_button (GTK_DIALOG (Widgets.dialog), _("OK"), GTK_RESPONSE_OK);
+	gtk_container_add (GTK_CONTAINER (contentArea), scrolledWin);
+	gtk_container_add (GTK_CONTAINER (contentArea), box);
 	
-	gtk_widget_set_name (GTK_WIDGET (okbt), "okbt");
-	gtk_widget_set_name (GTK_WIDGET (clbt), "clbt");
+	button[0] = gtk_dialog_add_button (GTK_DIALOG (dialog), _("Cancel"), GTK_RESPONSE_CANCEL);
+	button[1] = gtk_dialog_add_button (GTK_DIALOG (dialog), _("OK"), GTK_RESPONSE_OK);
+	
+	gtk_widget_set_name (GTK_WIDGET (button[0]), "clbt");
+	gtk_widget_set_name (GTK_WIDGET (button[1]), "okbt");
+		
+	TextWidget.buffer = gtk_text_view_get_buffer (GTK_TEXT_VIEW (TextWidget.textView));
 
-	Widgets.buffer = gtk_text_view_get_buffer (GTK_TEXT_VIEW (Widgets.text_view));
-
-	gtk_text_buffer_set_text (Widgets.buffer, _("Write here your text"), -1);
+	gtk_text_buffer_set_text (TextWidget.buffer, _("Write here your text"), -1);
     
-    gtk_widget_show_all (Widgets.dialog);
+	gtk_widget_show_all (dialog);
     
-	g_signal_connect_swapped (clbt, "clicked", G_CALLBACK (close_dialog), Widgets.dialog);
-	g_signal_connect_swapped (okbt, "clicked", G_CALLBACK (on_button_clicked), &Widgets);
+	g_signal_connect_swapped (button[0], "clicked", G_CALLBACK (gtk_widget_destroy), dialog);
+	g_signal_connect_swapped (button[1], "clicked", G_CALLBACK (prepare_text), &TextWidget);
 }
 
+
 static void
-on_button_clicked (struct _widget *Widgets)
+prepare_text (struct textWidget_t *TextWidget)
 {
-	if(Widgets->action == 1){
-		gint ret = check_pwd(Widgets);
-		if(ret == -1) return;
+	gint ret;
+	if (!TextWidget->action)
+	{
+		ret = check_pwd (TextWidget);
+		if (ret == -1)
+			return;
 	}
-	
+
 	GtkTextIter start;
 	GtkTextIter end;
 	
-	gtk_text_buffer_get_start_iter (Widgets->buffer, &start);
-	gtk_text_buffer_get_end_iter (Widgets->buffer, &end);
+	gtk_text_buffer_get_start_iter (TextWidget->buffer, &start);
+	gtk_text_buffer_get_end_iter (TextWidget->buffer, &end);
 
-	Widgets->text = gtk_text_buffer_get_text (Widgets->buffer, &start, &end, FALSE);
+	TextWidget->text = gtk_text_buffer_get_text (TextWidget->buffer, &start, &end, FALSE);
 	
-	if(Widgets->action == 1){
-		enc_dec_text(Widgets);
+	if (!TextWidget->action)
+	{
+		enc_dec_text (TextWidget);
 
-		gsize outBufLen = ((Widgets->totalLen/3+1)*4+4)+(((Widgets->totalLen/3+1)*4+4)/72+1);
+		gsize outBufLen = ( (TextWidget->totalLen/3 + 1) * 4 + 4) + ( ( (TextWidget->totalLen/3 + 1) * 4 + 4)/72 + 1);
 		gsize outLen;
 		gint state = 0, save = 0;
 
-		gchar *encoded_text = g_malloc0(outBufLen);
+		gchar *encodedText = g_malloc0 (outBufLen);
 		
-		outLen = g_base64_encode_step(Widgets->binaryEncText, Widgets->totalLen, TRUE, encoded_text, &state, &save);
-		g_base64_encode_close(TRUE, encoded_text+outLen, &state, &save);
+		outLen = g_base64_encode_step (TextWidget->cryptText, TextWidget->totalLen, TRUE, encodedText, &state, &save);
+		g_base64_encode_close (TRUE, encodedText + outLen, &state, &save);
 
-		PangoFontDescription *newfont = pango_font_description_new();
-		pango_font_description_set_family(newfont, "monospace");
-		gtk_widget_override_font(GTK_WIDGET(Widgets->text_view), newfont);
-		
-		gtk_text_buffer_set_text (Widgets->buffer, encoded_text, -1);
-		
-		pango_font_description_free(newfont);
+		gtk_text_buffer_set_text (TextWidget->buffer, encodedText, -1);
 
-		g_free (Widgets->binaryEncText);
-		g_free (encoded_text);
+		g_free (TextWidget->cryptText);
+		g_free (encodedText);
 	}
 	else{
-		Widgets->binaryDecText = g_base64_decode(Widgets->text, &(Widgets->outLen));
+		TextWidget->cryptText = g_base64_decode (TextWidget->text, &(TextWidget->outLen));
 				
-		enc_dec_text(Widgets);
+		enc_dec_text (TextWidget);
 		
-		gtk_text_buffer_set_text (Widgets->buffer, Widgets->decoded_text, -1);
+		gtk_text_buffer_set_text (TextWidget->buffer, TextWidget->decodedText, -1);
 		
-		g_free (Widgets->binaryDecText);
-		g_free (Widgets->decoded_text);
+		g_free (TextWidget->cryptText);
+		g_free (TextWidget->decodedText);
 	}
-	g_free (Widgets->text);
+	
+	g_free (TextWidget->text);
 }
 
+
 static void
-enc_dec_text (struct _widget *Widgets)
+enc_dec_text (struct textWidget_t *TextWidget)
 {
 	gint algo = -1, mode = -1, counterForGoto = 0;
-	guchar *crypto_key = NULL, *tmpEncBuf = NULL;
+	guchar *cryptoKey = NULL, *tmp = NULL;
 	gsize blkLength, keyLength, textLen;
 		
 	gcry_cipher_hd_t hd;
 	guchar iv[16];
 	guchar salt[32];
 	
-	algo = gcry_cipher_map_name("aes256");
+	algo = gcry_cipher_map_name ("aes256");
 	mode = GCRY_CIPHER_MODE_CTR;
 
-	gsize keyLen = g_utf8_strlen(gtk_entry_get_text(GTK_ENTRY(Widgets->enPWD)), -1);
+	gsize keyLen = g_utf8_strlen (gtk_entry_get_text (GTK_ENTRY (TextWidget->pwd[0])), -1);
 
-	blkLength = gcry_cipher_get_algo_blklen(algo);
-	keyLength = gcry_cipher_get_algo_keylen(algo);	
+	blkLength = gcry_cipher_get_algo_blklen (algo);
+	keyLength = gcry_cipher_get_algo_keylen (algo);	
 
-	if(Widgets->action == 1){
-		gcry_create_nonce(iv, 16);
-		gcry_create_nonce(salt, 32);
+	if (!TextWidget->action)
+	{
+		gcry_create_nonce (iv, 16);
+		gcry_create_nonce (salt, 32);
 	}
-	else{
-		memcpy(iv, Widgets->binaryDecText, 16);
-		memcpy(salt, Widgets->binaryDecText+16, 32);	
+	else
+	{
+		memcpy (iv, TextWidget->cryptText, 16);
+		memcpy (salt, TextWidget->cryptText+16, 32);	
 	}
 	
-	gcry_cipher_open(&hd, algo, mode, 0);
+	gcry_cipher_open (&hd, algo, mode, 0);
 	
-	if((crypto_key = gcry_malloc_secure(32)) == NULL){
-		g_print(_("encrypt_file: gcry_malloc_secure failed (crypto)\n"));
+	if ((cryptoKey = gcry_malloc_secure (32)) == NULL)
+	{
+		g_printerr ( _("encrypt_file: gcry_malloc_secure failed (crypto)\n"));
 		return;
 	}
 	
 	tryAgainDerive:
-	if(gcry_kdf_derive (gtk_entry_get_text(GTK_ENTRY(Widgets->enPWD)), keyLen, GCRY_KDF_PBKDF2, GCRY_MD_SHA256, salt, 32, 150000, 32, crypto_key) != 0){ //cambiare len pwd (5)
-		if(counterForGoto == 3){
-			g_print(_("encrypt_file: Key derivation error\n"));
-			gcry_free(crypto_key);
+	if (gcry_kdf_derive (gtk_entry_get_text (GTK_ENTRY (TextWidget->pwd[0])), keyLen, GCRY_KDF_PBKDF2, GCRY_MD_SHA256, salt, 32, 150000, 32, cryptoKey) != 0)
+	{
+		if (counterForGoto == 3)
+		{
+			g_printerr ( _("encrypt_file: Key derivation error\n"));
+			gcry_free (cryptoKey);
 			return;
 		}
 		counterForGoto += 1;
 		goto tryAgainDerive;
 	}
-	gtk_entry_set_text(GTK_ENTRY(Widgets->enPWD), "");
-	if(Widgets->action == 1) gtk_entry_set_text(GTK_ENTRY(Widgets->cmpEnPWD), "");
+	gtk_entry_set_text (GTK_ENTRY (TextWidget->pwd[0]), "");
+	if (!TextWidget->action)
+		gtk_entry_set_text(GTK_ENTRY(TextWidget->pwd[1]), "");
 	
-	gcry_cipher_setkey(hd, crypto_key, keyLength);
-	gcry_cipher_setiv(hd, iv, blkLength);
+	gcry_cipher_setkey (hd, cryptoKey, keyLength);
+	gcry_cipher_setiv (hd, iv, blkLength);
 	
-	if(Widgets->action == 1){
-		Widgets->totalLen = g_utf8_strlen(Widgets->text, -1)+16+32; //aggiungo iv e salt
-		Widgets->binaryEncText = g_malloc0(Widgets->totalLen);
-		textLen = (Widgets->totalLen)-48;
-		tmpEncBuf = g_malloc(textLen);
+	if (!TextWidget->action)
+	{
+		TextWidget->totalLen = g_utf8_strlen (TextWidget->text, -1) + 16 + 32; //aggiungo iv e salt
+		TextWidget->cryptText = g_malloc0 (TextWidget->totalLen);
+		textLen = (TextWidget->totalLen) - 48;
+		tmp = g_malloc (textLen);
 
-		gcry_cipher_encrypt(hd, tmpEncBuf, textLen, Widgets->text, textLen);
+		gcry_cipher_encrypt(hd, tmp, textLen, TextWidget->text, textLen);
 	
-		memcpy(Widgets->binaryEncText, iv, 16);
-		memcpy(Widgets->binaryEncText+16, salt, 32);
-		memcpy(Widgets->binaryEncText+48, tmpEncBuf, textLen);
+		memcpy (TextWidget->cryptText, iv, 16);
+		memcpy (TextWidget->cryptText + 16, salt, 32);
+		memcpy (TextWidget->cryptText + 48, tmp, textLen);
 		
-		g_free(tmpEncBuf);
+		g_free (tmp);
 	}
-	else{
-		gsize realLen = Widgets->outLen-48;
-		Widgets->decoded_text = g_malloc0(realLen);
+	else
+	{
+		gsize realLen = TextWidget->outLen - 48;
+		TextWidget->decodedText = g_malloc0 (realLen);
 	
-		gcry_cipher_decrypt(hd, Widgets->decoded_text, realLen, Widgets->binaryDecText+48, realLen);
+		gcry_cipher_decrypt (hd, TextWidget->decodedText, realLen, TextWidget->cryptText + 48, realLen);
 	}
 	
-	gcry_cipher_close(hd);
-	gcry_free(crypto_key);
+	gcry_cipher_close (hd);
+	gcry_free (cryptoKey);
 }
+
 
 gint
-check_pwd (struct _widget *pwdWidgets)
+check_pwd (struct textWidget_t *TextWidget)
 {
-	if(g_strcmp0(gtk_entry_get_text(GTK_ENTRY(pwdWidgets->enPWD)), gtk_entry_get_text(GTK_ENTRY(pwdWidgets->cmpEnPWD))) != 0){
-		show_error(pwdWidgets, _("Password are different, try again!"));
+	if (g_strcmp0 (gtk_entry_get_text (GTK_ENTRY (TextWidget->pwd[0])), gtk_entry_get_text (GTK_ENTRY (TextWidget->pwd[1]))) != 0)
+	{
+		show_error ( _("Password are different, try again!"));
 		return -1;
 	}
-	return 0;
+	else
+		return 0;
 }
 
+
 static void
-show_error (	struct _widget *old,
-		const gchar *message)
+show_error (const gchar *message)
 {
 	GtkWidget *dialog;
-	dialog = gtk_message_dialog_new(NULL, GTK_DIALOG_MODAL, GTK_MESSAGE_ERROR, GTK_BUTTONS_OK, "%s", message);
-	gtk_window_set_position(GTK_WINDOW(dialog), GTK_WIN_POS_CENTER);
-	gtk_window_set_title(GTK_WINDOW(dialog), _("Error"));
-	gtk_dialog_run(GTK_DIALOG(dialog));
-	gtk_widget_destroy(dialog);
-	gtk_widget_destroy(old->dialog);
-	insert_text(NULL);
-}
-
-static void
-close_dialog (GtkWidget *dialog)
-{
-	gtk_widget_destroy(dialog);
+	dialog = gtk_message_dialog_new (NULL, GTK_DIALOG_MODAL, GTK_MESSAGE_ERROR, GTK_BUTTONS_OK, "%s", message);
+	gtk_window_set_position (GTK_WINDOW (dialog), GTK_WIN_POS_CENTER);
+	gtk_window_set_title (GTK_WINDOW (dialog), _("Error"));
+	gtk_dialog_run (GTK_DIALOG (dialog));
+	gtk_widget_destroy (dialog);
 }

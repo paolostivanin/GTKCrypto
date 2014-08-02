@@ -24,7 +24,7 @@ static void hide_menu (struct widget_t *);
 static gint check_pwd (GtkWidget *, GtkWidget *);
 static void toggle_changed_cb (GtkToggleButton *, GtkWidget *);
 static void compute_hash (GtkWidget *, GtkWidget *, const gchar *);
-
+void text_dialog (GtkWidget *);
 void compute_sha2 (GtkWidget *, struct hashWidget_t *);
 void compute_sha3 (GtkWidget *, struct hashWidget_t *);
 void compute_md5 (struct hashWidget_t *);
@@ -153,8 +153,7 @@ activate (	GtkApplication *app,
 		fprintf(stderr, "The required version of GTK+ is 3.12.0 or greater.");
 		return;
 	}
-	
-	
+		
 	GtkWidget *button[NUM_OF_BUTTONS];
 	GtkWidget *frame[2];
 	GtkWidget *box[2];
@@ -192,8 +191,8 @@ activate (	GtkApplication *app,
 	
 	g_signal_connect (button[0], "clicked", G_CALLBACK (choose_file), Widget);
 	g_signal_connect (button[1], "clicked", G_CALLBACK (choose_file), Widget);
-	g_signal_connect (button[2], "clicked", G_CALLBACK (quit), app);
-	g_signal_connect (button[3], "clicked", G_CALLBACK (quit), app);
+	g_signal_connect (button[2], "clicked", G_CALLBACK (text_dialog), NULL);
+	g_signal_connect (button[3], "clicked", G_CALLBACK (text_dialog), NULL);
 	g_signal_connect (button[4], "clicked", G_CALLBACK (choose_file), Widget);
 	g_signal_connect (button[5], "clicked", G_CALLBACK (quit), app);
 	

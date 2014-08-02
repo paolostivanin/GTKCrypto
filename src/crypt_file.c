@@ -452,7 +452,7 @@ crypt_file(	struct widget_t *Widget,
 		gcry_free (inputKey);
 		free_res (filename, outFilename, cryptoBuffer, derivedKey, cryptoKey, macKey);
 		close_file (fp, fpout);
-		send_notification("PolCrypt", "Decryption successfully done");
+		send_notification ("PolCrypt", "Decryption successfully done");
 	}
 
 	

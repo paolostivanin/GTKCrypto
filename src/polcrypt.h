@@ -5,9 +5,9 @@
 #define BUFSIZE 2097152  /* 2 MiB memory buffer (delete_input_file) */
 
 #define GCRYPT_MIN_VER "1.5.0"
-#define VERSION "3.0-beta"
+#define VERSION "3.0-beta.2"
 
-#define HEADERBAR_BUF 19 /* buffer for the headerbar's title */
+#define HEADERBAR_BUF 21 /* buffer for the headerbar's title */
 
 #define ENCRYPT 0
 #define DECRYPT 1
@@ -19,7 +19,8 @@
 #include <gtk/gtk.h>
 
 
-struct metadata_t{
+struct metadata_t
+{
 	gint8 algoType; //(NULL|0=aes),(1=serpent),(2=twofish),(3=camellia)
 	gint8 algoMode; //1=CBC,2=CTR
 	guint8 salt[32];
@@ -27,7 +28,8 @@ struct metadata_t{
 };
 extern struct metadata_t Metadata;
 
-struct widget_t{
+struct widget_t
+{
 	gchar *filename;
 	GtkWidget *mainwin;
 	GtkWidget *pwdEntry[2];
@@ -36,7 +38,8 @@ struct widget_t{
 };
 extern struct widget_t Widget;
 
-struct hashWidget_t{
+struct hashWidget_t
+{
 	gchar *filename;
 	GHashTable *hashTable;
 	GtkWidget *hashEntry[8]; //md5, sha1, sha256, sha3-256, sha512, sha3-512, whir, gostr
@@ -44,5 +47,19 @@ struct hashWidget_t{
 	gchar *key[8];
 };
 extern struct hashWidget_t HashWidget;
+
+struct textWidget_t
+{
+	GtkWidget *textView;
+	GtkWidget *pwd[2];	
+	GtkTextBuffer *buffer;
+	gchar *text;
+	guchar *cryptText;
+	gchar *decodedText;
+	gsize totalLen;
+	gsize outLen;
+	gint8 action;
+};
+extern struct textWidget_t TextWidget;
 
 #endif
