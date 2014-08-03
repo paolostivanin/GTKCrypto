@@ -48,7 +48,7 @@ static GdkPixbuf
 	GError *err = NULL;
 	GdkPixbuf *logo;
 	
-	const gchar *myIcon = "/usr/share/icons/hicolor/128x128/apps/polcrypt.png";
+	const gchar *myIcon = "/usr/share/pixmaps/polcrypt.png";
 	
 	if (!aboutWindow)
 		logo = gdk_pixbuf_new_from_file (myIcon, &err);
@@ -83,8 +83,8 @@ about (	GSimpleAction __attribute__((__unused__)) *action,
         gtk_about_dialog_set_version (GTK_ABOUT_DIALOG (a_dialog), VERSION);
         gtk_about_dialog_set_copyright (GTK_ABOUT_DIALOG (a_dialog), "Copyright (C) 2014");
         gtk_about_dialog_set_comments (GTK_ABOUT_DIALOG (a_dialog),
-					_("Encrypt and decrypt a file using different cipher algo and different ciper mode or"
-					" compute its hash using different hash algo"));
+					_("Encrypt and decrypt files using different cipher algo and different cipher mode or"
+					" compute their hash using different algo"));
         gtk_about_dialog_set_license(GTK_ABOUT_DIALOG(a_dialog),
 					"This program is free software: you can redistribute it and/or modify it under the terms"
 					" of the GNU General Public License as published by the Free Software Foundation, either version 3 of"
@@ -165,7 +165,7 @@ activate (	GtkApplication *app,
 	const gchar *buttonName[] = {"butEn", "butDe", "butEnTxt", "butDeTxt", "butHa", "butQ"}; //button 0,1,2,3,4,5
 
 	Widget->mainwin = do_mainwin (app);
-	
+		
 	for (i=0; i<NUM_OF_BUTTONS; i++){
 		if(i == 5) j++;
 		button[i] = gtk_button_new_with_label (buttonLabel[j]);
@@ -225,7 +225,7 @@ main (	int argc,
 	gcry_control (GCRYCTL_INITIALIZATION_FINISHED, 0);
 	
 	struct widget_t Widget;
-
+	
 	setlocale (LC_ALL, "");
 	bindtextdomain (PACKAGE, LOCALE_DIR);
 	textdomain (PACKAGE);
@@ -234,7 +234,7 @@ main (	int argc,
 	gint status;
 	
 	GdkPixbuf *logo = create_logo (0);
-	
+		
 	if (logo != NULL)
 		gtk_window_set_default_icon (logo);
 	
@@ -337,7 +337,7 @@ pwd_dialog (	GtkWidget *fileDialog,
 	GValue leftMargin = G_VALUE_INIT;
 	GValue topMargin = G_VALUE_INIT;
 	gint result;
-	
+			
 	restart:
 	if (cryptMode == ENCRYPT)
 	{
@@ -394,7 +394,7 @@ pwd_dialog (	GtkWidget *fileDialog,
 	
 	infoBar = gtk_info_bar_new ();
 	
-	if(cryptMode == ENCRYPT)
+	if (cryptMode == ENCRYPT)
 		infoLabel = gtk_label_new ( _("Encrypting and deleting the file can take some minutes depending on the file size..."));
 	else
 		infoLabel = gtk_label_new ( _("Decrypting the file can take some minutes depending on the file size..."));
@@ -404,15 +404,20 @@ pwd_dialog (	GtkWidget *fileDialog,
 	infoArea = gtk_info_bar_get_content_area (GTK_INFO_BAR (infoBar));
 	gtk_container_add (GTK_CONTAINER (infoArea), infoLabel);
 	
-	if (!G_IS_VALUE (&leftMargin)) g_value_init (&leftMargin, G_TYPE_UINT);
+	if (!G_IS_VALUE (&leftMargin))
+		g_value_init (&leftMargin, G_TYPE_UINT);
+		
 	g_value_set_uint (&leftMargin, 2);
 	g_object_set_property (G_OBJECT (Widget->pwdEntry[0]), "margin-left", &leftMargin);
+	
 	if (cryptMode == ENCRYPT)
 		g_object_set_property (G_OBJECT (Widget->pwdEntry[1]), "margin-left", &leftMargin);
 	
 	if (cryptMode == DECRYPT)
 	{
-		if (!G_IS_VALUE (&topMargin)) g_value_init (&topMargin, G_TYPE_UINT);
+		if (!G_IS_VALUE (&topMargin))
+			g_value_init (&topMargin, G_TYPE_UINT);
+			
 		g_value_set_uint (&topMargin, 10);
 		g_object_set_property (G_OBJECT (label[0]), "margin-top", &topMargin);
 		g_object_set_property (G_OBJECT (Widget->pwdEntry[0]), "margin-top", &topMargin);

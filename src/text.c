@@ -12,7 +12,7 @@
 struct textWidget_t TextWidget;
 
 static void prepare_text (struct textWidget_t *);
-static void enc_dec_text (struct textWidget_t *);
+static void crypt_text (struct textWidget_t *);
 gint check_pwd (struct textWidget_t *);
 static void show_error (const gchar *);
 
@@ -106,7 +106,7 @@ prepare_text (struct textWidget_t *TextWidget)
 	
 	if (!TextWidget->action)
 	{
-		enc_dec_text (TextWidget);
+		crypt_text (TextWidget);
 
 		gsize outBufLen = ( (TextWidget->totalLen/3 + 1) * 4 + 4) + ( ( (TextWidget->totalLen/3 + 1) * 4 + 4)/72 + 1);
 		gsize outLen;
@@ -125,7 +125,7 @@ prepare_text (struct textWidget_t *TextWidget)
 	else{
 		TextWidget->cryptText = g_base64_decode (TextWidget->text, &(TextWidget->outLen));
 				
-		enc_dec_text (TextWidget);
+		crypt_text (TextWidget);
 		
 		gtk_text_buffer_set_text (TextWidget->buffer, TextWidget->decodedText, -1);
 		
@@ -138,7 +138,7 @@ prepare_text (struct textWidget_t *TextWidget)
 
 
 static void
-enc_dec_text (struct textWidget_t *TextWidget)
+crypt_text (struct textWidget_t *TextWidget)
 {
 	gint algo = -1, mode = -1, counterForGoto = 0;
 	guchar *cryptoKey = NULL, *tmp = NULL;
@@ -176,7 +176,13 @@ enc_dec_text (struct textWidget_t *TextWidget)
 	}
 	
 	tryAgainDerive:
-	if (gcry_kdf_derive (gtk_entry_get_text (GTK_ENTRY (TextWidget->pwd[0])), keyLen, GCRY_KDF_PBKDF2, GCRY_MD_SHA256, salt, 32, 150000, 32, cryptoKey) != 0)
+	if (gcry_kdf_derive (	gtk_entry_get_text (GTK_ENTRY (TextWidget->pwd[0])),
+				keyLen,
+				GCRY_KDF_PBKDF2,
+				GCRY_MD_SHA256,
+				salt,
+				32, 150000, 32,
+				cryptoKey) != 0)
 	{
 		if (counterForGoto == 3)
 		{
@@ -187,6 +193,7 @@ enc_dec_text (struct textWidget_t *TextWidget)
 		counterForGoto += 1;
 		goto tryAgainDerive;
 	}
+	
 	gtk_entry_set_text (GTK_ENTRY (TextWidget->pwd[0]), "");
 	if (!TextWidget->action)
 		gtk_entry_set_text(GTK_ENTRY(TextWidget->pwd[1]), "");

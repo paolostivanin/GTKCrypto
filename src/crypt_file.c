@@ -12,7 +12,6 @@
 
 
 static goffset get_file_size (const gchar *);
-goffset get_file_size (const gchar *);
 guchar *calculate_hmac (const gchar *, const guchar *, gsize, gsize, gint);
 gint delete_input_file (const gchar *, gsize);
 gint check_pkcs7 (guchar *, guchar *);
@@ -141,7 +140,7 @@ crypt_file(	struct widget_t *Widget,
 	inputKey = gcry_malloc_secure (pwdLen+1);
 	g_utf8_strncpy (inputKey, pwd, pwdLen);
 	inputKey[pwdLen] = '\0';
-	
+		
 	if (mode == ENCRYPT)
 	{
 		gcry_create_nonce(Metadata.iv, 16);
@@ -398,7 +397,7 @@ crypt_file(	struct widget_t *Widget,
 		fpout = g_fopen (outFilename, "a");
 		fwrite (hmac, 1, 64, fpout);
 		free (hmac);
-	
+		
 		retVal = delete_input_file (filename, fileSize);
 		if (retVal == -1)
 			g_printerr ( _("Secure file deletion failed, overwrite it manually"));
