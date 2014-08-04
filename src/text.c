@@ -9,85 +9,97 @@
 #include "polcrypt.h"
 
 
-struct textWidget_t TextWidget;
-
-static void prepare_text (struct textWidget_t *);
+static void prepare_text (GtkWidget *, gpointer);
 static void crypt_text (struct textWidget_t *);
 gint check_pwd (struct textWidget_t *);
 static void show_error (const gchar *);
 
+
+static void
+close_dialog (	GtkWidget __attribute__((__unused__)) *bt,
+		gpointer user_data)
+{
+	struct textWidget_t *TextWidget = user_data;
+	gtk_widget_destroy (TextWidget->dialog);
+	g_free (TextWidget);
+}
+
 void
 text_dialog (GtkWidget *clickedButton)
 {	
-	GtkWidget *dialog;
 	GtkWidget *contentArea;
 	GtkWidget *scrolledWin;
 	GtkWidget *box;
 	GtkWidget *button[2];
+	
+	struct textWidget_t *TextWidget = (struct textWidget_t *)g_malloc (sizeof (struct textWidget_t));
 		
 	const gchar *btLabel = gtk_widget_get_name (clickedButton);
 	if (g_strcmp0 (btLabel, "butEnTxt") == 0)
-		TextWidget.action = 0;
+		TextWidget->action = 0;
 	else
-		TextWidget.action = 1;
+		TextWidget->action = 1;
 		
-	dialog = gtk_dialog_new ();
-	gtk_window_set_title (GTK_WINDOW (dialog), _("Insert Text"));
-	gtk_window_set_position (GTK_WINDOW (dialog), GTK_WIN_POS_CENTER);
-	contentArea = gtk_dialog_get_content_area (GTK_DIALOG (dialog));
+	TextWidget->dialog = gtk_dialog_new ();
+	gtk_window_set_title (GTK_WINDOW (TextWidget->dialog), _("Insert Text"));
+	gtk_window_set_position (GTK_WINDOW (TextWidget->dialog), GTK_WIN_POS_CENTER);
+	contentArea = gtk_dialog_get_content_area (GTK_DIALOG (TextWidget->dialog));
 	
 	scrolledWin = gtk_scrolled_window_new (NULL, NULL);
 	
 	box = gtk_box_new (GTK_ORIENTATION_HORIZONTAL, 0);
 
-	gtk_widget_set_size_request (dialog, 800, 600);
+	gtk_widget_set_size_request (TextWidget->dialog, 800, 600);
 	
-	TextWidget.pwd[0] = gtk_entry_new ();
-	TextWidget.pwd[1] = gtk_entry_new ();
+	TextWidget->pwd[0] = gtk_entry_new ();
+	TextWidget->pwd[1] = gtk_entry_new ();
 	
-	gtk_entry_set_visibility (GTK_ENTRY (TextWidget.pwd[0]), FALSE);
-	gtk_entry_set_visibility (GTK_ENTRY (TextWidget.pwd[1]), FALSE);
+	gtk_entry_set_visibility (GTK_ENTRY (TextWidget->pwd[0]), FALSE);
+	gtk_entry_set_visibility (GTK_ENTRY (TextWidget->pwd[1]), FALSE);
 	
-	gtk_entry_set_placeholder_text (GTK_ENTRY (TextWidget.pwd[0]), _("Type Password"));
-	gtk_entry_set_placeholder_text (GTK_ENTRY (TextWidget.pwd[1]), _("Retype Password"));
+	gtk_entry_set_placeholder_text (GTK_ENTRY (TextWidget->pwd[0]), _("Type Password"));
+	gtk_entry_set_placeholder_text (GTK_ENTRY (TextWidget->pwd[1]), _("Retype Password"));
 		
-	TextWidget.textView = gtk_text_view_new ();
-	gtk_container_add (GTK_CONTAINER (scrolledWin), TextWidget.textView);
+	TextWidget->textView = gtk_text_view_new ();
+	gtk_container_add (GTK_CONTAINER (scrolledWin), TextWidget->textView);
 	
 	PangoFontDescription *newFont = pango_font_description_new ();
 	pango_font_description_set_family (newFont, "monospace");
-	gtk_widget_override_font (GTK_WIDGET (TextWidget.textView), newFont);
+	gtk_widget_override_font (GTK_WIDGET (TextWidget->textView), newFont);
 	pango_font_description_free (newFont);
 	
-	gtk_box_pack_start (GTK_BOX(box), TextWidget.pwd[0], TRUE, TRUE, 0);
-	if (!TextWidget.action)
-		gtk_box_pack_start (GTK_BOX (box), TextWidget.pwd[1], TRUE, TRUE, 0);
+	gtk_box_pack_start (GTK_BOX(box), TextWidget->pwd[0], TRUE, TRUE, 0);
+	if (!TextWidget->action)
+		gtk_box_pack_start (GTK_BOX (box), TextWidget->pwd[1], TRUE, TRUE, 0);
 	
-	g_object_set (TextWidget.textView, "expand", TRUE, NULL);
+	g_object_set (TextWidget->textView, "expand", TRUE, NULL);
 	
 	gtk_container_add (GTK_CONTAINER (contentArea), scrolledWin);
 	gtk_container_add (GTK_CONTAINER (contentArea), box);
 	
-	button[0] = gtk_dialog_add_button (GTK_DIALOG (dialog), _("Cancel"), GTK_RESPONSE_CANCEL);
-	button[1] = gtk_dialog_add_button (GTK_DIALOG (dialog), _("OK"), GTK_RESPONSE_OK);
+	button[0] = gtk_dialog_add_button (GTK_DIALOG (TextWidget->dialog), _("Cancel"), GTK_RESPONSE_CANCEL);
+	button[1] = gtk_dialog_add_button (GTK_DIALOG (TextWidget->dialog), _("OK"), GTK_RESPONSE_OK);
 	
 	gtk_widget_set_name (GTK_WIDGET (button[0]), "clbt");
 	gtk_widget_set_name (GTK_WIDGET (button[1]), "okbt");
 		
-	TextWidget.buffer = gtk_text_view_get_buffer (GTK_TEXT_VIEW (TextWidget.textView));
+	TextWidget->buffer = gtk_text_view_get_buffer (GTK_TEXT_VIEW (TextWidget->textView));
 
-	gtk_text_buffer_set_text (TextWidget.buffer, _("Write here your text"), -1);
+	gtk_text_buffer_set_text (TextWidget->buffer, _("Write here your text"), -1);
     
-	gtk_widget_show_all (dialog);
+	gtk_widget_show_all (TextWidget->dialog);
     
-	g_signal_connect_swapped (button[0], "clicked", G_CALLBACK (gtk_widget_destroy), dialog);
-	g_signal_connect_swapped (button[1], "clicked", G_CALLBACK (prepare_text), &TextWidget);
+	g_signal_connect (button[0], "clicked", G_CALLBACK (close_dialog), (gpointer)TextWidget);
+	g_signal_connect (button[1], "clicked", G_CALLBACK (prepare_text), (gpointer)TextWidget);
 }
 
 
 static void
-prepare_text (struct textWidget_t *TextWidget)
+prepare_text (	GtkWidget __attribute__((__unused__)) *bt,
+		gpointer user_data)
 {
+	struct textWidget_t *TextWidget = user_data;
+
 	gint ret;
 	if (!TextWidget->action)
 	{

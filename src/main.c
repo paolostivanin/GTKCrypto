@@ -12,7 +12,6 @@
 #define NUM_OF_BOXES 2
 #define NUM_OF_HASH 8
 
-//GCRY_THREAD_OPTION_PTHREAD_IMPL;
 
 static GdkPixbuf *create_logo (gint);
 GtkWidget *do_mainwin (GtkApplication *);
@@ -216,7 +215,6 @@ gint
 main (	int argc,
 	char *argv[])
 {
-	//gcry_control (GCRYCTL_SET_THREAD_CBS, &gcry_threads_pthread);
 	if (!gcry_check_version (GCRYPT_MIN_VER)){
 		fprintf(stderr, "libgcrypt min version required: %s\n", GCRYPT_MIN_VER);
 		return -1;

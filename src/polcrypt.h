@@ -50,6 +50,7 @@ extern struct hashWidget_t HashWidget;
 
 struct textWidget_t
 {
+	GtkWidget *dialog;
 	GtkWidget *textView;
 	GtkWidget *pwd[2];	
 	GtkTextBuffer *buffer;
