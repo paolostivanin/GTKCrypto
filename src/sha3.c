@@ -18,7 +18,7 @@ static goffset get_file_size (const gchar *);
 
 void
 compute_sha3 (	GtkWidget *checkBt,
-		struct hashWidget_t *HashWidget)
+		struct hash_vars *hash_var)
 {
 	gint bit = 0;
 	
@@ -29,37 +29,37 @@ compute_sha3 (	GtkWidget *checkBt,
 	
 	if (bit == 256)
 	{
-		if (!gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (HashWidget->hashCheck[3])))
+		if (!gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (hash_var->hash_check[3])))
 		{
-			gtk_entry_set_text (GTK_ENTRY (HashWidget->hashEntry[3]), "");
+			gtk_entry_set_text (GTK_ENTRY (hash_var->hash_entry[3]), "");
 			goto fine;
 		}
 		
-		else if (g_utf8_strlen (gtk_entry_get_text (GTK_ENTRY (HashWidget->hashEntry[3])), -1) == 64)
+		else if (g_utf8_strlen (gtk_entry_get_text (GTK_ENTRY (hash_var->hash_entry[3])), -1) == 64)
 			goto fine;
 	
-		gpointer ptr = g_hash_table_lookup (HashWidget->hashTable, HashWidget->key[3]);
+		gpointer ptr = g_hash_table_lookup (hash_var->hash_table, hash_var->key[3]);
 		if (ptr != NULL)
 		{
-			gtk_entry_set_text (GTK_ENTRY (HashWidget->hashEntry[3]), (gchar *)g_hash_table_lookup (HashWidget->hashTable, HashWidget->key[3]));
+			gtk_entry_set_text (GTK_ENTRY (hash_var->hash_entry[3]), (gchar *)g_hash_table_lookup (hash_var->hash_table, hash_var->key[3]));
 			goto fine;
 		}
 	}
 	else
 	{
-		if (!gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (HashWidget->hashCheck[5])))
+		if (!gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (hash_var->hash_check[5])))
 		{
-			gtk_entry_set_text (GTK_ENTRY (HashWidget->hashEntry[5]), "");
+			gtk_entry_set_text (GTK_ENTRY (hash_var->hash_entry[5]), "");
 			goto fine;
 		}
 		
-		else if (g_utf8_strlen (gtk_entry_get_text (GTK_ENTRY (HashWidget->hashEntry[5])), -1) == 128)
+		else if (g_utf8_strlen (gtk_entry_get_text (GTK_ENTRY (hash_var->hash_entry[5])), -1) == 128)
 			goto fine;	
 
-		gpointer ptr = g_hash_table_lookup (HashWidget->hashTable, HashWidget->key[5]);
+		gpointer ptr = g_hash_table_lookup (hash_var->hash_table, hash_var->key[5]);
 		if (ptr != NULL)
 		{
-			gtk_entry_set_text (GTK_ENTRY (HashWidget->hashEntry[5]), (gchar *)g_hash_table_lookup (HashWidget->hashTable, HashWidget->key[5]));
+			gtk_entry_set_text (GTK_ENTRY (hash_var->hash_entry[5]), (gchar *)g_hash_table_lookup (hash_var->hash_table, hash_var->key[5]));
 			goto fine;
 		}	
 	}
@@ -99,14 +99,14 @@ compute_sha3 (	GtkWidget *checkBt,
 		return;
 	}
 	
-	fd = g_open (HashWidget->filename, O_RDONLY | O_NOFOLLOW);
+	fd = g_open (hash_var->filename, O_RDONLY | O_NOFOLLOW);
 	if (fd == -1)
 	{
 		g_printerr ("sha2: %s\n", g_strerror (errno));
 		return;
 	}
   	
-  	fileSize = get_file_size (HashWidget->filename);
+  	fileSize = get_file_size (hash_var->filename);
   	
   	if (bit == 256)
 		sha3_256_init (&ctx256);
@@ -209,8 +209,8 @@ compute_sha3 (	GtkWidget *checkBt,
 			g_sprintf (hash+(i*2), "%02x", digest[i]);
 
 		hash[64] = '\0';
-		gtk_entry_set_text (GTK_ENTRY (HashWidget->hashEntry[3]), hash);
-		g_hash_table_insert (HashWidget->hashTable, HashWidget->key[3], strdup(hash));		
+		gtk_entry_set_text (GTK_ENTRY (hash_var->hash_entry[3]), hash);
+		g_hash_table_insert (hash_var->hash_table, hash_var->key[3], strdup (hash));		
 	}
 	else
 	{
@@ -219,8 +219,8 @@ compute_sha3 (	GtkWidget *checkBt,
 			g_sprintf (hash+(i*2), "%02x", digest[i]);
 
 		hash[128] = '\0';
-		gtk_entry_set_text (GTK_ENTRY (HashWidget->hashEntry[5]), hash);
-		g_hash_table_insert (HashWidget->hashTable, HashWidget->key[5], strdup(hash));		
+		gtk_entry_set_text (GTK_ENTRY (hash_var->hash_entry[5]), hash);
+		g_hash_table_insert (hash_var->hash_table, hash_var->key[5], strdup (hash));		
 	}
  	
 	g_close (fd, &err);

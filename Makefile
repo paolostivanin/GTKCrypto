@@ -2,7 +2,6 @@
 CC = clang
 
 CFLAGS = -Wall -Wextra -D_FILE_OFFSET_BITS=64 -U_FORTIFY_SOURCE -D_FORTIFY_SOURCE=2 -O2 -Wformat=2 -fstack-protector-all -fPIE -Wstrict-prototypes -Wunreachable-code  -Wwrite-strings -Wpointer-arith -Wbad-function-cast -Wcast-align -Wcast-qual
-#NOFLAGS = -Wno-unused-result -Wno-missing-field-initializers -Wno-maybe-uninitialized -Wno-return-type
 NOFLAGS = -Wno-unused-result -Wno-missing-field-initializers -Wno-uninitialized -Wno-return-type
 
 LDFLAGS = -Wl,-z,now -Wl,-z,relro -lgcrypt -lnettle -lnotify

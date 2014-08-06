@@ -19,48 +19,48 @@
 #include <gtk/gtk.h>
 
 
-struct metadata_t
+struct data
 {
-	gint8 algoType; //(NULL|0=aes),(1=serpent),(2=twofish),(3=camellia)
-	gint8 algoMode; //1=CBC,2=CTR
+	gint8 algo_type; //(NULL|0=aes),(1=serpent),(2=twofish),(3=camellia)
+	gint8 block_cipher_mode; //1=CBC,2=CTR
 	guint8 salt[32];
 	guint8 iv[16];
 };
-extern struct metadata_t Metadata;
+extern struct data metadata;
 
-struct widget_t
+struct main_vars
 {
 	gchar *filename;
-	GtkWidget *mainwin;
-	GtkWidget *pwdEntry[2];
+	GtkWidget *main_window;
+	GtkWidget *pwd_entry[2];
 	GtkWidget *menu, *popover;
-	GtkWidget *radioButton[6]; //aes, serpent, twofish, camellia, cbc, ctr
+	GtkWidget *radio_button[6]; //aes, serpent, twofish, camellia, cbc, ctr
 };
-extern struct widget_t Widget;
+extern struct main_vars main_var;
 
-struct hashWidget_t
+struct hash_vars
 {
 	gchar *filename;
-	GHashTable *hashTable;
-	GtkWidget *hashEntry[8]; //md5, sha1, sha256, sha3-256, sha512, sha3-512, whir, gostr
-	GtkWidget *hashCheck[8]; //md5, sha1, sha256, sha3-256, sha512, sha3-512, whir, gostr
+	GHashTable *hash_table;
+	GtkWidget *hash_entry[8]; //md5, sha1, sha256, sha3-256, sha512, sha3-512, whir, gostr
+	GtkWidget *hash_check[8]; //md5, sha1, sha256, sha3-256, sha512, sha3-512, whir, gostr
 	gchar *key[8];
 };
-extern struct hashWidget_t HashWidget;
+extern struct hash_vars hash_var;
 
-struct textWidget_t
+struct text_vars
 {
 	GtkWidget *dialog;
-	GtkWidget *textView;
+	GtkWidget *text_view;
 	GtkWidget *pwd[2];	
 	GtkTextBuffer *buffer;
 	gchar *text;
-	guchar *cryptText;
-	gchar *decodedText;
-	gsize totalLen;
-	gsize outLen;
+	guchar *crypt_text;
+	gchar *decoded_text;
+	gsize total_length;
+	gsize out_length;
 	gint8 action;
 };
-extern struct textWidget_t TextWidget;
+extern struct text_vars text_var;
 
 #endif

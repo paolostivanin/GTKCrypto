@@ -21,20 +21,20 @@ static void close_file (FILE *, FILE *);
 
 
 gint
-crypt_file(	struct widget_t *Widget,
+crypt_file(	struct main_vars *main_var,
 		gint mode)
 {
-	struct metadata_t Metadata;
+	struct data metadata;
 	gcry_cipher_hd_t hd;
 	
 	guchar padding[15] = { 0x01,0x02,0x03,0x04,0x05,0x06,0x07,0x08,0x09,0x0A,0x0B,0x0C,0x0D,0x0E,0x0F};
-	guchar *derivedKey = NULL, *cryptoKey = NULL, *macKey = NULL;
+	guchar *derived_key = NULL, *crypto_key = NULL, *mac_key = NULL;
 	guchar text[16], fileMAC[64], *cryptoBuffer = NULL;
 	
-	gint algo = -1, retVal, i, algoMode = -1, numberOfBlock = -1, blockDone = 0, numberOfPKCS7Bytes, counterForGoto = 0;	
+	gint algo = -1, ret_val, i, cipher_mode = -1, numberOfBlock = -1, blockDone = 0, numberOfPKCS7Bytes, counterForGoto = 0;	
 	
 	gchar *inputKey = NULL, *outFilename = NULL, *extBuf = NULL;
-	gchar *filename = g_strdup(Widget->filename);
+	gchar *filename = g_strdup(main_var->filename);
 	
 	gfloat divBy16;
 	glong currentFileOffset, bytesBeforeMAC;
@@ -61,35 +61,35 @@ crypt_file(	struct widget_t *Widget,
 	
 	if(mode == ENCRYPT)
 	{
-		if (gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (Widget->radioButton[0])))
+		if (gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (main_var->radio_button[0])))
 		{
 			algo = gcry_cipher_map_name ("aes256");
-			Metadata.algoType = 0;
+			metadata.algo_type = 0;
 		}
-		else if (gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (Widget->radioButton[1])))
+		else if (gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (main_var->radio_button[1])))
 		{
 			algo = gcry_cipher_map_name ("serpent256");
-			Metadata.algoType = 1;
+			metadata.algo_type = 1;
 		}
-		else if (gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (Widget->radioButton[2])))
+		else if (gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (main_var->radio_button[2])))
 		{
 			algo = gcry_cipher_map_name ("twofish");
-			Metadata.algoType = 2;
+			metadata.algo_type = 2;
 		}
-		else if (gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (Widget->radioButton[3])))
+		else if (gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (main_var->radio_button[3])))
 		{
 			algo = gcry_cipher_map_name ("camellia256");
-			Metadata.algoType = 3;
+			metadata.algo_type = 3;
 		}
-		if (gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (Widget->radioButton[4])))
+		if (gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (main_var->radio_button[4])))
 		{
-			algoMode = GCRY_CIPHER_MODE_CBC;
-			Metadata.algoMode = 1;
+			cipher_mode = GCRY_CIPHER_MODE_CBC;
+			metadata.block_cipher_mode = 1;
 		}
-		else if (gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (Widget->radioButton[5])))
+		else if (gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (main_var->radio_button[5])))
 		{
-			algoMode = GCRY_CIPHER_MODE_CTR;
-			Metadata.algoMode = 2;
+			cipher_mode = GCRY_CIPHER_MODE_CTR;
+			metadata.block_cipher_mode = 2;
 		}
 		
 		lenFilename = g_utf8_strlen (filename, -1);
@@ -129,7 +129,7 @@ crypt_file(	struct widget_t *Widget,
 		}
 	}
 	
-	const gchar *pwd = gtk_entry_get_text (GTK_ENTRY (Widget->pwdEntry[0]));
+	const gchar *pwd = gtk_entry_get_text (GTK_ENTRY (main_var->pwd_entry[0]));
 	if (!g_utf8_validate (pwd, -1, NULL))
 	{
 		send_notification ("ERROR", "The password you chose is not a valid UTF-8 string");
@@ -143,8 +143,8 @@ crypt_file(	struct widget_t *Widget,
 		
 	if (mode == ENCRYPT)
 	{
-		gcry_create_nonce(Metadata.iv, 16);
-		gcry_create_nonce(Metadata.salt, 32);
+		gcry_create_nonce(metadata.iv, 16);
+		gcry_create_nonce(metadata.salt, 32);
 		
 		divBy16 = (gfloat) fileSize / 16;
 		numberOfBlock = (gint) divBy16;
@@ -152,7 +152,7 @@ crypt_file(	struct widget_t *Widget,
 			numberOfBlock += 1;
 	}
 	else
-		fileSize = fileSize - 64 - sizeof (struct metadata_t);
+		fileSize = fileSize - 64 - sizeof (struct data);
 	
 	fp = g_fopen (filename, "r");
 	if (fp == NULL)
@@ -183,15 +183,15 @@ crypt_file(	struct widget_t *Widget,
 			return -4;
 		}
 		
-		if (fread (&Metadata, sizeof (struct metadata_t), 1, fp) != 1)
+		if (fread (&metadata, sizeof (struct data), 1, fp) != 1)
 		{
-			g_printerr ( _("decrypt_file: cannot read file metadata_t\n"));
+			g_printerr ( _("decrypt_file: cannot read file data\n"));
 			free_res (filename, outFilename, cryptoBuffer, NULL, NULL, NULL);
 			close_file (fp, fpout);
 			return -4;
 		}
 				
-		switch (Metadata.algoType)
+		switch (metadata.algo_type)
 		{
 			case 0:
 				algo = gcry_cipher_map_name("aes256");
@@ -210,26 +210,26 @@ crypt_file(	struct widget_t *Widget,
 				break;
 		}
 
-		switch (Metadata.algoMode)
+		switch (metadata.block_cipher_mode)
 		{
 			case 1:
-				algoMode = GCRY_CIPHER_MODE_CBC;
+				cipher_mode = GCRY_CIPHER_MODE_CBC;
 				break;
 			case 2:
-				algoMode = GCRY_CIPHER_MODE_CTR;
+				cipher_mode = GCRY_CIPHER_MODE_CTR;
 				break;
 			default:
-				algoMode = GCRY_CIPHER_MODE_CTR;
+				cipher_mode = GCRY_CIPHER_MODE_CTR;
 				break;
 		}
 	}
 
-	gcry_cipher_open (&hd, algo, algoMode, 0);
+	gcry_cipher_open (&hd, algo, cipher_mode, 0);
 	
 	blkLength = gcry_cipher_get_algo_blklen (algo);
 	keyLength = gcry_cipher_get_algo_keylen (algo);
 	
-	if ((derivedKey = gcry_malloc_secure (64)) == NULL)
+	if ((derived_key = gcry_malloc_secure (64)) == NULL)
 	{
 		g_printerr ( _("encrypt_file: gcry_malloc_secure failed (derived)\n"));
 		gcry_free (inputKey);
@@ -238,56 +238,56 @@ crypt_file(	struct widget_t *Widget,
 		return -1;
 	}
 	
-	if ((cryptoKey = gcry_malloc_secure (32)) == NULL)
+	if ((crypto_key = gcry_malloc_secure (32)) == NULL)
 	{
 		g_printerr ( _("encrypt_file: gcry_malloc_secure failed (crypto)\n"));
 		gcry_free (inputKey);
-		free_res (filename, outFilename, cryptoBuffer, derivedKey, NULL, NULL);
+		free_res (filename, outFilename, cryptoBuffer, derived_key, NULL, NULL);
 		close_file (fp, fpout);		
 		return -1;
 	}
 	
-	if ((macKey = gcry_malloc_secure (32)) == NULL)
+	if ((mac_key = gcry_malloc_secure (32)) == NULL)
 	{
 		g_printerr ( _("encrypt_file: gcry_malloc_secure failed (mac)\n"));
 		gcry_free (inputKey);
-		free_res (filename, outFilename, cryptoBuffer, derivedKey, cryptoKey, NULL);
+		free_res (filename, outFilename, cryptoBuffer, derived_key, crypto_key, NULL);
 		close_file (fp, fpout);		
 		return -1;
 	}
 	
 	tryAgainDerive:
-	if (gcry_kdf_derive (inputKey, pwdLen+1, GCRY_KDF_PBKDF2, GCRY_MD_SHA512, Metadata.salt, 32, 150000, 64, derivedKey) != 0)
+	if (gcry_kdf_derive (inputKey, pwdLen+1, GCRY_KDF_PBKDF2, GCRY_MD_SHA512, metadata.salt, 32, 150000, 64, derived_key) != 0)
 	{
 		if (counterForGoto == 3)
 		{
 			g_printerr ( _("encrypt_file: Key derivation error\n"));
 			gcry_free (inputKey);
-			free_res (filename, outFilename, cryptoBuffer, derivedKey, cryptoKey, macKey);
+			free_res (filename, outFilename, cryptoBuffer, derived_key, crypto_key, mac_key);
 			close_file (fp, fpout);
 		}
 		counterForGoto += 1;
 		goto tryAgainDerive;
 	}
 	
-	memcpy (cryptoKey, derivedKey, 32);
-	memcpy (macKey, derivedKey + 32, 32);
+	memcpy (crypto_key, derived_key, 32);
+	memcpy (mac_key, derived_key + 32, 32);
 	
-	gcry_cipher_setkey (hd, cryptoKey, keyLength);
-	if (algoMode == GCRY_CIPHER_MODE_CBC)
-		gcry_cipher_setiv(hd, Metadata.iv, blkLength);
+	gcry_cipher_setkey (hd, crypto_key, keyLength);
+	if (cipher_mode == GCRY_CIPHER_MODE_CBC)
+		gcry_cipher_setiv(hd, metadata.iv, blkLength);
 	else
-		gcry_cipher_setctr(hd, Metadata.iv, blkLength);
+		gcry_cipher_setctr(hd, metadata.iv, blkLength);
 	
 	if (mode == DECRYPT)
 	{
 		numberOfBlock = fileSize / 16;
-		bytesBeforeMAC = fileSize + sizeof(struct metadata_t);
+		bytesBeforeMAC = fileSize + sizeof(struct data);
 				
 		if ((currentFileOffset = ftell (fp)) == -1)
 		{
 			g_printerr ("decrypt_file: %s\n", strerror (errno));
-			free_res (filename, outFilename, cryptoBuffer, derivedKey, cryptoKey, macKey);
+			free_res (filename, outFilename, cryptoBuffer, derived_key, crypto_key, mac_key);
 			close_file (fp, fpout);
 			return -4;
 		}
@@ -295,7 +295,7 @@ crypt_file(	struct widget_t *Widget,
 		if (fseek (fp, bytesBeforeMAC, SEEK_SET) == -1)
 		{
 			g_printerr ("decrypt_file: %s\n", strerror (errno));
-			free_res (filename, outFilename, cryptoBuffer, derivedKey, cryptoKey, macKey);
+			free_res (filename, outFilename, cryptoBuffer, derived_key, crypto_key, mac_key);
 			close_file (fp, fpout);
 			return -4;
 		}
@@ -303,17 +303,17 @@ crypt_file(	struct widget_t *Widget,
 		if (fread (fileMAC, 1, 64, fp) != 64)
 		{
 			g_printerr ("decrypt_file: %s\n", strerror (errno));
-			free_res (filename, outFilename, cryptoBuffer, derivedKey, cryptoKey, macKey);
+			free_res (filename, outFilename, cryptoBuffer, derived_key, crypto_key, mac_key);
 			close_file (fp, fpout);
 			return -4;
 		}
 
-		guchar *hmac = calculate_hmac(filename, macKey, keyLength, fileSize, 1);
+		guchar *hmac = calculate_hmac(filename, mac_key, keyLength, fileSize, 1);
 		if (hmac == (guchar *)1)
 		{
 			g_printerr ( _("Error during HMAC calculation\n"));
 			gcry_free (inputKey);
-			free_res (filename, outFilename, cryptoBuffer, derivedKey, cryptoKey, macKey);
+			free_res (filename, outFilename, cryptoBuffer, derived_key, crypto_key, mac_key);
 			close_file (fp, fpout);
 			return -4;
 		}	
@@ -321,7 +321,7 @@ crypt_file(	struct widget_t *Widget,
 		if (memcmp (fileMAC, hmac, 64) != 0)
 		{
 			send_notification("PolCrypt", "HMAC doesn't match. This is caused by\n1) wrong password\nor\n2) corrupted file\n");
-			free_res (filename, outFilename, cryptoBuffer, derivedKey, cryptoKey, macKey); //docazzooooooooooooooo
+			free_res (filename, outFilename, cryptoBuffer, derived_key, crypto_key, mac_key); //docazzooooooooooooooo
 			free(hmac);
 			close_file (fp, fpout);
 			return -5;
@@ -331,7 +331,7 @@ crypt_file(	struct widget_t *Widget,
 		if (fseek (fp, currentFileOffset, SEEK_SET) == -1)
 		{
 			g_printerr ("decrypt_file: %s\n", strerror (errno));
-			free_res (filename, outFilename, cryptoBuffer, derivedKey, cryptoKey, macKey);
+			free_res (filename, outFilename, cryptoBuffer, derived_key, crypto_key, mac_key);
 			close_file (fp, fpout);
 			return -4;
 		}		
@@ -340,32 +340,32 @@ crypt_file(	struct widget_t *Widget,
 	if (mode == ENCRYPT)
 	{
 		fseek (fp, 0, SEEK_SET);
-		fwrite (&Metadata, sizeof(struct metadata_t), 1, fpout);
-		if (algoMode == GCRY_CIPHER_MODE_CBC)
+		fwrite (&metadata, sizeof(struct data), 1, fpout);
+		if (cipher_mode == GCRY_CIPHER_MODE_CBC)
 		{
 			while (numberOfBlock > blockDone)
 			{
 				memset (text, 0, sizeof (text));
-				retVal = fread (text, 1, 16, fp);
-				if (retVal < 16)
+				ret_val = fread (text, 1, 16, fp);
+				if (ret_val < 16)
 				{
-					for(i = retVal; i < 16; i++)
+					for(i = ret_val; i < 16; i++)
 					{
-						if (retVal == 1) text[i] = padding[14];
-						else if (retVal == 2) text[i] = padding[13];
-						else if (retVal == 3) text[i] = padding[12];
-						else if (retVal == 4) text[i] = padding[11];
-						else if (retVal == 5) text[i] = padding[10];
-						else if (retVal == 6) text[i] = padding[9];
-						else if (retVal == 7) text[i] = padding[8];
-						else if (retVal == 8) text[i] = padding[7];
-						else if (retVal == 9) text[i] = padding[6];
-						else if (retVal == 10) text[i] = padding[5];
-						else if (retVal == 11) text[i] = padding[4];
-						else if (retVal == 12) text[i] = padding[3];
-						else if (retVal == 13) text[i] = padding[2];
-						else if (retVal == 14) text[i] = padding[1];
-						else if (retVal == 15) text[i] = padding[0];
+						if (ret_val == 1) text[i] = padding[14];
+						else if (ret_val == 2) text[i] = padding[13];
+						else if (ret_val == 3) text[i] = padding[12];
+						else if (ret_val == 4) text[i] = padding[11];
+						else if (ret_val == 5) text[i] = padding[10];
+						else if (ret_val == 6) text[i] = padding[9];
+						else if (ret_val == 7) text[i] = padding[8];
+						else if (ret_val == 8) text[i] = padding[7];
+						else if (ret_val == 9) text[i] = padding[6];
+						else if (ret_val == 10) text[i] = padding[5];
+						else if (ret_val == 11) text[i] = padding[4];
+						else if (ret_val == 12) text[i] = padding[3];
+						else if (ret_val == 13) text[i] = padding[2];
+						else if (ret_val == 14) text[i] = padding[1];
+						else if (ret_val == 15) text[i] = padding[0];
 					}
 				}
 				gcry_cipher_encrypt (hd, cryptoBuffer, 16, text, 16);
@@ -377,20 +377,20 @@ crypt_file(	struct widget_t *Widget,
 			while (fileSize > doneSize)
 			{
 				memset (text, 0, sizeof (text));
-				retVal = fread (text, 1, 16, fp);
-				gcry_cipher_encrypt (hd, cryptoBuffer, retVal, text, retVal);
-				fwrite (cryptoBuffer, 1, retVal, fpout);
-				doneSize += retVal;
+				ret_val = fread (text, 1, 16, fp);
+				gcry_cipher_encrypt (hd, cryptoBuffer, ret_val, text, ret_val);
+				fwrite (cryptoBuffer, 1, ret_val, fpout);
+				doneSize += ret_val;
 			}
 		}
 		
 		close_file (fp, fpout);
 		
-		guchar *hmac = calculate_hmac (outFilename, macKey, keyLength, fileSize, 0);
+		guchar *hmac = calculate_hmac (outFilename, mac_key, keyLength, fileSize, 0);
 		if (hmac == (guchar *)1)
 		{
 			g_printerr ( _("Error during HMAC calculation"));
-			free_res (filename, outFilename, cryptoBuffer, derivedKey, cryptoKey, macKey);
+			free_res (filename, outFilename, cryptoBuffer, derived_key, crypto_key, mac_key);
 			return -4;
 		}
 		
@@ -398,10 +398,10 @@ crypt_file(	struct widget_t *Widget,
 		fwrite (hmac, 1, 64, fpout);
 		free (hmac);
 		
-		retVal = delete_input_file (filename, fileSize);
-		if (retVal == -1)
+		ret_val = delete_input_file (filename, fileSize);
+		if (ret_val == -1)
 			g_printerr ( _("Secure file deletion failed, overwrite it manually"));
-		if(retVal == -2)
+		if(ret_val == -2)
 			g_printerr ( _("File unlink failed, remove it manually"));
 			
 		fclose(fpout);
@@ -410,20 +410,20 @@ crypt_file(	struct widget_t *Widget,
 	}
 	else
 	{
-		if (algoMode == GCRY_CIPHER_MODE_CBC)
+		if (cipher_mode == GCRY_CIPHER_MODE_CBC)
 		{
 			while (numberOfBlock > blockDone)
 			{
 				memset (text, 0, sizeof (text));
-				retVal = fread (text, 1, 16, fp);
-				gcry_cipher_decrypt (hd, cryptoBuffer, retVal, text, retVal);
+				ret_val = fread (text, 1, 16, fp);
+				gcry_cipher_decrypt (hd, cryptoBuffer, ret_val, text, ret_val);
 				if (blockDone == (numberOfBlock-1))
 				{
 					numberOfPKCS7Bytes = check_pkcs7 (cryptoBuffer, padding);
 					fwrite (cryptoBuffer, 1, numberOfPKCS7Bytes, fpout);	
 					goto end;
 				}
-				fwrite (cryptoBuffer, 1, retVal, fpout);
+				fwrite (cryptoBuffer, 1, ret_val, fpout);
 				blockDone++;
 			}
 		}
@@ -433,23 +433,23 @@ crypt_file(	struct widget_t *Widget,
 				memset (text, 0, sizeof (text));
 				if (fileSize-doneSize < 16)
 				{
-					retVal = fread (text, 1, fileSize-doneSize, fp);
-					gcry_cipher_decrypt (hd, cryptoBuffer, retVal, text, retVal);
-					fwrite (cryptoBuffer, 1, retVal, fpout);
+					ret_val = fread (text, 1, fileSize-doneSize, fp);
+					gcry_cipher_decrypt (hd, cryptoBuffer, ret_val, text, ret_val);
+					fwrite (cryptoBuffer, 1, ret_val, fpout);
 					break;
 				}
 				else
 				{
-					retVal = fread (text, 1, 16, fp);
-					gcry_cipher_decrypt (hd, cryptoBuffer, retVal, text, retVal);
-					fwrite (cryptoBuffer, 1, retVal, fpout);
-					doneSize += retVal;
+					ret_val = fread (text, 1, 16, fp);
+					gcry_cipher_decrypt (hd, cryptoBuffer, ret_val, text, ret_val);
+					fwrite (cryptoBuffer, 1, ret_val, fpout);
+					doneSize += ret_val;
 				}
 			}
 		}
 		end:
 		gcry_free (inputKey);
-		free_res (filename, outFilename, cryptoBuffer, derivedKey, cryptoKey, macKey);
+		free_res (filename, outFilename, cryptoBuffer, derived_key, crypto_key, mac_key);
 		close_file (fp, fpout);
 		send_notification ("PolCrypt", "Decryption successfully done");
 	}
