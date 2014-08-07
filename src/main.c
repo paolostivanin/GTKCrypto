@@ -498,7 +498,6 @@ pwd_dialog (	GtkWidget *file_dialog,
 				}
 				else
 				{
-					main_var->encrypt = TRUE;
 					gtk_widget_hide (dialog);
 					create_dialog (main_var);		
 				}
@@ -506,7 +505,7 @@ pwd_dialog (	GtkWidget *file_dialog,
 			}
 			else
 			{
-				main_var->encrypt = FALSE;
+				//if hmac is wrong due to wrong password restart pwd dialog
 				gtk_widget_hide (dialog);
 				create_dialog (main_var);
 				//if (result == -5) goto restart;

@@ -76,7 +76,7 @@ crypt_file(gpointer user_data)
 	gfloat divBy16;
 	glong current_file_offset, bytes_before_MAC;
 	
-	goffset file_size = 0, done_size = 0;
+	goffset file_size = 0, done_size = 0, output_file_size = 0;
 	gsize blkLength = 0, keyLength = 0, filename_length, pwd_len = 0;
 	
 	FILE *fp, *fpout;
@@ -88,14 +88,14 @@ crypt_file(gpointer user_data)
 	}
 	
 	file_size = get_file_size (input_fname);
-	
+
 	crypto_buffer = gcry_malloc (16);
 	if (crypto_buffer == NULL)
 	{
 		g_printerr ( _("crypt_file: error during memory allocation (decBuffer)"));
 		g_thread_exit (NULL);
 	}
-	
+
 	if(main_var->encrypt)
 	{
 		if (gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (main_var->radio_button[0])))
@@ -177,14 +177,15 @@ crypt_file(gpointer user_data)
 	inputKey = gcry_malloc_secure (pwd_len+1);
 	g_utf8_strncpy (inputKey, pwd, pwd_len);
 	inputKey[pwd_len] = '\0';
-		
+	
 	if (main_var->encrypt)
 	{
-		gcry_create_nonce(metadata.iv, 16);
-		gcry_create_nonce(metadata.salt, 32);
+		gcry_create_nonce (metadata.iv, 16);
+		gcry_create_nonce (metadata.salt, 32);
 		
 		divBy16 = (gfloat) file_size / 16;
 		number_of_block = (gint) divBy16;
+		
 		if (divBy16 > number_of_block)
 			number_of_block += 1;
 	}
@@ -227,23 +228,23 @@ crypt_file(gpointer user_data)
 			close_file (fp, fpout);
 			g_thread_exit (NULL);
 		}
-				
+		
 		switch (metadata.algo_type)
 		{
 			case 0:
-				algo = gcry_cipher_map_name("aes256");
+				algo = gcry_cipher_map_name ("aes256");
 				break;
 			case 1:
-				algo = gcry_cipher_map_name("serpent256");
+				algo = gcry_cipher_map_name ("serpent256");
 				break;
 			case 2:
-				algo = gcry_cipher_map_name("twofish");
+				algo = gcry_cipher_map_name ("twofish");
 				break;
 			case 3:
-				algo = gcry_cipher_map_name("camellia256");
+				algo = gcry_cipher_map_name ("camellia256");
 				break;
 			default:
-				algo = gcry_cipher_map_name("aes256");
+				algo = gcry_cipher_map_name ("aes256");
 				break;
 		}
 
@@ -344,8 +345,8 @@ crypt_file(gpointer user_data)
 			close_file (fp, fpout);
 			g_thread_exit (NULL);
 		}
-
-		guchar *hmac = calculate_hmac (input_fname, mac_key, keyLength, file_size, 1);
+		
+		guchar *hmac = calculate_hmac (input_fname, mac_key, keyLength, file_size + sizeof (struct data), 1);
 		if (hmac == (guchar *)1)
 		{
 			g_printerr ( _("Error during HMAC calculation\n"));
@@ -353,8 +354,8 @@ crypt_file(gpointer user_data)
 			free_res (input_fname, output_fname, crypto_buffer, derived_key, crypto_key, mac_key);
 			close_file (fp, fpout);
 			g_thread_exit (NULL);
-		}	
-
+		}
+		
 		if (memcmp (MAC_of_file, hmac, 64) != 0)
 		{
 			send_notification("PolCrypt", "HMAC doesn't match. This is caused by\n1) wrong password\nor\n2) corrupted file\n");
@@ -423,7 +424,9 @@ crypt_file(gpointer user_data)
 		
 		close_file (fp, fpout);
 		
-		guchar *hmac = calculate_hmac (output_fname, mac_key, keyLength, file_size, 0);
+		output_file_size = get_file_size (output_fname);
+
+		guchar *hmac = calculate_hmac (output_fname, mac_key, keyLength, output_file_size, 0);
 		if (hmac == (guchar *)1)
 		{
 			g_printerr ( _("Error during HMAC calculation"));
@@ -492,9 +495,12 @@ crypt_file(gpointer user_data)
 		gcry_free (inputKey);
 		free_res (input_fname, output_fname, crypto_buffer, derived_key, crypto_key, mac_key);
 		close_file (fp, fpout);
-		send_notification ("PolCrypt", "Decryption successfully done");
-	}
 
+		g_source_remove(id);
+		add_text(GTK_PROGRESS_BAR (main_var->pBar), "Finished");
+		fill_total(GTK_PROGRESS_BAR (main_var->pBar));
+		gtk_dialog_set_response_sensitive (GTK_DIALOG(main_var->bar_dialog), GTK_RESPONSE_REJECT, TRUE);
+	}
 	
 	g_thread_exit (NULL);
 }	

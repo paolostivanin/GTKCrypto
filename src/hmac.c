@@ -14,14 +14,16 @@ guchar
 *calculate_hmac (	const gchar *filename,
 			const guchar *key,
 			gsize keylen,
-			gsize fileSize,
+			goffset fileSize,
 			gint mode)
 {
 	gint fd, retVal;
 	gchar *fAddr;
-	gsize fSize = fileSize, doneSize = 0, diff = 0;
+	gsize fSize, doneSize = 0, diff = 0;
 	goffset offset = 0;
 	GError *err = NULL;
+	
+	fSize = fileSize;
 	
 	fd = g_open (filename, O_RDONLY | O_NOFOLLOW);
 	if (fd == -1)
@@ -30,9 +32,6 @@ guchar
 		return (guchar *)1;
 	}
   	  	
-  	if(mode == 1)
-		fSize -= 64;
-
 	gcry_md_hd_t hd;
 	gcry_md_open (&hd, GCRY_MD_SHA512, GCRY_MD_FLAG_HMAC);
 	gcry_md_setkey (hd, key, keylen);
@@ -53,6 +52,7 @@ guchar
 		}
 		goto nowhile;
 	}
+
 	while (fSize > doneSize)
 	{
 		fAddr = mmap (NULL, BUF_FILE, PROT_READ, MAP_SHARED, fd, offset);
@@ -61,10 +61,12 @@ guchar
 			g_printerr ("calculate_hmac: %s\n", g_strerror(errno));
 			return (guchar *)1;
 		}
+
 		gcry_md_write (hd, fAddr, BUF_FILE);
 		doneSize += BUF_FILE;
 		diff = fSize - doneSize;
 		offset += BUF_FILE;
+
 		if (diff > 0 && diff < BUF_FILE)
 		{
 			fAddr = mmap (NULL, diff, PROT_READ, MAP_SHARED, fd, offset);
@@ -73,6 +75,7 @@ guchar
 				g_printerr ("calculate_hmac:  %s\n", g_strerror(errno));
 				return (guchar *)1;
 			}
+
 			gcry_md_write (hd, fAddr, diff);
 			retVal = munmap (fAddr, diff);
 			if (retVal == -1)
@@ -89,7 +92,7 @@ guchar
 			return (guchar *)1;
 		}
 	}
-	
+
 	nowhile:
 	g_close (fd, &err);
 	gcry_md_final (hd);
