@@ -9,9 +9,6 @@
 
 #define HEADERBAR_BUF 21 /* buffer for the headerbar's title */
 
-#define ENCRYPT 0
-#define DECRYPT 1
-
 #define LOCALE_DIR "/usr/share/locale"
 #define PACKAGE    "polcrypt"          /* mo file name in LOCALE_DIR */
 
@@ -30,11 +27,14 @@ extern struct data metadata;
 
 struct main_vars
 {
+	gboolean encrypt; //TRUE := enc, FALSE := dec
 	gchar *filename;
 	GtkWidget *main_window;
 	GtkWidget *pwd_entry[2];
 	GtkWidget *menu, *popover;
 	GtkWidget *radio_button[6]; //aes, serpent, twofish, camellia, cbc, ctr
+	GtkWidget *bar_dialog;
+	GtkWidget *pBar;
 };
 extern struct main_vars main_var;
 

@@ -17,8 +17,8 @@
 static GdkPixbuf *create_logo (gint);
 GtkWidget *do_mainwin (GtkApplication *);
 static void choose_file (GtkWidget *, struct main_vars *);
-static void pwd_dialog (GtkWidget *, struct main_vars *, gint);
-gint crypt_file (struct main_vars *, gint);
+static void pwd_dialog (GtkWidget *, struct main_vars *);
+gpointer crypt_file (gpointer);
 static GtkWidget *create_popover (GtkWidget *, GtkPositionType, struct main_vars *);
 static void hide_menu (struct main_vars *);
 static gint check_pwd (GtkWidget *, GtkWidget *);
@@ -305,9 +305,15 @@ choose_file (	GtkWidget *button,
 			main_var->filename = gtk_file_chooser_get_filename (GTK_FILE_CHOOSER (file_dialog));
 			const gchar *name = gtk_widget_get_name (GTK_WIDGET (button));
 			if (g_strcmp0 (name, "butEn") == 0)
-				pwd_dialog (file_dialog, main_var, ENCRYPT);
+			{
+				main_var->encrypt = TRUE;
+				pwd_dialog (file_dialog, main_var);
+			}
 			else if (g_strcmp0 (name, "butDe") == 0)
-				pwd_dialog (file_dialog, main_var, DECRYPT);
+			{
+				main_var->encrypt = FALSE;
+				pwd_dialog (file_dialog, main_var);
+			}
 			else if (g_strcmp0 (name, "butHa") == 0)
 				compute_hash (file_dialog, main_var->main_window, main_var->filename);
 				
@@ -322,10 +328,45 @@ choose_file (	GtkWidget *button,
 }
 
 
+static void create_dialog (struct main_vars *main_var)
+{
+	GtkWidget *content_area;
+	gint result;
+	
+	main_var->bar_dialog = gtk_dialog_new_with_buttons ("Progress Bar",
+				     GTK_WINDOW (main_var->main_window),
+				     GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT,
+				     _("Close"), GTK_RESPONSE_REJECT,
+				     NULL);
+				     
+	gtk_widget_set_size_request (main_var->bar_dialog, 150, 100);
+	gtk_dialog_set_response_sensitive (GTK_DIALOG(main_var->bar_dialog), GTK_RESPONSE_REJECT, FALSE);	   
+				     
+	content_area = gtk_dialog_get_content_area (GTK_DIALOG (main_var->bar_dialog));
+	main_var->pBar = gtk_progress_bar_new ();
+	
+	gtk_container_add (GTK_CONTAINER (content_area), main_var->pBar);
+	gtk_widget_show_all (main_var->bar_dialog);
+	
+	GThread *n = g_thread_new (NULL, crypt_file, main_var);
+
+	result = gtk_dialog_run (GTK_DIALOG(main_var->bar_dialog));
+	switch (result)
+	{
+		case GTK_RESPONSE_REJECT:
+			g_thread_join(n);
+			break;
+		default:
+			break;
+	}
+
+	gtk_widget_destroy (main_var->bar_dialog);
+}
+
+
 static void
 pwd_dialog (	GtkWidget *file_dialog,
-		struct main_vars *main_var,
-		gint cryptMode)
+		struct main_vars *main_var)
 {
 	gtk_widget_hide (file_dialog);
 	
@@ -338,7 +379,7 @@ pwd_dialog (	GtkWidget *file_dialog,
 	gint result;
 			
 	restart:
-	if (cryptMode == ENCRYPT)
+	if (main_var->encrypt)
 	{
 		header_bar = gtk_header_bar_new ();
 		gtk_header_bar_set_show_close_button (GTK_HEADER_BAR (header_bar), FALSE);
@@ -371,7 +412,7 @@ pwd_dialog (	GtkWidget *file_dialog,
 				     NULL);
 	
 	content_area = gtk_dialog_get_content_area (GTK_DIALOG (dialog));
-	if (cryptMode == ENCRYPT)
+	if (main_var->encrypt)
 	{
 		gtk_window_set_titlebar (GTK_WINDOW (dialog), header_bar);
 		gtk_widget_add_events (GTK_WIDGET (dialog), GDK_BUTTON_PRESS_MASK);
@@ -379,7 +420,7 @@ pwd_dialog (	GtkWidget *file_dialog,
 	}
 	
 	label[0] = gtk_label_new ( _("Type password"));
-	if (cryptMode == ENCRYPT)
+	if (main_var->encrypt)
 	{
 		label[1] = gtk_label_new ( _("Retype password"));
 		main_var->pwd_entry[1] = gtk_entry_new ();
@@ -393,7 +434,7 @@ pwd_dialog (	GtkWidget *file_dialog,
 	
 	info_bar = gtk_info_bar_new ();
 	
-	if (cryptMode == ENCRYPT)
+	if (main_var->encrypt)
 		info_label = gtk_label_new ( _("Encrypting and deleting the file can take some minutes depending on the file size..."));
 	else
 		info_label = gtk_label_new ( _("Decrypting the file can take some minutes depending on the file size..."));
@@ -409,10 +450,10 @@ pwd_dialog (	GtkWidget *file_dialog,
 	g_value_set_uint (&left_margin, 2);
 	g_object_set_property (G_OBJECT (main_var->pwd_entry[0]), "margin-left", &left_margin);
 	
-	if (cryptMode == ENCRYPT)
+	if (main_var->encrypt)
 		g_object_set_property (G_OBJECT (main_var->pwd_entry[1]), "margin-left", &left_margin);
 	
-	if (cryptMode == DECRYPT)
+	if (!main_var->encrypt)
 	{
 		if (!G_IS_VALUE (&top_margin))
 			g_value_init (&top_margin, G_TYPE_UINT);
@@ -428,7 +469,7 @@ pwd_dialog (	GtkWidget *file_dialog,
 	
 	gtk_grid_attach (GTK_GRID (grid), label[0], 0, 0, 1, 1);
 	gtk_grid_attach (GTK_GRID (grid), main_var->pwd_entry[0], 1, 0, 2, 1);
-	if(cryptMode == ENCRYPT)
+	if(main_var->encrypt)
 	{
 		gtk_grid_attach (GTK_GRID (grid), label[1], 0, 1, 1, 1);
 		gtk_grid_attach (GTK_GRID (grid), main_var->pwd_entry[1], 1, 1, 2, 1);
@@ -446,37 +487,41 @@ pwd_dialog (	GtkWidget *file_dialog,
 	switch (result)
 	{
 		case GTK_RESPONSE_ACCEPT:
-			if (cryptMode == ENCRYPT)
+			if (main_var->encrypt)
 			{
 				if (check_pwd (main_var->pwd_entry[0], main_var->pwd_entry[1]) == -1)
 				{
+					//show dialog instead of g_printerr
 					g_printerr ("Passwords are different or password is < 8 chars. Try again\n");
 					gtk_widget_destroy (dialog);
 					goto restart;
 				}
 				else
 				{
-					crypt_file (main_var, ENCRYPT);
-					gtk_widget_destroy (dialog);					
+					main_var->encrypt = TRUE;
+					gtk_widget_hide (dialog);
+					create_dialog (main_var);		
 				}
 
 			}
 			else
 			{
-				result = crypt_file (main_var, DECRYPT);
-				gtk_widget_destroy (dialog);
-				if (result == -5) goto restart;
+				main_var->encrypt = FALSE;
+				gtk_widget_hide (dialog);
+				create_dialog (main_var);
+				//if (result == -5) goto restart;
 			}
 			break;
 			
 		case GTK_RESPONSE_REJECT:
-			gtk_widget_destroy (dialog);
 			break;
 			
 		default:
 			g_printerr ("Exiting...\n");
-			gtk_widget_destroy (dialog);
+			break;
 	}
+	
+	gtk_widget_destroy (dialog);
 }
 
 
