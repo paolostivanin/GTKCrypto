@@ -1,5 +1,6 @@
 #include <gtk/gtk.h>
 #include <glib.h>
+#include <glib/gstdio.h>
 #include <gdk-pixbuf/gdk-pixbuf.h>
 #include <gcrypt.h>
 #include <glib/gi18n.h>
@@ -582,21 +583,21 @@ compute_hash (	GtkWidget *file_dialog,
 	
 	hash_var.hash_table = g_hash_table_new_full (g_str_hash, g_str_equal, g_free, g_free);
 	
-	gsize lenFilename = g_utf8_strlen (filename, -1);
+	gsize filename_length = strlen (filename);
 	
-	hash_var.filename = g_malloc (lenFilename + 1);
+	hash_var.filename = g_malloc (filename_length + 1);
 	if (hash_var.filename == NULL)
 	{
 		g_printerr ("Error during memory allocation\n");
 		return;
 	}
-	g_utf8_strncpy (hash_var.filename, filename, lenFilename);
-	hash_var.filename[lenFilename] = '\0';
+	g_utf8_strncpy (hash_var.filename, filename, filename_length);
+	hash_var.filename[filename_length] = '\0';
 	
 	gint i, result;
 	
 	const gchar *label[] = {"MD5", "SHA-1", "SHA-256", "SHA3-256", "SHA512", "SHA3-512", "WHIRLPOOL", "GOST94"};
-	gsize labeLen;
+	gsize label_length;
 	
 	GtkWidget *content_area, *grid, *dialog;
 	GtkDialogFlags flags = GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT;
@@ -616,9 +617,9 @@ compute_hash (	GtkWidget *file_dialog,
 	
 	for(i = 0; i < NUM_OF_HASH; i++)
 	{
-		labeLen = g_utf8_strlen (label[i], -1);
-		hash_var.key[i] = g_malloc (labeLen + 1);
-		g_utf8_strncpy (hash_var.key[i], label[i], labeLen + 1);
+		label_length = g_utf8_strlen (label[i], -1);
+		hash_var.key[i] = g_malloc (label_length + 1);
+		g_utf8_strncpy (hash_var.key[i], label[i], label_length + 1);
 	}
 	
 	for (i = 0; i < NUM_OF_HASH; i++)
