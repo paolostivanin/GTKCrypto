@@ -11,7 +11,7 @@
 
 static void prepare_text (GtkWidget *, gpointer);
 static void crypt_text (struct text_vars *);
-gint check_pwd (struct text_vars *);
+static gint check_pwd (struct text_vars *);
 static void show_error (const gchar *);
 
 
@@ -241,7 +241,7 @@ crypt_text (struct text_vars *text_var)
 }
 
 
-gint
+static gint
 check_pwd (struct text_vars *text_var)
 {
 	if (g_strcmp0 (gtk_entry_get_text (GTK_ENTRY (text_var->pwd[0])), gtk_entry_get_text (GTK_ENTRY (text_var->pwd[1]))) != 0)

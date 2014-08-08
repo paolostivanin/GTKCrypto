@@ -7,6 +7,7 @@
 #include <locale.h>
 #include <libintl.h>
 #include "polcrypt.h"
+#include "main.h"
 
 #define NUM_OF_BUTTONS 6
 #define NUM_OF_FRAMES 2
@@ -14,24 +15,11 @@
 #define NUM_OF_HASH 8
 
 
-void error_dialog (const gchar *);
-static GdkPixbuf *create_logo (gint);
-GtkWidget *do_mainwin (GtkApplication *);
 static void choose_file (GtkWidget *, struct main_vars *);
 static void pwd_dialog (GtkWidget *, struct main_vars *);
-gpointer crypt_file (gpointer);
-static GtkWidget *create_popover (GtkWidget *, GtkPositionType, struct main_vars *);
 static void hide_menu (struct main_vars *);
-static gint check_pwd (GtkWidget *, GtkWidget *);
 static void toggle_changed_cb (GtkToggleButton *, GtkWidget *);
 static void compute_hash (GtkWidget *, GtkWidget *, const gchar *);
-void text_dialog (GtkWidget *);
-void compute_sha2 (GtkWidget *, struct hash_vars *);
-void compute_sha3 (GtkWidget *, struct hash_vars *);
-void compute_md5 (struct hash_vars *);
-void compute_sha1 (struct hash_vars *);
-void compute_gost94 (struct hash_vars *);
-void compute_whirlpool (struct hash_vars *);
 
 
 static void
@@ -40,26 +28,6 @@ quit (	GSimpleAction __attribute__((__unused__)) *action,
 	gpointer app)
 {
 	g_application_quit (G_APPLICATION(app));
-}
-
-
-static GdkPixbuf
-*create_logo (gint about_window)
-{
-	GError *err = NULL;
-	GdkPixbuf *logo;
-	
-	const gchar *my_icon = "/usr/share/pixmaps/polcrypt.png";
-	
-	if (!about_window)
-		logo = gdk_pixbuf_new_from_file (my_icon, &err);
-	else
-		logo = gdk_pixbuf_new_from_file_at_size (my_icon, 64, 64, &err);
-	
-	if (err != NULL)
-		g_printerr ("%s\n", err->message);
-
-	return logo;
 }
 
 
@@ -74,7 +42,7 @@ about (	GSimpleAction __attribute__((__unused__)) *action,
                 NULL,
         };
 	
-	GdkPixbuf *logo = create_logo (1);
+	GdkPixbuf *logo = create_logo (TRUE);
 
         GtkWidget *a_dialog = gtk_about_dialog_new ();
         gtk_about_dialog_set_program_name (GTK_ABOUT_DIALOG (a_dialog), "PolCrypt");
@@ -233,7 +201,7 @@ main (	int argc,
 	GtkApplication *app;
 	gint status;
 	
-	GdkPixbuf *logo = create_logo (0);
+	GdkPixbuf *logo = create_logo (FALSE);
 		
 	if (logo != NULL)
 		gtk_window_set_default_icon (logo);
@@ -329,7 +297,8 @@ choose_file (	GtkWidget *button,
 }
 
 
-static void create_dialog (struct main_vars *main_var)
+static void
+create_dialog (struct main_vars *main_var)
 {
 	GtkWidget *content_area;
 	gint result;
@@ -533,7 +502,7 @@ pwd_dialog (	GtkWidget *file_dialog,
 }
 
 
-static gint
+gint
 check_pwd (	GtkWidget *first_pwd_entry,
 		GtkWidget *second_pwd_entry)
 {
@@ -549,64 +518,6 @@ check_pwd (	GtkWidget *first_pwd_entry,
 	else
 		return 0;
 }    
-
-
-static GtkWidget
-*create_popover (	GtkWidget *parent,
-			GtkPositionType pos,
-			struct main_vars *main_var)
-{
-
-	GtkWidget *popover, *box[3], *label[2], *hline[2], *vline;
-	const gchar *algo[] = {"Serpent", "Twofish", "Camellia-256"};
-	gint i, j;
-
-	label[0] = gtk_label_new ( _("Cipher Algo"));
-	label[1] = gtk_label_new ( _("Cipher Mode"));
-	
-	hline[0] = gtk_separator_new (GTK_ORIENTATION_HORIZONTAL);
-	hline[1] = gtk_separator_new (GTK_ORIENTATION_HORIZONTAL);
-
-	box[0] = gtk_box_new (GTK_ORIENTATION_VERTICAL, 4);
-	box[1] = gtk_box_new (GTK_ORIENTATION_HORIZONTAL, 4);
-	box[2] = gtk_box_new (GTK_ORIENTATION_VERTICAL, 4);
-	
-	gtk_box_set_homogeneous (GTK_BOX (box[1]), FALSE);
-
-	popover = gtk_popover_new (parent);
-	gtk_popover_set_position (GTK_POPOVER (popover), pos);
-
-	main_var->radio_button[0] = gtk_radio_button_new_with_label_from_widget (NULL, "AES-256");
-	for (i=1, j=0; i<4; i++, j++)
-		main_var->radio_button[i] = gtk_radio_button_new_with_label_from_widget (GTK_RADIO_BUTTON (main_var->radio_button[0]), algo[j]);
-	
-	main_var->radio_button[4] = gtk_radio_button_new_with_label_from_widget (NULL, "CBC");
-	main_var->radio_button[5] = gtk_radio_button_new_with_label_from_widget (GTK_RADIO_BUTTON (main_var->radio_button[4]), "CTR");
-
-	gtk_box_pack_start (GTK_BOX (box[0]), label[0], TRUE, TRUE, 0);
-	gtk_box_pack_start (GTK_BOX (box[0]), hline[0], TRUE, TRUE, 0);
-	for (i=0; i<4; i++)
-		gtk_box_pack_start (GTK_BOX (box[0]), main_var->radio_button[i], TRUE, TRUE, 0);
-	
-	gtk_box_pack_start (GTK_BOX (box[2]), label[1], FALSE, TRUE, 0);
-	gtk_box_pack_start (GTK_BOX (box[2]), hline[1], FALSE, TRUE, 0);
-	for (i=4; i<6; i++)
-		gtk_box_pack_start (GTK_BOX (box[2]), main_var->radio_button[i], FALSE, TRUE, 0);
-	
-	vline = gtk_separator_new(GTK_ORIENTATION_VERTICAL);
-	gtk_box_pack_start (GTK_BOX(box[1]), box[0], TRUE, TRUE, 0);
-	gtk_box_pack_start (GTK_BOX (box[1]), vline, TRUE, TRUE, 0);
-	gtk_box_pack_start (GTK_BOX(box[1]), box[2], FALSE, TRUE, 0);
-
-	g_object_set(main_var->radio_button[0], "active", TRUE, NULL);
-	g_object_set(main_var->radio_button[4], "active", TRUE, NULL);
-	
-	gtk_container_add (GTK_CONTAINER (popover), box[1]);
-	gtk_container_set_border_width (GTK_CONTAINER (popover), 4);
-	gtk_widget_show_all (box[1]);
-	
-	return popover; 
-}
 
 
 static void

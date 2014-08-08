@@ -16,6 +16,9 @@
 #include <gtk/gtk.h>
 
 
+goffset get_file_size (const gchar *);
+
+
 struct data
 {
 	gint8 algo_type; //(NULL|0=aes),(1=serpent),(2=twofish),(3=camellia)
@@ -24,6 +27,7 @@ struct data
 	guint8 iv[16];
 };
 extern struct data metadata;
+
 
 struct main_vars
 {
@@ -39,6 +43,7 @@ struct main_vars
 };
 extern struct main_vars main_var;
 
+
 struct hash_vars
 {
 	gchar *filename;
@@ -48,6 +53,7 @@ struct hash_vars
 	gchar *key[8];
 };
 extern struct hash_vars hash_var;
+
 
 struct text_vars
 {

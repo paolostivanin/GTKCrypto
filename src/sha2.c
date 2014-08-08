@@ -13,9 +13,6 @@
 #include "polcrypt.h"
 
 
-static goffset get_file_size (const gchar *);
-
-
 void
 compute_sha2 (	GtkWidget *checkBt,
 		struct hash_vars *hash_var)
@@ -230,25 +227,4 @@ compute_sha2 (	GtkWidget *checkBt,
 	
 	fine:
 	return;
-}
-
-
-static goffset
-get_file_size (const gchar *filePath)
-{
-	GFileInfo *info;
-	GFile *file;
-	GError *error = NULL;
-	const gchar *attributes = "standard::*";
-	GFileQueryInfoFlags flags = G_FILE_QUERY_INFO_NOFOLLOW_SYMLINKS;
-	GCancellable *cancellable = NULL;
-	goffset fileSize;
-
-	file = g_file_new_for_path (filePath);
-	info = g_file_query_info (file, attributes, flags, cancellable, &error);
-	fileSize = g_file_info_get_size (info);
-
-	g_object_unref(file);
-	
-	return fileSize;
 }

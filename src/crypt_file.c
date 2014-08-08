@@ -9,12 +9,9 @@
 #include <libintl.h>
 #include <libnotify/notify.h>
 #include "polcrypt.h"
+#include "crypt_file.h"
 
 
-static goffset get_file_size (const gchar *);
-guchar *calculate_hmac (const gchar *, const guchar *, gsize, gsize);
-gint delete_input_file (const gchar *, gsize);
-gint check_pkcs7 (guchar *, guchar *);
 static void send_notification (const gchar *, const gchar *);
 static void free_res (gchar *, gchar *, guchar *, guchar *, guchar *, guchar *);
 static void close_file (FILE *, FILE *);
@@ -506,27 +503,6 @@ crypt_file(gpointer user_data)
 	
 	g_thread_exit (NULL);
 }	
-
-
-static goffset
-get_file_size (const gchar *filePath)
-{
-	GFileInfo *info;
-	GFile *file;
-	GError *error = NULL;
-	const gchar *attributes = "standard::*";
-	GFileQueryInfoFlags flags = G_FILE_QUERY_INFO_NOFOLLOW_SYMLINKS;
-	GCancellable *cancellable = NULL;
-	goffset file_size;
-
-	file = g_file_new_for_path (filePath);
-	info = g_file_query_info (file, attributes, flags, cancellable, &error);
-	file_size = g_file_info_get_size (info);
-
-	g_object_unref(file);
-	
-	return file_size;
-}
 
 
 static void
