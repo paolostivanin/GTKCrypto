@@ -14,6 +14,7 @@
 #define NUM_OF_HASH 8
 
 
+void error_dialog (const gchar *);
 static GdkPixbuf *create_logo (gint);
 GtkWidget *do_mainwin (GtkApplication *);
 static void choose_file (GtkWidget *, struct main_vars *);
@@ -376,7 +377,7 @@ pwd_dialog (	GtkWidget *file_dialog,
 	GIcon *icon;
 	GValue left_margin = G_VALUE_INIT;
 	GValue top_margin = G_VALUE_INIT;
-	gint result;
+	gint result, ret_val;
 			
 	restart:
 	if (main_var->encrypt)
@@ -489,10 +490,14 @@ pwd_dialog (	GtkWidget *file_dialog,
 		case GTK_RESPONSE_ACCEPT:
 			if (main_var->encrypt)
 			{
-				if (check_pwd (main_var->pwd_entry[0], main_var->pwd_entry[1]) == -1)
+				ret_val = check_pwd (main_var->pwd_entry[0], main_var->pwd_entry[1]);
+				if (ret_val < 0)
 				{
-					//show dialog instead of g_printerr
-					g_printerr ("Passwords are different or password is < 8 chars. Try again\n");
+					if (ret_val == -1)
+						error_dialog ( _("Passwords are different, try again.\n"));
+					else
+						error_dialog ( _("Password is < 8 chars, try again\n"));
+							
 					gtk_widget_destroy (dialog);
 					goto restart;
 				}
@@ -539,7 +544,7 @@ check_pwd (	GtkWidget *first_pwd_entry,
 		return -1;
 		
 	else if (g_utf8_strlen (pw1, -1) < 8)
-		return -1;
+		return -2;
 
 	else
 		return 0;
