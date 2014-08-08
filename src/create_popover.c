@@ -18,7 +18,7 @@ GtkWidget
 	gint i, j;
 
 	label[0] = gtk_label_new ( _("Cipher Algo"));
-	label[1] = gtk_label_new ( _("Cipher Mode"));
+	label[1] = gtk_label_new ( _("Block Mode"));
 	
 	hline[0] = gtk_separator_new (GTK_ORIENTATION_HORIZONTAL);
 	hline[1] = gtk_separator_new (GTK_ORIENTATION_HORIZONTAL);

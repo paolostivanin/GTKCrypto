@@ -9,17 +9,12 @@
 #include "polcrypt.h"
 #include "main.h"
 
-#define NUM_OF_BUTTONS 6
-#define NUM_OF_FRAMES 2
-#define NUM_OF_BOXES 2
-#define NUM_OF_HASH 8
 
-
-static void choose_file (GtkWidget *, struct main_vars *);
+static void choose_file_dialog (GtkWidget *, struct main_vars *);
 static void pwd_dialog (GtkWidget *, struct main_vars *);
 static void hide_menu (struct main_vars *);
 static void toggle_changed_cb (GtkToggleButton *, GtkWidget *);
-static void compute_hash (GtkWidget *, GtkWidget *, const gchar *);
+static void compute_hash_dialog (GtkWidget *, GtkWidget *, const gchar *);
 
 
 static void
@@ -158,11 +153,11 @@ activate (	GtkApplication *app,
 	gtk_box_pack_start (GTK_BOX (box[1]), button[3], TRUE, TRUE, 2);
 	gtk_container_add (GTK_CONTAINER (frame[1]), box[1]);
 	
-	g_signal_connect (button[0], "clicked", G_CALLBACK (choose_file), main_var);
-	g_signal_connect (button[1], "clicked", G_CALLBACK (choose_file), main_var);
+	g_signal_connect (button[0], "clicked", G_CALLBACK (choose_file_dialog), main_var);
+	g_signal_connect (button[1], "clicked", G_CALLBACK (choose_file_dialog), main_var);
 	g_signal_connect (button[2], "clicked", G_CALLBACK (text_dialog), NULL);
 	g_signal_connect (button[3], "clicked", G_CALLBACK (text_dialog), NULL);
-	g_signal_connect (button[4], "clicked", G_CALLBACK (choose_file), main_var);
+	g_signal_connect (button[4], "clicked", G_CALLBACK (choose_file_dialog), main_var);
 	g_signal_connect (button[5], "clicked", G_CALLBACK (quit), app);
 	
 	grid = gtk_grid_new();
@@ -255,7 +250,7 @@ GtkWidget
 
 
 static void
-choose_file (	GtkWidget *button,
+choose_file_dialog (	GtkWidget *button,
 		struct main_vars *main_var)
 {
 	GtkWidget *file_dialog;
@@ -272,6 +267,13 @@ choose_file (	GtkWidget *button,
 	{
 		case GTK_RESPONSE_ACCEPT:
 			main_var->filename = gtk_file_chooser_get_filename (GTK_FILE_CHOOSER (file_dialog));
+			if (!g_utf8_validate (main_var->filename, -1, NULL))
+			{
+				error_dialog ( _("The name of the file you chose isn't a valid UTF-8 string."));
+				g_free (main_var->filename);
+				break;
+			}
+			
 			const gchar *name = gtk_widget_get_name (GTK_WIDGET (button));
 			if (g_strcmp0 (name, "butEn") == 0)
 			{
@@ -284,7 +286,7 @@ choose_file (	GtkWidget *button,
 				pwd_dialog (file_dialog, main_var);
 			}
 			else if (g_strcmp0 (name, "butHa") == 0)
-				compute_hash (file_dialog, main_var->main_window, main_var->filename);
+				compute_hash_dialog (file_dialog, main_var->main_window, main_var->filename);
 				
 			g_free (main_var->filename);
 			break;
@@ -502,24 +504,6 @@ pwd_dialog (	GtkWidget *file_dialog,
 }
 
 
-gint
-check_pwd (	GtkWidget *first_pwd_entry,
-		GtkWidget *second_pwd_entry)
-{
-	const gchar *pw1 = gtk_entry_get_text (GTK_ENTRY (first_pwd_entry));
-	const gchar *pw2 = gtk_entry_get_text (GTK_ENTRY (second_pwd_entry));
-	
-	if (g_strcmp0 (pw1, pw2) != 0)
-		return -1;
-		
-	else if (g_utf8_strlen (pw1, -1) < 8)
-		return -2;
-
-	else
-		return 0;
-}    
-
-
 static void
 hide_menu (struct main_vars *main_var)
 {
@@ -537,9 +521,9 @@ toggle_changed_cb (	GtkToggleButton *button,
 
 
 static void
-compute_hash (	GtkWidget *file_dialog,
-		GtkWidget *main_window,
-		const gchar *filename)
+compute_hash_dialog (	GtkWidget *file_dialog,
+			GtkWidget *main_window,
+			const gchar *filename)
 {
 	gtk_widget_hide (GTK_WIDGET (file_dialog));
 	

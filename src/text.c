@@ -7,12 +7,11 @@
 #include <locale.h>
 #include <libintl.h>
 #include "polcrypt.h"
+#include "text.h"
 
 
 static void prepare_text (GtkWidget *, gpointer);
 static void crypt_text (struct text_vars *);
-static gint check_pwd (struct text_vars *);
-static void show_error (const gchar *);
 
 
 static void
@@ -99,13 +98,22 @@ prepare_text (	GtkWidget __attribute__((__unused__)) *bt,
 		gpointer user_data)
 {
 	struct text_vars *text_var = user_data;
-
+	gboolean valid;
 	gint ret;
+	
 	if (!text_var->action)
 	{
-		ret = check_pwd (text_var);
+		ret = check_pwd (text_var->pwd[0], text_var->pwd[1]);
 		if (ret == -1)
+		{
+			error_dialog ( _("Passwords are different, try again."));
 			return;
+		}
+		else if (ret == -2)
+		{
+			error_dialog ( _("Password length must be >= 8"));
+			return;
+		}
 	}
 
 	GtkTextIter start;
@@ -135,9 +143,23 @@ prepare_text (	GtkWidget __attribute__((__unused__)) *bt,
 		g_free (encodedText);
 	}
 	else{
+		ret = check_b64 (text_var->text);
+		if (ret == -1)
+		{
+			error_dialog ( _("This is not a base64 string, try again."));
+			return;
+		}
+		
 		text_var->crypt_text = g_base64_decode (text_var->text, &(text_var->out_length));
 				
 		crypt_text (text_var);
+		
+		valid = g_utf8_validate (text_var->decoded_text, text_var->real_len, NULL);
+		if (!valid)
+		{
+			error_dialog ( _("The decoded text is not valid (maybe due to a wrong password)"));
+			return;
+		}
 		
 		gtk_text_buffer_set_text (text_var->buffer, text_var->decoded_text, -1);
 		
@@ -231,36 +253,11 @@ crypt_text (struct text_vars *text_var)
 	}
 	else
 	{
-		gsize realLen = text_var->out_length - 48;
-		text_var->decoded_text = g_malloc0 (realLen);
-		gcry_cipher_decrypt (hd, text_var->decoded_text, realLen, text_var->crypt_text + 48, realLen);
+		text_var->real_len = text_var->out_length - 48;
+		text_var->decoded_text = g_malloc0 (text_var->real_len);
+		gcry_cipher_decrypt (hd, text_var->decoded_text, text_var->real_len, text_var->crypt_text + 48, text_var->real_len);
 	}
 	
 	gcry_cipher_close (hd);
 	gcry_free (cryptoKey);
-}
-
-
-static gint
-check_pwd (struct text_vars *text_var)
-{
-	if (g_strcmp0 (gtk_entry_get_text (GTK_ENTRY (text_var->pwd[0])), gtk_entry_get_text (GTK_ENTRY (text_var->pwd[1]))) != 0)
-	{
-		show_error ( _("Password are different, try again!"));
-		return -1;
-	}
-	else
-		return 0;
-}
-
-
-static void
-show_error (const gchar *message)
-{
-	GtkWidget *dialog;
-	dialog = gtk_message_dialog_new (NULL, GTK_DIALOG_MODAL, GTK_MESSAGE_ERROR, GTK_BUTTONS_OK, "%s", message);
-	gtk_window_set_position (GTK_WINDOW (dialog), GTK_WIN_POS_CENTER);
-	gtk_window_set_title (GTK_WINDOW (dialog), _("Error"));
-	gtk_dialog_run (GTK_DIALOG (dialog));
-	gtk_widget_destroy (dialog);
 }

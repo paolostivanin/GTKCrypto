@@ -1,6 +1,11 @@
 #ifndef MAIN_H_INCLUDED
 #define MAIN_H_INCLUDED
 
+#define NUM_OF_BUTTONS 6
+#define NUM_OF_FRAMES 2
+#define NUM_OF_BOXES 2
+#define NUM_OF_HASH 8
+
 #include <glib.h>
 #include <gtk/gtk.h>
 
@@ -9,10 +14,6 @@ GtkWidget *do_mainwin (GtkApplication *);
 GtkWidget *create_popover (GtkWidget *, GtkPositionType, struct main_vars *);
 
 gpointer crypt_file (gpointer);
-
-void error_dialog (const gchar *);
-
-gint check_pwd (GtkWidget *, GtkWidget *);
 
 void text_dialog (GtkWidget *);
 

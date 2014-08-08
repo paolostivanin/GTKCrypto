@@ -17,6 +17,8 @@
 
 
 goffset get_file_size (const gchar *);
+gint check_pwd (GtkWidget *, GtkWidget *);
+void error_dialog (const gchar *);
 
 
 struct data
@@ -53,21 +55,5 @@ struct hash_vars
 	gchar *key[8];
 };
 extern struct hash_vars hash_var;
-
-
-struct text_vars
-{
-	GtkWidget *dialog;
-	GtkWidget *text_view;
-	GtkWidget *pwd[2];	
-	GtkTextBuffer *buffer;
-	gchar *text;
-	guchar *crypt_text;
-	gchar *decoded_text;
-	gsize total_length;
-	gsize out_length;
-	gint8 action;
-};
-extern struct text_vars text_var;
 
 #endif
