@@ -7,13 +7,10 @@
 #include <glib/gi18n.h>
 #include <locale.h>
 #include <libintl.h>
-#include <libnotify/notify.h>
 #include "polcrypt.h"
 #include "crypt_file.h"
 
-//ATTENZIONE: DEVO MIGLIORARE L'USCITA UTILIZZANDO END_FROM_ERROR
 
-static void send_notification (const gchar *, const gchar *);
 static void multiple_free (gchar *, gchar *, guchar *, guchar *, guchar *, guchar *);
 static void multiple_fclose (FILE *, FILE *);
 static void end_from_error (guint, struct main_vars *, const gchar *);
@@ -85,7 +82,7 @@ crypt_file(gpointer user_data)
 	crypto_buffer = gcry_malloc (16);
 	if (crypto_buffer == NULL)
 	{
-		g_printerr ( _("crypt_file: error during memory allocation (decBuffer)"));
+		end_from_error (id, main_var, _("error during memory allocation (crypto_buffer)"));
 		g_thread_exit (NULL);
 	}
 
@@ -131,12 +128,12 @@ crypt_file(gpointer user_data)
 	else
 	{
 		filename_length = g_utf8_strlen (input_fname, -1);
-		extBuf = malloc(5);
+		extBuf = malloc (5);
 		if (extBuf == NULL)
 		{
-			g_printerr ( _("crypt_file: error during memory allocation (extBuf)"));
 			g_free (crypto_buffer);
 			g_free (input_fname);
+			end_from_error (id, main_var, _("error during memory allocation (extBuf)"));
 			g_thread_exit (NULL);
 		}
 		
@@ -162,11 +159,11 @@ crypt_file(gpointer user_data)
 	const gchar *pwd = gtk_entry_get_text (GTK_ENTRY (main_var->pwd_entry[0]));
 	if (!g_utf8_validate (pwd, -1, NULL))
 	{
-		send_notification ( _("ERROR"), ("The password you chose is not a valid UTF-8 string"));
 		multiple_free (input_fname, output_fname, crypto_buffer, NULL, NULL, NULL);
+		end_from_error (id, main_var, _("Error: password is not a valid UTF-8 string"));
 		g_thread_exit (NULL);
 	}
-	pwd_len = strlen(pwd);
+	pwd_len = strlen (pwd);
 	inputKey = gcry_malloc_secure (pwd_len+1);
 	g_utf8_strncpy (inputKey, pwd, pwd_len);
 	inputKey[pwd_len] = '\0';
@@ -188,9 +185,9 @@ crypt_file(gpointer user_data)
 	fp = g_fopen (input_fname, "r");
 	if (fp == NULL)
 	{
-		g_printerr ("%s\n", strerror (errno));
 		gcry_free (inputKey);
 		multiple_free (input_fname, output_fname, crypto_buffer, NULL, NULL, NULL);
+		end_from_error (id, main_var, _("g_fopen error (fp)"));
 		g_thread_exit (NULL);
 	}
 	
@@ -201,6 +198,7 @@ crypt_file(gpointer user_data)
 		gcry_free (inputKey);
 		multiple_free (input_fname, output_fname, crypto_buffer, NULL, NULL, NULL);
 		fclose (fp);
+		end_from_error (id, main_var, _("g_fopen error (fpout)"));
 		g_thread_exit (NULL);
 	}
 	
@@ -208,17 +206,17 @@ crypt_file(gpointer user_data)
 	{
 		if (fseek (fp, 0, SEEK_SET) == -1)
 		{
-			g_printerr ("decrypt_file: %s\n", strerror(errno));
 			multiple_free (input_fname, output_fname, crypto_buffer, NULL, NULL, NULL);
 			multiple_fclose (fp, fpout);
+			end_from_error (id, main_var, _("fseek error"));
 			g_thread_exit (NULL);
 		}
 		
 		if (fread (&metadata, sizeof (struct data), 1, fp) != 1)
 		{
-			g_printerr ( _("decrypt_file: cannot read file data\n"));
 			multiple_free (input_fname, output_fname, crypto_buffer, NULL, NULL, NULL);
 			multiple_fclose (fp, fpout);
+			end_from_error (id, main_var, _("fread error (metadata)"));
 			g_thread_exit (NULL);
 		}
 		
@@ -262,28 +260,28 @@ crypt_file(gpointer user_data)
 	
 	if ((derived_key = gcry_malloc_secure (64)) == NULL)
 	{
-		g_printerr ( _("encrypt_file: gcry_malloc_secure failed (derived)\n"));
 		gcry_free (inputKey);
 		multiple_free (input_fname, output_fname, crypto_buffer, NULL, NULL, NULL);
-		multiple_fclose (fp, fpout);	
+		multiple_fclose (fp, fpout);
+		end_from_error (id, main_var, _("error during memory allocation (derived_key)"));
 		g_thread_exit (NULL);
 	}
 	
 	if ((crypto_key = gcry_malloc_secure (32)) == NULL)
 	{
-		g_printerr ( _("encrypt_file: gcry_malloc_secure failed (crypto)\n"));
 		gcry_free (inputKey);
 		multiple_free (input_fname, output_fname, crypto_buffer, derived_key, NULL, NULL);
 		multiple_fclose (fp, fpout);		
+		end_from_error (id, main_var, _("error during memory allocation (crypto_key)"));
 		g_thread_exit (NULL);
 	}
 	
 	if ((mac_key = gcry_malloc_secure (32)) == NULL)
 	{
-		g_printerr ( _("encrypt_file: gcry_malloc_secure failed (mac)\n"));
 		gcry_free (inputKey);
 		multiple_free (input_fname, output_fname, crypto_buffer, derived_key, crypto_key, NULL);
-		multiple_fclose (fp, fpout);		
+		multiple_fclose (fp, fpout);	
+		end_from_error (id, main_var, _("error during memory allocation (mac_key)"));	
 		g_thread_exit (NULL);
 	}
 	
@@ -292,10 +290,11 @@ crypt_file(gpointer user_data)
 	{
 		if (counter == 3)
 		{
-			g_printerr ( _("encrypt_file: Key derivation error\n"));
 			gcry_free (inputKey);
 			multiple_free (input_fname, output_fname, crypto_buffer, derived_key, crypto_key, mac_key);
 			multiple_fclose (fp, fpout);
+			end_from_error (id, main_var, _("key derivation error"));
+			g_thread_exit (NULL);
 		}
 		counter += 1;
 		goto tryAgainDerive;
@@ -317,35 +316,35 @@ crypt_file(gpointer user_data)
 				
 		if ((current_file_offset = ftell (fp)) == -1)
 		{
-			g_printerr ("decrypt_file: %s\n", strerror (errno));
 			multiple_free (input_fname, output_fname, crypto_buffer, derived_key, crypto_key, mac_key);
 			multiple_fclose (fp, fpout);
+			end_from_error (id, main_var, _("ftell error"));
 			g_thread_exit (NULL);
 		}
 		
 		if (fseek (fp, bytes_before_MAC, SEEK_SET) == -1)
 		{
-			g_printerr ("decrypt_file: %s\n", strerror (errno));
 			multiple_free (input_fname, output_fname, crypto_buffer, derived_key, crypto_key, mac_key);
 			multiple_fclose (fp, fpout);
+			end_from_error (id, main_var, _("fseek error"));
 			g_thread_exit (NULL);
 		}
 		
 		if (fread (MAC_of_file, 1, 64, fp) != 64)
 		{
-			g_printerr ("decrypt_file: %s\n", strerror (errno));
 			multiple_free (input_fname, output_fname, crypto_buffer, derived_key, crypto_key, mac_key);
 			multiple_fclose (fp, fpout);
+			end_from_error (id, main_var, _("fread error (mac_of_file)"));
 			g_thread_exit (NULL);
 		}
 		
 		guchar *hmac = calculate_hmac (input_fname, mac_key, keyLength, file_size + sizeof (struct data));
 		if (hmac == (guchar *)1)
 		{
-			g_printerr ( _("Error during HMAC calculation\n"));
 			gcry_free (inputKey);
 			multiple_free (input_fname, output_fname, crypto_buffer, derived_key, crypto_key, mac_key);
 			multiple_fclose (fp, fpout);
+			end_from_error (id, main_var, _("error during hmac calculation"));
 			g_thread_exit (NULL);
 		}
 		
@@ -362,9 +361,9 @@ crypt_file(gpointer user_data)
 				
 		if (fseek (fp, current_file_offset, SEEK_SET) == -1)
 		{
-			g_printerr ("decrypt_file: %s\n", strerror (errno));
 			multiple_free (input_fname, output_fname, crypto_buffer, derived_key, crypto_key, mac_key);
 			multiple_fclose (fp, fpout);
+			end_from_error (id, main_var, _("fseek error"));
 			g_thread_exit (NULL);
 		}		
 	}
@@ -424,7 +423,7 @@ crypt_file(gpointer user_data)
 		if (hmac == (guchar *)1)
 		{
 			multiple_free (input_fname, output_fname, crypto_buffer, derived_key, crypto_key, mac_key);
-			end_from_error (id, main_var, _("crypt_file: error during HMAC calculation (encrypt)"));
+			end_from_error (id, main_var, _("error during HMAC calculation (encrypt)"));
 			pthread_exit (NULL);
 		}
 		
@@ -434,15 +433,15 @@ crypt_file(gpointer user_data)
 		
 		ret_val = delete_input_file (input_fname, file_size);
 		if (ret_val == -1)
-			g_printerr ( _("Secure file deletion failed, overwrite it manually"));
+			end_from_error (id, main_var, _("Warning: failed to overwrite file, do it manually"));
 		
 		if(ret_val == -2)
-			g_printerr ( _("File unlink failed, remove it manually"));
+			end_from_error (id, main_var, _("Warning: failed to remove file, do it manually"));
 			
 		fclose (fpout);
 		
 		g_source_remove (id);
-		add_text (GTK_PROGRESS_BAR (main_var->pBar), "Finished");
+		add_text (GTK_PROGRESS_BAR (main_var->pBar), _("Finished"));
 		bar_full (GTK_PROGRESS_BAR (main_var->pBar));
 		gtk_dialog_set_response_sensitive (GTK_DIALOG(main_var->bar_dialog), GTK_RESPONSE_REJECT, TRUE);
 	}
@@ -491,27 +490,12 @@ crypt_file(gpointer user_data)
 		multiple_fclose (fp, fpout);
 
 		g_source_remove (id);
-		add_text (GTK_PROGRESS_BAR (main_var->pBar), "Finished");
+		add_text (GTK_PROGRESS_BAR (main_var->pBar), _("Finished"));
 		bar_full (GTK_PROGRESS_BAR (main_var->pBar));
 		gtk_dialog_set_response_sensitive (GTK_DIALOG (main_var->bar_dialog), GTK_RESPONSE_REJECT, TRUE);
 	}
 	
 	g_thread_exit (NULL);
-}
-
-
-static void
-send_notification (	const gchar *title,
-			const gchar *message)
-{
-	NotifyNotification *n;
-	notify_init ("org.gtk.polcrypt");
-	n = notify_notification_new (title, message, NULL);
-	notify_notification_set_timeout(n, 3000);
-	if (!notify_notification_show (n, NULL))
-		g_printerr ("Failed to send notification.\n");
-       
-        g_object_unref (G_OBJECT (n));
 }
 
 
