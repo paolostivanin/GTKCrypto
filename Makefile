@@ -1,16 +1,35 @@
-#CC = gcc
 CC = clang
 
-CFLAGS = -Wall -Wextra -D_FILE_OFFSET_BITS=64 -U_FORTIFY_SOURCE -D_FORTIFY_SOURCE=2 -O2 -Wformat=2 -fstack-protector-all -fPIE -Wstrict-prototypes -Wunreachable-code  -Wwrite-strings -Wpointer-arith -Wbad-function-cast -Wcast-align -Wcast-qual
-NOFLAGS = -Wno-unused-result -Wno-missing-field-initializers -Wno-uninitialized -Wno-return-type
+CFLAGS = -Wall -Wextra -O2 -Wformat=2 -fstack-protector-all -fPIE -Wstrict-prototypes -Wunreachable-code  -Wwrite-strings -Wpointer-arith -Wbad-function-cast -Wcast-align -Wcast-qual $(shell pkg-config --cflags gtk+-3.0)
+DFLAGS = -D_FILE_OFFSET_BITS=64 -U_FORTIFY_SOURCE -D_FORTIFY_SOURCE=2
+NOFLAGS = -Wno-missing-field-initializers -Wno-return-type
 
-LDFLAGS = -Wl,-z,now -Wl,-z,relro -lgcrypt -lnettle -lnotify
+LDFLAGS = -Wl,-z,now -Wl,-z,relro
 
-SOURCES = src/*.c
+LIBS = -lgcrypt -lnettle -lnotify $(shell pkg-config --libs gtk+-3.0)
 
-OUT = polcrypt
+SOURCES = $(wildcard src/*.c)
+OBJS = ${SOURCES:.c=.o}
 
-all: polcrypt
+PROG = polcrypt
+
+.SUFFIXES:.c .o
+
+.c.o:
+	$(CC) -c $(CFLAGS) $(NOFLAGS) $(DFLAGS) $< -o $@
+
+all: $(PROG)
+
+
+$(PROG) : $(OBJS)
+	$(CC) $(CFLAGS) $(NOFLAGS) $(DFLAGS) $(OBJS) -o $@ $(LIBS)
+
+
+.PHONY: clean
+
+clean :
+	rm -f $(PROG) $(OBJS)
+
 
 install:
 	mkdir -v /usr/share/polcrypt
@@ -20,10 +39,8 @@ install:
 	test -s COPYING && cp -v COPYING /usr/share/polcrypt/
 	cp -v polcrypt.png /usr/share/pixmaps/
 
+
 uninstall:
 	rm -vr /usr/share/polcrypt
 	rm -v /usr/bin/polcrypt
 	rm -v /usr/share/applications/polcrypt.desktop
-
-$(OUT): $(SOURCES)
-	$(CC) $(SOURCES) ${CFLAGS} $(NOFLAGS) -o $(OUT) $(LDFLAGS) `pkg-config --cflags --libs gtk+-3.0`

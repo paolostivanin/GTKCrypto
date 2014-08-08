@@ -497,7 +497,7 @@ crypt_file(gpointer user_data)
 	}
 	
 	g_thread_exit (NULL);
-}	
+}
 
 
 static void

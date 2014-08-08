@@ -12,7 +12,7 @@ gint
 delete_input_file (	const gchar *filename,
 			gsize fileSize)
 {
-	gint fd, fdRandom;
+	gint fd, fdRandom, ret;
 	GError *err = NULL;
 	
 	fd = g_open (filename, O_WRONLY | O_NOFOLLOW);
@@ -41,7 +41,7 @@ delete_input_file (	const gchar *filename,
 		zero_write (fd, fileSize, 1);
 	}
 	
-	ftruncate( fd, 0);
+	ret = ftruncate( fd, 0);
 	
 	if (fsync (fd) == -1)
 	{

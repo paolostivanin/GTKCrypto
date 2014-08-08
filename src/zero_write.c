@@ -11,11 +11,13 @@ zero_write (	gint file,
 		size_t fSize,
 		gint isBigger)
 {
+	gint ret;
+	
 	if (isBigger  == 0)
 	{
 		guchar zBuf[fSize];
 		memset (zBuf, 0, sizeof (zBuf));
-		write (file, zBuf, sizeof (zBuf));
+		ret = write (file, zBuf, sizeof (zBuf));
 		if (fsync (file) == -1)
 		{
 			g_printerr ("zero_write fsync: %s\n", g_strerror(errno));
@@ -34,7 +36,7 @@ zero_write (	gint file,
 			doneSize += writeBytes;
 			if ((fSize-doneSize) > 0 && (fSize-doneSize) < BUFSIZE)
 			{
-				write (file, zBuf, (fSize-doneSize));
+				ret = write (file, zBuf, (fSize-doneSize));
 				if (fsync (file) == -1)
 				{
 					g_printerr ("zero_write fsync: %s\n", g_strerror(errno));
