@@ -1,4 +1,3 @@
-* threads;
+* hash threads;
 * info dialog on error;
 * better errors resolution; #20
-* progress bar during enc/dec; #22
