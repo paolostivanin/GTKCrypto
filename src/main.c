@@ -505,10 +505,14 @@ pwd_dialog (	GtkWidget *file_dialog,
 			}
 			else
 			{
-				//if hmac is wrong due to wrong password restart pwd dialog
+				main_var->hmac_error = FALSE;
 				gtk_widget_hide (dialog);
 				create_dialog (main_var);
-				//if (result == -5) goto restart;
+				if (main_var->hmac_error)
+				{
+					gtk_widget_destroy (dialog);
+					goto restart;
+				}
 			}
 			break;
 			

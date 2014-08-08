@@ -28,6 +28,7 @@ extern struct data metadata;
 struct main_vars
 {
 	gboolean encrypt; //TRUE := enc, FALSE := dec
+	gboolean hmac_error;
 	gchar *filename;
 	GtkWidget *main_window;
 	GtkWidget *pwd_entry[2];

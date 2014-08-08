@@ -14,8 +14,7 @@ guchar
 *calculate_hmac (	const gchar *filename,
 			const guchar *key,
 			gsize keylen,
-			goffset fileSize,
-			gint mode)
+			goffset fileSize)
 {
 	gint fd, retVal;
 	gchar *fAddr;
@@ -97,7 +96,7 @@ guchar
 	g_close (fd, &err);
 	gcry_md_final (hd);
 	guchar *tmp_hmac = gcry_md_read (hd, GCRY_MD_SHA512);
- 	guchar *hmac = malloc (64);
+ 	guchar *hmac = g_malloc (64);
  	memcpy (hmac, tmp_hmac, 64);
 	gcry_md_close (hd);
 	

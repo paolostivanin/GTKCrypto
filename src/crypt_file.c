@@ -12,12 +12,13 @@
 
 
 static goffset get_file_size (const gchar *);
-guchar *calculate_hmac (const gchar *, const guchar *, gsize, gsize, gint);
+guchar *calculate_hmac (const gchar *, const guchar *, gsize, gsize);
 gint delete_input_file (const gchar *, gsize);
 gint check_pkcs7 (guchar *, guchar *);
 static void send_notification (const gchar *, const gchar *);
 static void free_res (gchar *, gchar *, guchar *, guchar *, guchar *, guchar *);
 static void close_file (FILE *, FILE *);
+static void end_from_error (guint, struct main_vars *, const gchar *);
 
 
 static void
@@ -346,7 +347,7 @@ crypt_file(gpointer user_data)
 			g_thread_exit (NULL);
 		}
 		
-		guchar *hmac = calculate_hmac (input_fname, mac_key, keyLength, file_size + sizeof (struct data), 1);
+		guchar *hmac = calculate_hmac (input_fname, mac_key, keyLength, file_size + sizeof (struct data));
 		if (hmac == (guchar *)1)
 		{
 			g_printerr ( _("Error during HMAC calculation\n"));
@@ -358,13 +359,14 @@ crypt_file(gpointer user_data)
 		
 		if (memcmp (MAC_of_file, hmac, 64) != 0)
 		{
-			send_notification("PolCrypt", "HMAC doesn't match. This is caused by\n1) wrong password\nor\n2) corrupted file\n");
-			free_res (input_fname, output_fname, crypto_buffer, derived_key, crypto_key, mac_key); //docazzooooooooooooooo
-			free(hmac);
+			main_var->hmac_error = TRUE;
+			free_res (input_fname, output_fname, crypto_buffer, derived_key, crypto_key, mac_key);
+			g_free (hmac);
 			close_file (fp, fpout);
+			end_from_error (id, main_var, _("ERROR: HMAC doesn't match (corrupted file or wrong password)"));
 			g_thread_exit (NULL);
 		}
-		free(hmac);
+		g_free (hmac);
 				
 		if (fseek (fp, current_file_offset, SEEK_SET) == -1)
 		{
@@ -426,12 +428,12 @@ crypt_file(gpointer user_data)
 		
 		output_file_size = get_file_size (output_fname);
 
-		guchar *hmac = calculate_hmac (output_fname, mac_key, keyLength, output_file_size, 0);
+		guchar *hmac = calculate_hmac (output_fname, mac_key, keyLength, output_file_size);
 		if (hmac == (guchar *)1)
 		{
-			g_printerr ( _("Error during HMAC calculation"));
 			free_res (input_fname, output_fname, crypto_buffer, derived_key, crypto_key, mac_key);
-			g_thread_exit (NULL);
+			end_from_error (id, main_var, _("crypt_file: error during HMAC calculation (encrypt)"));
+			pthread_exit (NULL);
 		}
 		
 		fpout = g_fopen (output_fname, "a");
@@ -465,7 +467,7 @@ crypt_file(gpointer user_data)
 				{
 					number_of_pkcs7_bytes = check_pkcs7 (crypto_buffer, padding);
 					fwrite (crypto_buffer, 1, number_of_pkcs7_bytes, fpout);	
-					goto end;
+					break;
 				}
 				fwrite (crypto_buffer, 1, ret_val, fpout);
 				block_done++;
@@ -491,7 +493,7 @@ crypt_file(gpointer user_data)
 				}
 			}
 		}
-		end:
+
 		gcry_free (inputKey);
 		free_res (input_fname, output_fname, crypto_buffer, derived_key, crypto_key, mac_key);
 		close_file (fp, fpout);
@@ -565,4 +567,16 @@ close_file (	FILE *fpIn,
 {
 	if (fpIn) fclose (fpIn);
 	if (fpOut) fclose (fpOut);
+}
+
+
+static void
+end_from_error (guint id,
+		struct main_vars *main_var,
+		const gchar *message)
+{
+	g_source_remove(id);
+	add_text(GTK_PROGRESS_BAR (main_var->pBar), message);
+	fill_total(GTK_PROGRESS_BAR (main_var->pBar));
+	gtk_dialog_set_response_sensitive (GTK_DIALOG(main_var->bar_dialog), GTK_RESPONSE_REJECT, TRUE);	
 }
