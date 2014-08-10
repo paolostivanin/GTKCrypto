@@ -21,42 +21,63 @@ compute_sha3 (	GtkWidget *checkBt,
 	
 	if (g_strcmp0 (gtk_widget_get_name (checkBt), "BtSha3_256") == 0)
 		bit = 256;
-	else if (g_strcmp0 (gtk_widget_get_name (checkBt), "BtSha3_512") == 0)
+	
+	else if (g_strcmp0 (gtk_widget_get_name (checkBt), "BtSha3_384") == 0)
+		bit = 384;
+	else
 		bit = 512;
 	
 	if (bit == 256)
 	{
-		if (!gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (hash_var->hash_check[3])))
+		if (!gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (hash_var->hash_check[4])))
 		{
-			gtk_entry_set_text (GTK_ENTRY (hash_var->hash_entry[3]), "");
+			gtk_entry_set_text (GTK_ENTRY (hash_var->hash_entry[4]), "");
 			goto fine;
 		}
 		
-		else if (g_utf8_strlen (gtk_entry_get_text (GTK_ENTRY (hash_var->hash_entry[3])), -1) == 64)
+		else if (g_utf8_strlen (gtk_entry_get_text (GTK_ENTRY (hash_var->hash_entry[4])), -1) == 64)
 			goto fine;
 	
-		gpointer ptr = g_hash_table_lookup (hash_var->hash_table, hash_var->key[3]);
+		gpointer ptr = g_hash_table_lookup (hash_var->hash_table, hash_var->key[4]);
 		if (ptr != NULL)
 		{
-			gtk_entry_set_text (GTK_ENTRY (hash_var->hash_entry[3]), (gchar *)g_hash_table_lookup (hash_var->hash_table, hash_var->key[3]));
+			gtk_entry_set_text (GTK_ENTRY (hash_var->hash_entry[4]), (gchar *)g_hash_table_lookup (hash_var->hash_table, hash_var->key[4]));
 			goto fine;
 		}
 	}
-	else
+	else if (bit == 384)
 	{
-		if (!gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (hash_var->hash_check[5])))
+		if (!gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (hash_var->hash_check[6])))
 		{
-			gtk_entry_set_text (GTK_ENTRY (hash_var->hash_entry[5]), "");
+			gtk_entry_set_text (GTK_ENTRY (hash_var->hash_entry[6]), "");
 			goto fine;
 		}
 		
-		else if (g_utf8_strlen (gtk_entry_get_text (GTK_ENTRY (hash_var->hash_entry[5])), -1) == 128)
+		else if (g_utf8_strlen (gtk_entry_get_text (GTK_ENTRY (hash_var->hash_entry[6])), -1) == 96)
 			goto fine;	
 
-		gpointer ptr = g_hash_table_lookup (hash_var->hash_table, hash_var->key[5]);
+		gpointer ptr = g_hash_table_lookup (hash_var->hash_table, hash_var->key[6]);
 		if (ptr != NULL)
 		{
-			gtk_entry_set_text (GTK_ENTRY (hash_var->hash_entry[5]), (gchar *)g_hash_table_lookup (hash_var->hash_table, hash_var->key[5]));
+			gtk_entry_set_text (GTK_ENTRY (hash_var->hash_entry[6]), (gchar *)g_hash_table_lookup (hash_var->hash_table, hash_var->key[6]));
+			goto fine;
+		}	
+	}
+	else
+	{
+		if (!gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (hash_var->hash_check[8])))
+		{
+			gtk_entry_set_text (GTK_ENTRY (hash_var->hash_entry[8]), "");
+			goto fine;
+		}
+		
+		else if (g_utf8_strlen (gtk_entry_get_text (GTK_ENTRY (hash_var->hash_entry[8])), -1) == 128)
+			goto fine;	
+
+		gpointer ptr = g_hash_table_lookup (hash_var->hash_table, hash_var->key[8]);
+		if (ptr != NULL)
+		{
+			gtk_entry_set_text (GTK_ENTRY (hash_var->hash_entry[8]), (gchar *)g_hash_table_lookup (hash_var->hash_table, hash_var->key[8]));
 			goto fine;
 		}	
 	}
@@ -69,18 +90,25 @@ compute_sha3 (	GtkWidget *checkBt,
 	guint8 *fAddr;
 	
 	struct sha3_256_ctx ctx256;
+	struct sha3_384_ctx ctx384;
 	struct sha3_512_ctx ctx512;
 	
 	if (bit == 256)
 	{
 		digest = g_malloc (SHA3_256_DIGEST_SIZE);
-		hash = g_malloc (65);
+		hash = g_malloc ((SHA3_256_DIGEST_SIZE * 2) + 1);
 	}
 		
+	else if (bit == 384)
+	{
+		digest = g_malloc (SHA3_384_DIGEST_SIZE);
+		hash = g_malloc ((SHA3_384_DIGEST_SIZE * 2) + 1);
+	}
+	
 	else
 	{
 		digest = g_malloc (SHA3_512_DIGEST_SIZE);
-		hash = g_malloc (129);
+		hash = g_malloc ((SHA3_512_DIGEST_SIZE * 2) + 1);
 	}
 	
 	if (digest == NULL)
@@ -107,6 +135,10 @@ compute_sha3 (	GtkWidget *checkBt,
   	
   	if (bit == 256)
 		sha3_256_init (&ctx256);
+	
+	else if (bit == 384)
+		sha3_384_init (&ctx384);
+	
 	else
 		sha3_512_init (&ctx512);
 		
@@ -123,6 +155,10 @@ compute_sha3 (	GtkWidget *checkBt,
 		}
 		if (bit == 256)
 			sha3_256_update (&ctx256, fileSize, fAddr);
+		
+		else if (bit == 384)
+			sha3_384_update (&ctx384, fileSize, fAddr);
+		
 		else
 			sha3_512_update (&ctx512, fileSize, fAddr);
 			
@@ -151,9 +187,13 @@ compute_sha3 (	GtkWidget *checkBt,
 		}
 		
 		if (bit == 256)
-			sha3_256_update(&ctx256, BUF_FILE, fAddr);
+			sha3_256_update (&ctx256, BUF_FILE, fAddr);
+		
+		else if (bit == 384)
+			sha3_384_update (&ctx384, BUF_FILE, fAddr);
+		
 		else
-			sha3_512_update(&ctx512, BUF_FILE, fAddr);
+			sha3_512_update (&ctx512, BUF_FILE, fAddr);
 		
 		doneSize += BUF_FILE;
 		diff = fileSize - doneSize;
@@ -172,9 +212,13 @@ compute_sha3 (	GtkWidget *checkBt,
 			}
 			
 			if (bit == 256)
-				sha3_256_update(&ctx256, diff, fAddr);
+				sha3_256_update (&ctx256, diff, fAddr);
+			
+			else if (bit == 384)
+				sha3_384_update (&ctx384, diff, fAddr);
+			
 			else
-				sha3_512_update(&ctx512, diff, fAddr);
+				sha3_512_update (&ctx512, diff, fAddr);
 				
 			retVal = munmap(fAddr, diff);
 			if(retVal == -1){
@@ -202,22 +246,32 @@ compute_sha3 (	GtkWidget *checkBt,
 	if (bit == 256)
 	{
 		sha3_256_digest(&ctx256, SHA3_256_DIGEST_SIZE, digest);
-		for(i=0; i<32; i++)
+		for (i = 0; i < SHA3_256_DIGEST_SIZE; i++)
 			g_sprintf (hash+(i*2), "%02x", digest[i]);
 
-		hash[64] = '\0';
-		gtk_entry_set_text (GTK_ENTRY (hash_var->hash_entry[3]), hash);
-		g_hash_table_insert (hash_var->hash_table, hash_var->key[3], strdup (hash));		
+		hash[SHA3_256_DIGEST_SIZE * 2] = '\0';
+		gtk_entry_set_text (GTK_ENTRY (hash_var->hash_entry[4]), hash);
+		g_hash_table_insert (hash_var->hash_table, hash_var->key[4], strdup (hash));		
+	}
+	else if (bit == 384)
+	{
+		sha3_384_digest(&ctx384, SHA3_384_DIGEST_SIZE, digest);
+		for (i = 0; i < SHA3_384_DIGEST_SIZE; i++)
+			g_sprintf (hash+(i*2), "%02x", digest[i]);
+
+		hash[SHA3_384_DIGEST_SIZE * 2] = '\0';
+		gtk_entry_set_text (GTK_ENTRY (hash_var->hash_entry[6]), hash);
+		g_hash_table_insert (hash_var->hash_table, hash_var->key[6], strdup (hash));		
 	}
 	else
 	{
 		sha3_512_digest(&ctx512, SHA3_512_DIGEST_SIZE, digest);
-		for(i=0; i<64; i++)
+		for (i = 0; i < SHA3_512_DIGEST_SIZE; i++)
 			g_sprintf (hash+(i*2), "%02x", digest[i]);
 
-		hash[128] = '\0';
-		gtk_entry_set_text (GTK_ENTRY (hash_var->hash_entry[5]), hash);
-		g_hash_table_insert (hash_var->hash_table, hash_var->key[5], strdup (hash));		
+		hash[SHA3_512_DIGEST_SIZE * 2] = '\0';
+		gtk_entry_set_text (GTK_ENTRY (hash_var->hash_entry[8]), hash);
+		g_hash_table_insert (hash_var->hash_table, hash_var->key[8], strdup (hash));		
 	}
  	
 	g_close (fd, &err);

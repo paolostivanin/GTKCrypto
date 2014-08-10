@@ -4,7 +4,7 @@
 #define NUM_OF_BUTTONS 6
 #define NUM_OF_FRAMES 2
 #define NUM_OF_BOXES 2
-#define NUM_OF_HASH 8
+#define NUM_OF_HASH 10
 
 #include <glib.h>
 #include <gtk/gtk.h>
@@ -17,12 +17,11 @@ gpointer crypt_file (gpointer);
 
 void text_dialog (GtkWidget *);
 
+void compute_md5 (struct hash_vars *);
+void compute_gost94 (struct hash_vars *);
+void compute_sha1 (struct hash_vars *);
 void compute_sha2 (GtkWidget *, struct hash_vars *);
 void compute_sha3 (GtkWidget *, struct hash_vars *);
-void compute_md5 (struct hash_vars *);
-void compute_sha1 (struct hash_vars *);
-void compute_gost94 (struct hash_vars *);
 void compute_whirlpool (struct hash_vars *);
-
 
 #endif

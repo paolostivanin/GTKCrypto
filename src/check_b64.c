@@ -11,17 +11,17 @@ check_b64 (const gchar *input)
 {
 	gsize input_len = g_utf8_strlen (input, -1);
 	
-	gsize i, j, z = 0, line_wrap = 0, useless_newline = 0;
+	gsize i, j, z = 0, line_wrap = 0, useless_chars = 0;
 	
 	i = input_len - 1;
 	
 	while (input[i] == '\n' || input[i] == '\t')
 	{
-		useless_newline++;
+		useless_chars++;
 		i--;
 	}
 
-	input_len -= useless_newline;
+	input_len -= useless_chars;
 	
 	for (i = 0; i < input_len; i++)
 	{

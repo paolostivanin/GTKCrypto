@@ -15,19 +15,19 @@
 void
 compute_whirlpool (struct hash_vars *hash_var)
 {
-   	if (!gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (hash_var->hash_check[6])))
+   	if (!gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (hash_var->hash_check[9])))
    	{
-		gtk_entry_set_text (GTK_ENTRY (hash_var->hash_entry[6]), "");
+		gtk_entry_set_text (GTK_ENTRY (hash_var->hash_entry[9]), "");
 		goto fine;
 	}
 	
-	else if (g_utf8_strlen (gtk_entry_get_text (GTK_ENTRY (hash_var->hash_entry[6])), -1) == 128)
+	else if (g_utf8_strlen (gtk_entry_get_text (GTK_ENTRY (hash_var->hash_entry[9])), -1) == 128)
 		goto fine;
 		
-	gpointer ptr = g_hash_table_lookup (hash_var->hash_table, hash_var->key[6]);
+	gpointer ptr = g_hash_table_lookup (hash_var->hash_table, hash_var->key[9]);
 	if (ptr != NULL)
 	{
-		gtk_entry_set_text (GTK_ENTRY (hash_var->hash_entry[6]), (gchar *)g_hash_table_lookup (hash_var->hash_table, hash_var->key[6]));
+		gtk_entry_set_text (GTK_ENTRY (hash_var->hash_entry[9]), (gchar *)g_hash_table_lookup (hash_var->hash_table, hash_var->key[9]));
 		goto fine;
 	}
 
@@ -113,8 +113,8 @@ compute_whirlpool (struct hash_vars *hash_var)
  		g_sprintf (hash+(i*2), "%02x", whirlpool[i]);
  	
  	hash[128] = '\0';
- 	gtk_entry_set_text (GTK_ENTRY (hash_var->hash_entry[6]), hash);
- 	g_hash_table_insert (hash_var->hash_table, hash_var->key[6], strdup(hash));
+ 	gtk_entry_set_text (GTK_ENTRY (hash_var->hash_entry[9]), hash);
+ 	g_hash_table_insert (hash_var->hash_table, hash_var->key[9], strdup(hash));
  	
 	gcry_md_close (hd);
 	g_close(fd, &err);

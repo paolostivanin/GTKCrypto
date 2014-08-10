@@ -35,7 +35,7 @@ compute_md5 (struct hash_vars *hash_var)
 	guint8 digest[MD5_DIGEST_SIZE];
 	gint fd, i, retVal;
 	goffset fileSize = 0, doneSize = 0, diff = 0, offset = 0;
-	gchar hash[33];
+	gchar hash[(MD5_DIGEST_SIZE * 2) + 1];
 	guint8 *fAddr;
 	GError *err = NULL;
 	
@@ -107,10 +107,10 @@ compute_md5 (struct hash_vars *hash_var)
 	
 	nowhile:	
 	md5_digest (&ctx, MD5_DIGEST_SIZE, digest);
- 	for (i=0; i<16; i++)
+ 	for (i = 0; i < MD5_DIGEST_SIZE; i++)
 		g_sprintf (hash+(i*2), "%02x", digest[i]);
 
- 	hash[32] = '\0';
+ 	hash[MD5_DIGEST_SIZE * 2] = '\0';
  	gtk_entry_set_text (GTK_ENTRY (hash_var->hash_entry[0]), hash);
  	g_hash_table_insert (hash_var->hash_table, hash_var->key[0], strdup(hash));
  	

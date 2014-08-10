@@ -311,7 +311,7 @@ create_dialog (struct main_vars *main_var)
 				     _("Close"), GTK_RESPONSE_REJECT,
 				     NULL);
 				     
-	gtk_widget_set_size_request (main_var->bar_dialog, 150, 100);
+	gtk_widget_set_size_request (main_var->bar_dialog, 600, 150);
 	gtk_dialog_set_response_sensitive (GTK_DIALOG(main_var->bar_dialog), GTK_RESPONSE_REJECT, FALSE);	   
 				     
 	content_area = gtk_dialog_get_content_area (GTK_DIALOG (main_var->bar_dialog));
@@ -528,6 +528,7 @@ compute_hash_dialog (	GtkWidget *file_dialog,
 	gtk_widget_hide (GTK_WIDGET (file_dialog));
 	
 	struct hash_vars hash_var;
+	gint counter;
 	
 	hash_var.hash_table = g_hash_table_new_full (g_str_hash, g_str_equal, g_free, g_free);
 	
@@ -544,7 +545,7 @@ compute_hash_dialog (	GtkWidget *file_dialog,
 	
 	gint i, result;
 	
-	const gchar *label[] = {"MD5", "SHA-1", "SHA-256", "SHA3-256", "SHA512", "SHA3-512", "WHIRLPOOL", "GOST94"};
+	const gchar *label[] = {"MD5", "GOST94", "SHA-1", "SHA-256", "SHA3-256", "SHA-384", "SHA3-384", "SHA512", "SHA3-512", "WHIRLPOOL"};
 	gsize label_length;
 	
 	GtkWidget *content_area, *grid, *dialog;
@@ -585,46 +586,33 @@ compute_hash_dialog (	GtkWidget *file_dialog,
 	gtk_grid_set_column_homogeneous (GTK_GRID (grid), TRUE);
 	gtk_grid_set_row_spacing (GTK_GRID (grid), 5);
 	
-	gtk_grid_attach (GTK_GRID (grid), hash_var.hash_check[0], 0, 0, 1, 1);
-	gtk_grid_attach (GTK_GRID (grid), hash_var.hash_entry[0], 2, 0, 6, 1);
-
-	gtk_grid_attach (GTK_GRID (grid), hash_var.hash_check[1], 0, 1, 1, 1);
-	gtk_grid_attach (GTK_GRID (grid), hash_var.hash_entry[1], 2, 1, 6, 1);
-
-	gtk_grid_attach (GTK_GRID (grid), hash_var.hash_check[2], 0, 2, 1, 1);
-	gtk_grid_attach (GTK_GRID (grid), hash_var.hash_entry[2], 2, 2, 6, 1);
-
-	gtk_grid_attach (GTK_GRID (grid), hash_var.hash_check[3], 0, 3, 1, 1);
-	gtk_grid_attach (GTK_GRID (grid), hash_var.hash_entry[3], 2, 3, 6, 1);
-
-	gtk_grid_attach (GTK_GRID (grid), hash_var.hash_check[4], 0, 4, 1, 1);
-	gtk_grid_attach (GTK_GRID (grid), hash_var.hash_entry[4], 2, 4, 6, 1);
-
-	gtk_grid_attach (GTK_GRID (grid), hash_var.hash_check[5], 0, 5, 1, 1);
-	gtk_grid_attach (GTK_GRID (grid), hash_var.hash_entry[5], 2, 5, 6, 1);
-
-	gtk_grid_attach (GTK_GRID (grid), hash_var.hash_check[6], 0, 6, 1, 1);
-	gtk_grid_attach (GTK_GRID (grid), hash_var.hash_entry[6], 2, 6, 6, 1);
-
-	gtk_grid_attach (GTK_GRID (grid), hash_var.hash_check[7], 0, 7, 1, 1);
-	gtk_grid_attach (GTK_GRID (grid), hash_var.hash_entry[7], 2, 7, 6, 1);
-
+	for (counter = 0; counter < NUM_OF_HASH; counter++)
+	{
+		gtk_grid_attach (GTK_GRID (grid), hash_var.hash_check[counter], 0, counter, 1, 1);
+		gtk_grid_attach (GTK_GRID (grid), hash_var.hash_entry[counter], 2, counter, 6, 1);
+	}
+	
 	gtk_container_add (GTK_CONTAINER (content_area), grid);
 	gtk_widget_show_all (dialog);
 	
-	gtk_widget_set_name (GTK_WIDGET (hash_var.hash_check[2]), "BtSha256");
-	gtk_widget_set_name (GTK_WIDGET (hash_var.hash_check[3]), "BtSha3_256");
-	gtk_widget_set_name (GTK_WIDGET (hash_var.hash_check[4]), "BtSha512");
-	gtk_widget_set_name (GTK_WIDGET (hash_var.hash_check[5]), "BtSha3_512");
+	gtk_widget_set_name (GTK_WIDGET (hash_var.hash_check[3]), "BtSha256");
+	gtk_widget_set_name (GTK_WIDGET (hash_var.hash_check[4]), "BtSha3_256");
+	gtk_widget_set_name (GTK_WIDGET (hash_var.hash_check[5]), "BtSha384");
+	gtk_widget_set_name (GTK_WIDGET (hash_var.hash_check[6]), "BtSha3_384");
+	gtk_widget_set_name (GTK_WIDGET (hash_var.hash_check[7]), "BtSha512");
+	gtk_widget_set_name (GTK_WIDGET (hash_var.hash_check[8]), "BtSha3_512");
 	
 	g_signal_connect_swapped (hash_var.hash_check[0], "clicked", G_CALLBACK (compute_md5), &hash_var);
-	g_signal_connect_swapped (hash_var.hash_check[1], "clicked", G_CALLBACK (compute_sha1), &hash_var);
-	g_signal_connect (hash_var.hash_check[2], "clicked", G_CALLBACK (compute_sha2), &hash_var);
-	g_signal_connect (hash_var.hash_check[3], "clicked", G_CALLBACK (compute_sha3), &hash_var);
-	g_signal_connect (hash_var.hash_check[4], "clicked", G_CALLBACK (compute_sha2), &hash_var);
-	g_signal_connect (hash_var.hash_check[5], "clicked", G_CALLBACK (compute_sha3), &hash_var);
-	g_signal_connect_swapped (hash_var.hash_check[6], "clicked", G_CALLBACK (compute_whirlpool), &hash_var);
-	g_signal_connect_swapped (hash_var.hash_check[7], "clicked", G_CALLBACK (compute_gost94), &hash_var);
+	g_signal_connect_swapped (hash_var.hash_check[1], "clicked", G_CALLBACK (compute_gost94), &hash_var);
+	g_signal_connect_swapped (hash_var.hash_check[2], "clicked", G_CALLBACK (compute_sha1), &hash_var);
+	g_signal_connect (hash_var.hash_check[3], "clicked", G_CALLBACK (compute_sha2), &hash_var);
+	g_signal_connect (hash_var.hash_check[4], "clicked", G_CALLBACK (compute_sha3), &hash_var);
+	g_signal_connect (hash_var.hash_check[5], "clicked", G_CALLBACK (compute_sha2), &hash_var);
+	g_signal_connect (hash_var.hash_check[6], "clicked", G_CALLBACK (compute_sha3), &hash_var);
+	g_signal_connect (hash_var.hash_check[7], "clicked", G_CALLBACK (compute_sha2), &hash_var);
+	g_signal_connect (hash_var.hash_check[8], "clicked", G_CALLBACK (compute_sha3), &hash_var);
+	g_signal_connect_swapped (hash_var.hash_check[9], "clicked", G_CALLBACK (compute_whirlpool), &hash_var);
+	
 	
 	result = gtk_dialog_run (GTK_DIALOG (dialog));
 	switch (result)

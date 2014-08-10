@@ -50,9 +50,9 @@ struct hash_vars
 {
 	gchar *filename;
 	GHashTable *hash_table;
-	GtkWidget *hash_entry[8]; //md5, sha1, sha256, sha3-256, sha512, sha3-512, whir, gostr
-	GtkWidget *hash_check[8]; //md5, sha1, sha256, sha3-256, sha512, sha3-512, whir, gostr
-	gchar *key[8];
+	GtkWidget *hash_entry[10]; //md5, gost, sha1, sha256, sha3-256, sha384, sha3_384, sha512, sha3-512, whir
+	GtkWidget *hash_check[10]; //md5, gost, sha1, sha256, sha3-256, sha384, sha3_384, sha512, sha3-512, whir
+	gchar *key[10];
 };
 extern struct hash_vars hash_var;
 

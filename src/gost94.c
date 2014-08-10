@@ -16,19 +16,19 @@
 void
 compute_gost94 (struct hash_vars *hash_var)
 {
-   	if (!gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (hash_var->hash_check[7])))
+   	if (!gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (hash_var->hash_check[1])))
    	{
-		gtk_entry_set_text (GTK_ENTRY (hash_var->hash_entry[7]), "");
+		gtk_entry_set_text (GTK_ENTRY (hash_var->hash_entry[1]), "");
 		goto fine;
 	}
 	
 	else if (g_utf8_strlen (gtk_entry_get_text (GTK_ENTRY (hash_var->hash_entry[7])), -1) == 32)
 		goto fine;
 		
-	gpointer ptr = g_hash_table_lookup (hash_var->hash_table, hash_var->key[7]);
+	gpointer ptr = g_hash_table_lookup (hash_var->hash_table, hash_var->key[1]);
 	if (ptr != NULL)
 	{
-		gtk_entry_set_text (GTK_ENTRY (hash_var->hash_entry[7]), (gchar *)g_hash_table_lookup (hash_var->hash_table, hash_var->key[7]));
+		gtk_entry_set_text (GTK_ENTRY (hash_var->hash_entry[1]), (gchar *)g_hash_table_lookup (hash_var->hash_table, hash_var->key[1]));
 		goto fine;
 	}
 
@@ -36,7 +36,7 @@ compute_gost94 (struct hash_vars *hash_var)
 	guint8 digest[GOSTHASH94_DIGEST_SIZE];
 	gint fd, i, retVal;
 	goffset fileSize, doneSize = 0, diff = 0, offset = 0;
-	gchar hash[33];
+	gchar hash[(GOSTHASH94_DIGEST_SIZE * 2) + 1];
 	guint8 *fAddr;
 	GError *err = NULL;
 	
@@ -108,12 +108,12 @@ compute_gost94 (struct hash_vars *hash_var)
 	
 	nowhile:	
 	gosthash94_digest (&ctx, GOSTHASH94_DIGEST_SIZE, digest);
- 	for (i=0; i<16; i++)
+ 	for (i = 0; i < GOSTHASH94_DIGEST_SIZE; i++)
 		g_sprintf (hash+(i*2), "%02x", digest[i]);
 
- 	hash[32] = '\0';
- 	gtk_entry_set_text (GTK_ENTRY (hash_var->hash_entry[7]), hash);
- 	g_hash_table_insert (hash_var->hash_table, hash_var->key[7], strdup(hash));
+ 	hash[GOSTHASH94_DIGEST_SIZE * 2] = '\0';
+ 	gtk_entry_set_text (GTK_ENTRY (hash_var->hash_entry[1]), hash);
+ 	g_hash_table_insert (hash_var->hash_table, hash_var->key[1], strdup(hash));
  	
 	g_close(fd, &err);
 	

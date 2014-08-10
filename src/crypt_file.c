@@ -28,8 +28,14 @@ add_text (	gpointer data,
 static gboolean
 bar_full (gpointer data)
 {
+	/*PangoFontDescription *new_font = pango_font_description_new ();
+	pango_font_description_set_weight (new_font, PANGO_WEIGHT_BOLD);
+	gtk_widget_override_font (GTK_WIDGET (data), new_font);*/
+    	
     	gtk_progress_bar_set_fraction (GTK_PROGRESS_BAR (data), 1);
-
+	
+	//pango_font_description_free (new_font);
+	
     	return TRUE;
 }
 
