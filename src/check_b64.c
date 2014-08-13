@@ -47,7 +47,7 @@ check_b64 (const gchar *input)
 			}
 		}
 	}
-
+	
 	if ((input_len - line_wrap) % 4 != 0)
 		return -1;
 		

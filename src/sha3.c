@@ -15,8 +15,9 @@
 
 void
 compute_sha3 (	GtkWidget *checkBt,
-		struct hash_vars *hash_var)
+		gpointer user_data)
 {
+	struct hash_vars *hash_var = user_data;
 	gint bit = 0;
 	
 	if (g_strcmp0 (gtk_widget_get_name (checkBt), "BtSha3_256") == 0)

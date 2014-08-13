@@ -110,11 +110,15 @@ activate (	GtkApplication *app,
 		struct main_vars *main_var)
 {
 	if (glib_check_version (2, 40, 0) != NULL){
-		fprintf(stderr, "The required version of GLib is 2.40.0 or greater.");
+		error_dialog ( _("The required version of GLib is 2.40.0 or greater."));
 		return;
 	}
 	if (gtk_check_version (3, 12, 0) != NULL){
-		fprintf(stderr, "The required version of GTK+ is 3.12.0 or greater.");
+		error_dialog ( _("The required version of GTK+ is 3.12.0 or greater."));
+		return;
+	}
+	if (!gcry_check_version ("1.5.0")){
+		error_dialog ( _("The required version of Gcrypt is 1.5.0 or greater."));
 		return;
 	}
 		
@@ -180,10 +184,6 @@ gint
 main (	int argc,
 	char *argv[])
 {
-	if (!gcry_check_version (GCRYPT_MIN_VER)){
-		fprintf(stderr, "libgcrypt min version required: %s\n", GCRYPT_MIN_VER);
-		return -1;
-	}
 	gcry_control (GCRYCTL_INIT_SECMEM, 16384, 0);
 	gcry_control (GCRYCTL_INITIALIZATION_FINISHED, 0);
 	
@@ -251,7 +251,7 @@ GtkWidget
 
 static void
 choose_file_dialog (	GtkWidget *button,
-		struct main_vars *main_var)
+			struct main_vars *main_var)
 {
 	GtkWidget *file_dialog;
 	GtkFileChooserAction action = GTK_FILE_CHOOSER_ACTION_OPEN;
@@ -602,16 +602,16 @@ compute_hash_dialog (	GtkWidget *file_dialog,
 	gtk_widget_set_name (GTK_WIDGET (hash_var.hash_check[7]), "BtSha512");
 	gtk_widget_set_name (GTK_WIDGET (hash_var.hash_check[8]), "BtSha3_512");
 	
-	g_signal_connect_swapped (hash_var.hash_check[0], "clicked", G_CALLBACK (compute_md5), &hash_var);
-	g_signal_connect_swapped (hash_var.hash_check[1], "clicked", G_CALLBACK (compute_gost94), &hash_var);
-	g_signal_connect_swapped (hash_var.hash_check[2], "clicked", G_CALLBACK (compute_sha1), &hash_var);
+	g_signal_connect (hash_var.hash_check[0], "clicked", G_CALLBACK (compute_md5), &hash_var);
+	g_signal_connect (hash_var.hash_check[1], "clicked", G_CALLBACK (compute_gost94), &hash_var);
+	g_signal_connect (hash_var.hash_check[2], "clicked", G_CALLBACK (compute_sha1), &hash_var);
 	g_signal_connect (hash_var.hash_check[3], "clicked", G_CALLBACK (compute_sha2), &hash_var);
 	g_signal_connect (hash_var.hash_check[4], "clicked", G_CALLBACK (compute_sha3), &hash_var);
 	g_signal_connect (hash_var.hash_check[5], "clicked", G_CALLBACK (compute_sha2), &hash_var);
 	g_signal_connect (hash_var.hash_check[6], "clicked", G_CALLBACK (compute_sha3), &hash_var);
 	g_signal_connect (hash_var.hash_check[7], "clicked", G_CALLBACK (compute_sha2), &hash_var);
 	g_signal_connect (hash_var.hash_check[8], "clicked", G_CALLBACK (compute_sha3), &hash_var);
-	g_signal_connect_swapped (hash_var.hash_check[9], "clicked", G_CALLBACK (compute_whirlpool), &hash_var);
+	g_signal_connect (hash_var.hash_check[9], "clicked", G_CALLBACK (compute_whirlpool), &hash_var);
 	
 	
 	result = gtk_dialog_run (GTK_DIALOG (dialog));

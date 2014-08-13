@@ -24,7 +24,8 @@ close_dialog (	GtkWidget __attribute__((__unused__)) *bt,
 }
 
 void
-text_dialog (GtkWidget *clickedButton)
+text_dialog (	GtkWidget *clickedButton,
+		gpointer __attribute__((__unused__)) user_data)
 {	
 	GtkWidget *content_area;
 	GtkWidget *scrolled_win;
@@ -154,7 +155,7 @@ prepare_text (	GtkWidget __attribute__((__unused__)) *bt,
 				
 		crypt_text (text_var);
 		
-		valid = g_utf8_validate (text_var->decoded_text, text_var->real_len, NULL);
+		valid = g_utf8_validate (text_var->decoded_text, -1, NULL);
 		if (!valid)
 		{
 			error_dialog ( _("The decoded text is not valid (maybe due to a wrong password)"));
@@ -254,8 +255,9 @@ crypt_text (struct text_vars *text_var)
 	else
 	{
 		text_var->real_len = text_var->out_length - 48;
-		text_var->decoded_text = g_malloc0 (text_var->real_len);
+		text_var->decoded_text = g_malloc0 (text_var->real_len + 1);
 		gcry_cipher_decrypt (hd, text_var->decoded_text, text_var->real_len, text_var->crypt_text + 48, text_var->real_len);
+		text_var->decoded_text[text_var->real_len] = '\0';
 	}
 	
 	gcry_cipher_close (hd);

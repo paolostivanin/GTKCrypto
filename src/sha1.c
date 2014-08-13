@@ -14,8 +14,11 @@
  
 
 void
-compute_sha1 (struct hash_vars *hash_var)
+compute_sha1 (	GtkWidget __attribute__((__unused__)) *bt,
+		gpointer user_data)
 {
+	struct hash_vars *hash_var = user_data;
+	
    	if (!gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (hash_var->hash_check[2])))
    	{
 		gtk_entry_set_text(GTK_ENTRY(hash_var->hash_entry[2]), "");

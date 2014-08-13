@@ -13,8 +13,11 @@
 
 
 void
-compute_whirlpool (struct hash_vars *hash_var)
+compute_whirlpool (	GtkWidget __attribute__((__unused__)) *bt,
+			gpointer user_data)
 {
+	struct hash_vars *hash_var = user_data;
+	
    	if (!gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (hash_var->hash_check[9])))
    	{
 		gtk_entry_set_text (GTK_ENTRY (hash_var->hash_entry[9]), "");
