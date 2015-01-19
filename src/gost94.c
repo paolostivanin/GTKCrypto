@@ -13,36 +13,44 @@
 #include "polcrypt.h"
 
 
-static goffset get_file_size (const gchar *);
-
-
 void
-compute_gost94 (struct hashWidget_t *HashWidget)
+compute_gost94 (GtkWidget __attribute__((__unused__)) *bt,
+		gpointer user_data)
 {
-   	if (!gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (HashWidget->hashCheck[7])))
+	struct hash_vars *hash_var = user_data;
+	
+   	if (!gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (hash_var->hash_check[1])))
    	{
-		gtk_entry_set_text (GTK_ENTRY (HashWidget->hashEntry[7]), "");
+		gtk_entry_set_text (GTK_ENTRY (hash_var->hash_entry[1]), "");
 		goto fine;
 	}
-	else if (g_utf8_strlen (gtk_entry_get_text (GTK_ENTRY (HashWidget->hashEntry[7])), -1) == 32)
+	
+	else if (g_utf8_strlen (gtk_entry_get_text (GTK_ENTRY (hash_var->hash_entry[7])), -1) == 32)
 		goto fine;
+		
+	gpointer ptr = g_hash_table_lookup (hash_var->hash_table, hash_var->key[1]);
+	if (ptr != NULL)
+	{
+		gtk_entry_set_text (GTK_ENTRY (hash_var->hash_entry[1]), (gchar *)g_hash_table_lookup (hash_var->hash_table, hash_var->key[1]));
+		goto fine;
+	}
 
 	struct gosthash94_ctx ctx;
 	guint8 digest[GOSTHASH94_DIGEST_SIZE];
 	gint fd, i, retVal;
 	goffset fileSize, doneSize = 0, diff = 0, offset = 0;
-	gchar hash[33];
+	gchar hash[(GOSTHASH94_DIGEST_SIZE * 2) + 1];
 	guint8 *fAddr;
 	GError *err = NULL;
 	
-	fd = g_open (HashWidget->filename, O_RDONLY | O_NOFOLLOW);
+	fd = g_open (hash_var->filename, O_RDONLY | O_NOFOLLOW);
 	if (fd == -1)
 	{
 		g_printerr ("gost94: %s\n", g_strerror (errno));
 		return;
 	}
 	
-  	fileSize = get_file_size (HashWidget->filename);
+  	fileSize = get_file_size (hash_var->filename);
        
 	gosthash94_init (&ctx);
 
@@ -103,35 +111,15 @@ compute_gost94 (struct hashWidget_t *HashWidget)
 	
 	nowhile:	
 	gosthash94_digest (&ctx, GOSTHASH94_DIGEST_SIZE, digest);
- 	for (i=0; i<16; i++)
+ 	for (i = 0; i < GOSTHASH94_DIGEST_SIZE; i++)
 		g_sprintf (hash+(i*2), "%02x", digest[i]);
 
- 	hash[32] = '\0';
- 	gtk_entry_set_text (GTK_ENTRY (HashWidget->hashEntry[7]), hash);
+ 	hash[GOSTHASH94_DIGEST_SIZE * 2] = '\0';
+ 	gtk_entry_set_text (GTK_ENTRY (hash_var->hash_entry[1]), hash);
+ 	g_hash_table_insert (hash_var->hash_table, hash_var->key[1], strdup(hash));
  	
 	g_close(fd, &err);
 	
 	fine:
 	return;
-}
-
-
-static goffset
-get_file_size (const gchar *filePath)
-{
-	GFileInfo *info;
-	GFile *file;
-	GError *error = NULL;
-	const gchar *attributes = "standard::*";
-	GFileQueryInfoFlags flags = G_FILE_QUERY_INFO_NOFOLLOW_SYMLINKS;
-	GCancellable *cancellable = NULL;
-	goffset fileSize;
-
-	file = g_file_new_for_path (filePath);
-	info = g_file_query_info (file, attributes, flags, cancellable, &error);
-	fileSize = g_file_info_get_size (info);
-
-	g_object_unref(file);
-	
-	return fileSize;
 }

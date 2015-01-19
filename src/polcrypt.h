@@ -4,13 +4,7 @@
 #define BUF_FILE 16777216 /* 16 MiB memory buffer (hash) */
 #define BUFSIZE 2097152  /* 2 MiB memory buffer (delete_input_file) */
 
-#define GCRYPT_MIN_VER "1.5.0"
-#define VERSION "3.0-beta"
-
-#define HEADERBAR_BUF 19 /* buffer for the headerbar's title */
-
-#define ENCRYPT 0
-#define DECRYPT 1
+#define VERSION "3.0-beta.2"
 
 #define LOCALE_DIR "/usr/share/locale"
 #define PACKAGE    "polcrypt"          /* mo file name in LOCALE_DIR */
@@ -19,28 +13,44 @@
 #include <gtk/gtk.h>
 
 
-struct metadata_t{
-	gint8 algoType; //(NULL|0=aes),(1=serpent),(2=twofish),(3=camellia)
-	gint8 algoMode; //1=CBC,2=CTR
+goffset get_file_size (const gchar *);
+gint check_pwd (GtkWidget *, GtkWidget *);
+void error_dialog (const gchar *);
+
+
+struct data
+{
+	gint8 algo_type; //(NULL|0=aes),(1=serpent),(2=twofish),(3=camellia)
+	gint8 block_cipher_mode; //1=CBC,2=CTR
 	guint8 salt[32];
 	guint8 iv[16];
 };
-extern struct metadata_t Metadata;
+extern struct data metadata;
 
-struct widget_t{
+
+struct main_vars
+{
+	gboolean encrypt; //TRUE := enc, FALSE := dec
+	gboolean hmac_error;
 	gchar *filename;
-	GtkWidget *mainwin;
-	GtkWidget *pwdEntry[2];
+	GtkWidget *main_window;
+	GtkWidget *pwd_entry[2];
 	GtkWidget *menu, *popover;
-	GtkWidget *radioButton[6]; //aes, serpent, twofish, camellia, cbc, ctr
+	GtkWidget *radio_button[6]; //aes, serpent, twofish, camellia, cbc, ctr
+	GtkWidget *bar_dialog;
+	GtkWidget *pBar;
 };
-extern struct widget_t Widget;
+extern struct main_vars main_var;
 
-struct hashWidget_t{
+
+struct hash_vars
+{
 	gchar *filename;
-	GtkWidget *hashEntry[8]; //md5, sha1, sha256, sha3-256, sha512, sha3-512, whir, gostr
-	GtkWidget *hashCheck[8]; //md5, sha1, sha256, sha3-256, sha512, sha3-512, whir, gostr
+	GHashTable *hash_table;
+	GtkWidget *hash_entry[10]; //md5, gost, sha1, sha256, sha3-256, sha384, sha3_384, sha512, sha3-512, whir
+	GtkWidget *hash_check[10]; //md5, gost, sha1, sha256, sha3-256, sha384, sha3_384, sha512, sha3-512, whir
+	gchar *key[10];
 };
-extern struct hashWidget_t HashWidget;
+extern struct hash_vars hash_var;
 
 #endif

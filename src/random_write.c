@@ -9,12 +9,14 @@ random_write (	gint file,
 		gint fileRand,
 		gsize fSize,
 		gint isBigger)
-{
+{	
+	gint ret;
+	
 	if (isBigger == 0)
 	{
 		guchar bRand[fSize];
-		read (fileRand, bRand, sizeof (bRand));
-		write (file, bRand, sizeof (bRand));
+		ret = read (fileRand, bRand, sizeof (bRand));
+		ret = write (file, bRand, sizeof (bRand));
 		if (fsync (file) == -1)
 		{
 			g_printerr ("fsync: %s\n", g_strerror(errno));
@@ -26,15 +28,15 @@ random_write (	gint file,
 	{
 		guchar bytesRandom[BUFSIZE];
 		gsize doneSize = 0, writeBytes = 0;
-		read (fileRand, bytesRandom, sizeof (bytesRandom));
+		ret = read (fileRand, bytesRandom, sizeof (bytesRandom));
 		while (fSize > doneSize)
 		{
 			writeBytes = write (file, bytesRandom, sizeof (bytesRandom));
 			doneSize += writeBytes;
 			if ((fSize-doneSize) > 0 && (fSize-doneSize) < BUFSIZE)
 			{
-				read (fileRand, bytesRandom, sizeof (bytesRandom));
-				write (file, bytesRandom, (fSize-doneSize));
+				ret = read (fileRand, bytesRandom, sizeof (bytesRandom));
+				ret = write (file, bytesRandom, (fSize-doneSize));
 				if (fsync (file) == -1)
 				{
 					g_printerr ("fsync: %s\n", g_strerror(errno));

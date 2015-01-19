@@ -1,3 +1,4 @@
-* threads;
+* hash threads;
 * info dialog on error;
-* better errors resolution;
+* better errors resolution; #20
+* text decoding isn't working anymore...
