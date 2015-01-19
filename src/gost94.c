@@ -25,7 +25,7 @@ compute_gost94 (GtkWidget __attribute__((__unused__)) *bt,
 		goto fine;
 	}
 	
-	else if (g_utf8_strlen (gtk_entry_get_text (GTK_ENTRY (hash_var->hash_entry[7])), -1) == 32)
+	else if (g_utf8_strlen (gtk_entry_get_text (GTK_ENTRY (hash_var->hash_entry[1])), -1) == 32)
 		goto fine;
 		
 	gpointer ptr = g_hash_table_lookup (hash_var->hash_table, hash_var->key[1]);

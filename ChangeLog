@@ -44,7 +44,7 @@
 27/03/2014 - v2.1.1
 	* REMOVED: multiple encryption (it isn't really useful)
 
-??/08/2014 - v3.0.0
+??/10/2014 - v3.0.0
 	* NEW: codebase completely rewritten
 	* NEW: possibility to choose between file or text encryption
 	* NEW: gui (header bar, popover, new main gui)
@@ -52,6 +52,6 @@
 	* NEW: multiple file selection for en/de/cryption
 	* IMPROVED: encryption and decryption processes now use thread
 
-??/11/2014 - v3.1.0
+??/12/2014 - v3.1.0
 	* NEW: asymmetric encryption support (with RSA or with a ECC algo)
 	* NEW: compression using zlib

@@ -50,7 +50,7 @@ bar_pulse (gpointer data)
 
 
 gpointer
-crypt_file(gpointer user_data)
+crypt_file (gpointer user_data)
 {
 	struct data metadata;
 	struct main_vars *main_var = user_data;
@@ -92,7 +92,7 @@ crypt_file(gpointer user_data)
 		g_thread_exit (NULL);
 	}
 
-	if(main_var->encrypt)
+	if (main_var->encrypt)
 	{
 		if (gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (main_var->radio_button[0])))
 		{
