@@ -15,7 +15,7 @@
 
 void
 compute_gost94 (GtkWidget __attribute__((__unused__)) *bt,
-		gpointer user_data)
+				gpointer user_data)
 {
 	struct hash_vars *hash_var = user_data;
 	
