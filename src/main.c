@@ -42,10 +42,10 @@ about (	GSimpleAction __attribute__((__unused__)) *action,
         GtkWidget *a_dialog = gtk_about_dialog_new ();
         gtk_about_dialog_set_program_name (GTK_ABOUT_DIALOG (a_dialog), "PolCrypt");
         if (logo != NULL)
-		gtk_about_dialog_set_logo (GTK_ABOUT_DIALOG (a_dialog), logo);
+			gtk_about_dialog_set_logo (GTK_ABOUT_DIALOG (a_dialog), logo);
        
         gtk_about_dialog_set_version (GTK_ABOUT_DIALOG (a_dialog), VERSION);
-        gtk_about_dialog_set_copyright (GTK_ABOUT_DIALOG (a_dialog), "Copyright (C) 2014");
+        gtk_about_dialog_set_copyright (GTK_ABOUT_DIALOG (a_dialog), "Copyright (C) 2015");
         gtk_about_dialog_set_comments (GTK_ABOUT_DIALOG (a_dialog),
 					_("Encrypt and decrypt files using different cipher algo and different cipher mode or"
 					" compute their hash using different algo"));
@@ -57,9 +57,9 @@ about (	GSimpleAction __attribute__((__unused__)) *action,
 					" the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. "
 					"See the GNU General Public License for more details.\n"
 					"You should have received a copy of the GNU General Public License along with this program."
-					"\nIf not, see http://www.gnu.org/licenses\n\nPolCrypt is Copyright (C) 2014 by Paolo Stivanin.\n");
+					"\nIf not, see http://www.gnu.org/licenses\n\nPolCrypt is Copyright (C) 2015 by Paolo Stivanin.\n");
         gtk_about_dialog_set_wrap_license (GTK_ABOUT_DIALOG (a_dialog), TRUE);
-        gtk_about_dialog_set_website (GTK_ABOUT_DIALOG (a_dialog), "https://www.paolostivanin.com");
+        gtk_about_dialog_set_website (GTK_ABOUT_DIALOG (a_dialog), "http://www.paolostivanin.com");
         gtk_about_dialog_set_authors (GTK_ABOUT_DIALOG (a_dialog), authors);
 
         gtk_dialog_run(GTK_DIALOG (a_dialog));
@@ -343,7 +343,7 @@ pwd_dialog (	GtkWidget *file_dialog,
 	gtk_widget_hide (file_dialog);
 	
 	GtkWidget *dialog, *content_area, *grid, *info_area, *label[2];
-	GtkWidget *header_bar, *box, *image, *popover;
+	GtkWidget *header_bar = NULL, *box, *image, *popover;
 	GtkWidget *info_bar, *info_label;
 	GIcon *icon;
 	GValue left_margin = G_VALUE_INIT;

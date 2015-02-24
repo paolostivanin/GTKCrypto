@@ -19,12 +19,12 @@ delete_input_file (	const gchar *filename,
 	fdRandom = open ("/dev/random", O_RDONLY);
 	if (fd == -1)
 	{
-		g_printerr ("Input file: %s\n", g_strerror(errno));
+		g_printerr ("Input file: %s\n", g_strerror (errno));
 		return -1;
 	}	
 	if (fdRandom == -1)
 	{
-		g_printerr ("Random file: %s\n", g_strerror(errno));
+		g_printerr ("Random file: %s\n", g_strerror (errno));
 		return -1;
 	}
 	
@@ -42,10 +42,12 @@ delete_input_file (	const gchar *filename,
 	}
 	
 	ret = ftruncate( fd, 0);
+	if (ret == -1)
+		g_printerr ("ftruncate: %s\n", g_strerror (errno));
 	
 	if (fsync (fd) == -1)
 	{
-		g_printerr ("fsync: %s\n", g_strerror(errno));
+		g_printerr ("fsync: %s\n", g_strerror (errno));
 		return -1;
 	}
 	
@@ -54,7 +56,7 @@ delete_input_file (	const gchar *filename,
 
 	if (g_remove (filename) == -1)
 	{
-		g_printerr ("Input file remove: %s\n", g_strerror(errno));
+		g_printerr ("Input file remove: %s\n", g_strerror (errno));
 		return -2;
 	}
 		

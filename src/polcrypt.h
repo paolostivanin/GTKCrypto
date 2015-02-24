@@ -4,7 +4,7 @@
 #define BUF_FILE 16777216 /* 16 MiB memory buffer (hash) */
 #define BUFSIZE 2097152  /* 2 MiB memory buffer (delete_input_file) */
 
-#define VERSION "3.0-beta.2"
+#define VERSION "3.0-beta.3"
 
 #define LOCALE_DIR "/usr/share/locale"
 #define PACKAGE    "polcrypt"          /* mo file name in LOCALE_DIR */
