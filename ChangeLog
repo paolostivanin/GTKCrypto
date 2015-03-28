@@ -49,10 +49,10 @@
 	* NEW: possibility to choose between file or text encryption
 	* NEW: gui (header bar, popover, new main gui)
 	* NEW: possibility to choose between CBC and CTR mode
-	* NEW: multiple file selection for en/de/cryption
 	* NEW: text hashes
 	* IMPROVED: encryption and decryption processes now use thread
 
 ??/??/2015 - v3.1.0
 	* NEW: asymmetric encryption support (with RSA or with a ECC algo)
+	* NEW: multiple file selection for en/de/cryption
 	* NEW: compression using zlib
