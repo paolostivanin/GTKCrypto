@@ -2,46 +2,50 @@
 #include <glib/gstdio.h>
 #include <fcntl.h>
 #include <errno.h>
-#include "polcrypt.h"
+#include "gtkcrypto.h"
 
 gint
 random_write (	gint file,
-		gint fileRand,
-		gsize fSize,
+		gint random_fd,
+		gsize file_size,
 		gint isBigger)
 {	
-	gint ret;
-	
 	if (isBigger == 0)
 	{
-		guchar bRand[fSize];
-		ret = read (fileRand, bRand, sizeof (bRand));
-		ret = write (file, bRand, sizeof (bRand));
+		guchar buf_rand[file_size];
+		if (read (random_fd, buf_rand, sizeof (buf_rand)) == -1)
+			g_printerr ("random_write read: %s\n", g_strerror (errno));
+		
+		if (write (file, buf_rand, sizeof (buf_rand)) == -1)
+			g_printerr ("random_write write: %s\n", g_strerror (errno));
+
 		if (fsync (file) == -1)
-		{
-			g_printerr ("fsync: %s\n", g_strerror(errno));
-			return -1;
-		}
+			g_printerr ("random write fsync: %s\n", g_strerror (errno));
+
 		return 0;
 	}
 	else
 	{
-		guchar bytesRandom[BUFSIZE];
-		gsize doneSize = 0, writeBytes = 0;
-		ret = read (fileRand, bytesRandom, sizeof (bytesRandom));
-		while (fSize > doneSize)
+		guchar random_bytes[BUFSIZE];
+		gsize done_size = 0, writeBytes = 0;
+		if (read (random_fd, random_bytes, sizeof (random_bytes)) == -1)
+			g_printerr ("random_write read: %s\n", g_strerror (errno));
+			
+		while (file_size > done_size)
 		{
-			writeBytes = write (file, bytesRandom, sizeof (bytesRandom));
-			doneSize += writeBytes;
-			if ((fSize-doneSize) > 0 && (fSize-doneSize) < BUFSIZE)
+			writeBytes = write (file, random_bytes, sizeof (random_bytes));
+			done_size += writeBytes;
+			if ((file_size-done_size) > 0 && (file_size-done_size) < BUFSIZE)
 			{
-				ret = read (fileRand, bytesRandom, sizeof (bytesRandom));
-				ret = write (file, bytesRandom, (fSize-doneSize));
+				if (read (random_fd, random_bytes, sizeof (random_bytes)) == -1)
+					g_printerr ("random_write read: %s\n", g_strerror (errno));
+				
+				if (write (file, random_bytes, (file_size-done_size)) == -1)
+					g_printerr ("random_write read: %s\n", g_strerror (errno));
+				
 				if (fsync (file) == -1)
-				{
-					g_printerr ("fsync: %s\n", g_strerror(errno));
-					return -1;
-				}
+					g_printerr ("random_write fsync: %s\n", g_strerror (errno));
+
 				break;
 			}
 		}

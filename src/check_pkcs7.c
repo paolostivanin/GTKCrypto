@@ -2,7 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <glib.h>
-#include "polcrypt.h"
+#include "gtkcrypto.h"
 
 gint
 check_pkcs7 (	guchar *dec_buf,

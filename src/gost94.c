@@ -10,12 +10,12 @@
 #include <libnotify/notify.h>
 #include <nettle/gosthash94.h>
 #include <sys/mman.h>
-#include "polcrypt.h"
+#include "gtkcrypto.h"
 
 
 void
 compute_gost94 (GtkWidget __attribute__((__unused__)) *bt,
-		gpointer user_data)
+				gpointer user_data)
 {
 	struct hash_vars *hash_var = user_data;
 	

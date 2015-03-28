@@ -1,0 +1,58 @@
+19/02/2013 - v1.0-alpha
+	* ADDED: command line interface;
+	* ADDED: Encrypt/Decrypt with AES256-CBC + MAC (Encrypt-then-MAC, HMAC+SHA512);
+	* ADDED: secure file deletion after encryption;
+
+23/05/2013 - v1.0-beta
+	* IMPROVED: general code improvement;
+	* IMPROVED: using gcrypt for random bytes generation; openssl dropped
+	* FIXED: bugs [if any];
+	* FIXED: compilation warning on Gentoo
+
+24/05/2013 - v1.0-rc
+	* removed custom header;
+	* minor fixes;
+
+28/05/2013 - v1.0.0
+	* NEWSTABLE RELEASE :)
+
+23/01/2014 - v1.1.0-alpha
+	* ADDED: RMD160, MD5, TIGER, TIGER1, TIGER2, SHA-1, SHA224, SHA256, SHA384, SHA512, WHIRLPOOL
+	* IMPROVED: better error reporting;
+	
+26/01/2014 - v1.1.0-beta
+	* ADDED: documentation;
+	* FIXED: bugs [if any];
+
+07/03/2014 - v2.0.1
+	* ADDED: GTK+3 interface;
+	* ADDED: translation;
+	* IMPROVED: error handling and reporting;
+	* IMPROVED: documentation;
+	* IMPROVED: using mmap for better performance
+	* REMOVED: tiger1, tiger2, sha224, sha384, rmd160
+	* FIXED: various bugs;
+
+26/03/2014 - v2.1.0
+	* ADDED: GOST94
+	* ADDED: SHA3-256
+	* ADDED: SHA3-512
+	* IMPROVED: hash are computed using threads
+	* ADDED: support for single or multiple encryption (aes, twofish, serpent, aes+twofish, aes+serpent, aes+twofish+serpent)
+	* REMOVED: cli
+
+27/03/2014 - v2.1.1
+	* REMOVED: multiple encryption (it isn't really useful)
+
+??/??/2015 - v3.0.0
+	* NEW: codebase completely rewritten
+	* NEW: possibility to choose between file or text encryption
+	* NEW: gui (header bar, popover, new main gui)
+	* NEW: possibility to choose between CBC and CTR mode
+	* NEW: multiple file selection for en/de/cryption
+	* NEW: text hashes
+	* IMPROVED: encryption and decryption processes now use thread
+
+??/??/2015 - v3.1.0
+	* NEW: asymmetric encryption support (with RSA or with a ECC algo)
+	* NEW: compression using zlib

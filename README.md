@@ -1,4 +1,4 @@
-PolCrypt
+GTKCrypto
 ========
 
 This software let you to:
@@ -20,12 +20,12 @@ Security
 
 Latest release
 --------------
-The latest can be found here: https://github.com/polslinux/PolCrypt/releases
+The latest can be found here: https://github.com/polslinux/GTKCrypto/releases
 
 
 Requirements
 ------------
-* GCC or Clang	: required version of Clang **>= 3.2**, of GCC **>= 4.6.0**;
+* GCC or Clang	: required version of Clang **>= 3.2**, of GCC **>= 4.4.0**;
 * Gcrypt	: required version **>=1.5.0**;
 * Nettle	: required version **>=2.6.0**;
 * GTK+		: required version **>=3.12.0**;
@@ -35,13 +35,13 @@ Requirements
 How to compile
 --------------
 * Clone the repo<br>
-`git clone https://github.com/polslinux/PolCrypt.git`<br>
+`git clone https://github.com/polslinux/GTKCrypto.git`<br>
 * move inside the directory you've just downloaded:<br>
-`cd /path/to/PolCrypt`<br>
+`cd /path/to/GTKCrypto`<br>
 * run:<br>
 `make` to build the cli and gui version<br>
 `make install` to install the software<br>
-After you have successfully compiled the software, you will find the `polcrypt` binary into the project root directory.
+After you have successfully compiled the software, you will find the `gtkcrypto` binary into the project root directory.
 
 
 Notes

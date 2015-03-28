@@ -1,7 +1,7 @@
 #include <gtk/gtk.h>
 #include <glib.h>
 #include <glib/gstdio.h>
-#include "polcrypt.h"
+#include "gtkcrypto.h"
 
 goffset
 get_file_size (const gchar *file_path)
