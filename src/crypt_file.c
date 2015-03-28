@@ -7,7 +7,7 @@
 #include <glib/gi18n.h>
 #include <locale.h>
 #include <libintl.h>
-#include "polcrypt.h"
+#include "gtkcrypto.h"
 #include "crypt_file.h"
 
 

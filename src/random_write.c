@@ -2,7 +2,7 @@
 #include <glib/gstdio.h>
 #include <fcntl.h>
 #include <errno.h>
-#include "polcrypt.h"
+#include "gtkcrypto.h"
 
 gint
 random_write (	gint file,

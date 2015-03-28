@@ -10,7 +10,7 @@
 #include <libnotify/notify.h>
 #include <nettle/gosthash94.h>
 #include <sys/mman.h>
-#include "polcrypt.h"
+#include "gtkcrypto.h"
 
 
 void

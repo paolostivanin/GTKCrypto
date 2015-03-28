@@ -9,7 +9,7 @@
 #include <libintl.h>
 #include <libnotify/notify.h>
 #include <sys/mman.h>
-#include "polcrypt.h"
+#include "gtkcrypto.h"
 
 
 void

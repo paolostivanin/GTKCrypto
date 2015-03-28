@@ -6,7 +6,7 @@
 #include <glib/gi18n.h>
 #include <locale.h>
 #include <libintl.h>
-#include "polcrypt.h"
+#include "gtkcrypto.h"
 #include "main.h"
 
 
@@ -40,7 +40,7 @@ about (	GSimpleAction __attribute__((__unused__)) *action,
 	GdkPixbuf *logo = create_logo (TRUE);
 
         GtkWidget *a_dialog = gtk_about_dialog_new ();
-        gtk_about_dialog_set_program_name (GTK_ABOUT_DIALOG (a_dialog), "PolCrypt");
+        gtk_about_dialog_set_program_name (GTK_ABOUT_DIALOG (a_dialog), "GTKCrypto");
         if (logo != NULL)
 			gtk_about_dialog_set_logo (GTK_ABOUT_DIALOG (a_dialog), logo);
        
@@ -57,7 +57,7 @@ about (	GSimpleAction __attribute__((__unused__)) *action,
 					" the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. "
 					"See the GNU General Public License for more details.\n"
 					"You should have received a copy of the GNU General Public License along with this program."
-					"\nIf not, see http://www.gnu.org/licenses\n\nPolCrypt is Copyright (C) 2015 by Paolo Stivanin.\n");
+					"\nIf not, see http://www.gnu.org/licenses\n\nGTKCrypto is Copyright (C) 2015 by Paolo Stivanin.\n");
         gtk_about_dialog_set_wrap_license (GTK_ABOUT_DIALOG (a_dialog), TRUE);
         gtk_about_dialog_set_website (GTK_ABOUT_DIALOG (a_dialog), "http://www.paolostivanin.com");
         gtk_about_dialog_set_authors (GTK_ABOUT_DIALOG (a_dialog), authors);
@@ -201,7 +201,7 @@ main (	int argc,
 	if (logo != NULL)
 		gtk_window_set_default_icon (logo);
 	
-	app = gtk_application_new ("org.gtk.polcrypt", G_APPLICATION_FLAGS_NONE);
+	app = gtk_application_new ("org.gtk.gtkcrypto", G_APPLICATION_FLAGS_NONE);
 	g_signal_connect (app, "startup", G_CALLBACK (startup), NULL);
 	g_signal_connect (app, "activate", G_CALLBACK (activate), &main_var);
 	status = g_application_run (G_APPLICATION (app), argc, argv);
@@ -232,7 +232,7 @@ GtkWidget
 	gtk_widget_set_size_request (GTK_WIDGET (window), 350, 400);
 
 	gchar headertext[HEADERBAR_BUF];
-	g_snprintf (headertext, HEADERBAR_BUF-1, _("PolCrypt %s"), VERSION);
+	g_snprintf (headertext, HEADERBAR_BUF-1, _("GTKCrypto %s"), VERSION);
 	headertext[HEADERBAR_BUF-1] = '\0';
 
 	header_bar = gtk_header_bar_new ();

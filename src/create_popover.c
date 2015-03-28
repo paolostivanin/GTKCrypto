@@ -3,7 +3,7 @@
 #include <glib/gstdio.h>
 #include <gcrypt.h>
 #include <glib/gi18n.h>
-#include "polcrypt.h"
+#include "gtkcrypto.h"
 #include "main.h"
 
 

@@ -6,7 +6,7 @@
 #include <glib/gi18n.h>
 #include <locale.h>
 #include <libintl.h>
-#include "polcrypt.h"
+#include "gtkcrypto.h"
 #include "main.h"
 
 
@@ -16,7 +16,7 @@ GdkPixbuf
 	GError *err = NULL;
 	GdkPixbuf *logo;
 	
-	const gchar *my_icon = "/usr/share/pixmaps/polcrypt.png";
+	const gchar *my_icon = "/usr/share/pixmaps/gtkcrypto.png";
 	
 	if (!is_about)
 		logo = gdk_pixbuf_new_from_file (my_icon, &err);
