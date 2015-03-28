@@ -1,6 +1,0 @@
-[Desktop Entry]
-Name=PolCrypt
-Type=Application
-Categories=GNOME;GTK;Utility
-Exec=/usr/bin/polcrypt
-Icon=polcrypt

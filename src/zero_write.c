@@ -4,7 +4,7 @@
 #include <gcrypt.h>
 #include <errno.h>
 #include <fcntl.h>
-#include "polcrypt.h"
+#include "gtkcrypto.h"
 
 gint
 zero_write (	gint file,
