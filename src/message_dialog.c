@@ -7,11 +7,11 @@
 #include "gtkcrypto.h"
 
 
-void error_dialog (const gchar *message)
+void error_dialog (const gchar *message, GtkWidget *parent)
 {
 	GtkWidget *dialog;
 	
-	dialog = gtk_message_dialog_new (NULL,
+	dialog = gtk_message_dialog_new (GTK_WINDOW (parent),
 					GTK_DIALOG_MODAL,
 					GTK_MESSAGE_ERROR,
 					GTK_BUTTONS_OK,

@@ -6,7 +6,7 @@
 #define NUM_OF_BOXES 2
 #define NUM_OF_HASH 10
 
-#define HEADERBAR_BUF 21 /* buffer for the headerbar's title */
+#define HEADERBAR_BUF 22 /* buffer for the headerbar's title */
 
 #include <glib.h>
 #include <gtk/gtk.h>
