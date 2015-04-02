@@ -304,7 +304,7 @@ create_dialog (struct main_vars *main_var)
 				     _("Close"), GTK_RESPONSE_REJECT,
 				     NULL);
 				     
-	gtk_widget_set_size_request (main_var->bar_dialog, 450, 120);
+	gtk_widget_set_size_request (main_var->bar_dialog, 250, 80);
 	gtk_dialog_set_response_sensitive (GTK_DIALOG (main_var->bar_dialog), GTK_RESPONSE_REJECT, FALSE);	   
 				     
 	content_area = gtk_dialog_get_content_area (GTK_DIALOG (main_var->bar_dialog));

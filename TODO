@@ -2,3 +2,4 @@ TODO:
 * NEW: multiple file selection for en/de/cryption
 * IMPROVED: hashes computation now use threads
 * IMPROVED: encryption and decryption now use threads
+* add configure script (check gtk 3.12 and glib 2.40)

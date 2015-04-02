@@ -44,14 +44,20 @@
 27/03/2014 - v2.1.1
 	* REMOVED: multiple encryption (it isn't really useful)
 
-??/??/2015 - v3.0.0
+02/04/2015 - v3.0-beta.3
 	* NEW: codebase completely rewritten
 	* NEW: possibility to choose between file or text encryption
 	* NEW: gui (header bar, popover, new main gui)
 	* NEW: possibility to choose between CBC and CTR mode
-	* NEW: multiple file selection for en/de/cryption
 	* NEW: text hashes
-	* IMPROVED: encryption and decryption processes now use thread
+	* FIXED: gtk_dialog transient
+	* FIXED: deprecated property
+	
+??/??/2015 - v3.0-beta.4
+	* NEW: multiple file selection for en/de/cryption
+	* IMPROVED: encryption process now use threads
+	* IMPROVED: deecryption process now use threads
+	* IMPROVED: hash computation process now use threads
 
 ??/??/2015 - v3.1.0
 	* NEW: asymmetric encryption support (with RSA or with a ECC algo)
