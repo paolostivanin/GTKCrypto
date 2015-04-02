@@ -304,7 +304,7 @@ create_dialog (struct main_vars *main_var)
 				     _("Close"), GTK_RESPONSE_REJECT,
 				     NULL);
 				     
-	gtk_widget_set_size_request (main_var->bar_dialog, 600, 150);
+	gtk_widget_set_size_request (main_var->bar_dialog, 450, 120);
 	gtk_dialog_set_response_sensitive (GTK_DIALOG (main_var->bar_dialog), GTK_RESPONSE_REJECT, FALSE);	   
 				     
 	content_area = gtk_dialog_get_content_area (GTK_DIALOG (main_var->bar_dialog));
@@ -413,10 +413,10 @@ pwd_dialog (GtkWidget *file_dialog,
 		g_value_init (&left_margin, G_TYPE_UINT);
 		
 	g_value_set_uint (&left_margin, 2);
-	g_object_set_property (G_OBJECT (main_var->pwd_entry[0]), "margin-left", &left_margin);
+	g_object_set_property (G_OBJECT (main_var->pwd_entry[0]), "margin-start", &left_margin);
 	
 	if (main_var->encrypt)
-		g_object_set_property (G_OBJECT (main_var->pwd_entry[1]), "margin-left", &left_margin);
+		g_object_set_property (G_OBJECT (main_var->pwd_entry[1]), "margin-start", &left_margin);
 	
 	if (!main_var->encrypt)
 	{
