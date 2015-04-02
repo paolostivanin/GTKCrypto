@@ -15,7 +15,7 @@
 		
 goffset get_file_size (const gchar *);		
 gint check_pwd (GtkWidget *, GtkWidget *);		
-void error_dialog (const gchar *);		
+void error_dialog (const gchar *, GtkWidget *);		
 		
 		
 struct data		

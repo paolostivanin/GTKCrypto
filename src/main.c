@@ -19,8 +19,8 @@ static void compute_hash_dialog (GtkWidget *, GtkWidget *, const gchar *);
 
 static void
 quit (	GSimpleAction __attribute__((__unused__)) *action,
-	GVariant __attribute__((__unused__)) *parameter,
-	gpointer app)
+		GVariant __attribute__((__unused__)) *parameter,
+		gpointer app)
 {
 	g_application_quit (G_APPLICATION(app));
 }
@@ -28,48 +28,49 @@ quit (	GSimpleAction __attribute__((__unused__)) *action,
 
 static void
 about (	GSimpleAction __attribute__((__unused__)) *action, 
-	GVariant __attribute__((__unused__)) *parameter,
-	gpointer __attribute__((__unused__)) data)
+		GVariant __attribute__((__unused__)) *parameter,
+		gpointer __attribute__((__unused__)) data)
 {
-        const gchar *authors[] =
-        {
-                "Paolo Stivanin <info@paolostivanin.com>",
-                NULL,
-        };
-	
+
+	const gchar *authors[] =
+	{
+			"Paolo Stivanin <info@paolostivanin.com>",
+			NULL,
+	};
+
 	GdkPixbuf *logo = create_logo (TRUE);
 
-        GtkWidget *a_dialog = gtk_about_dialog_new ();
-        gtk_about_dialog_set_program_name (GTK_ABOUT_DIALOG (a_dialog), "GTKCrypto");
-        if (logo != NULL)
-			gtk_about_dialog_set_logo (GTK_ABOUT_DIALOG (a_dialog), logo);
-       
-        gtk_about_dialog_set_version (GTK_ABOUT_DIALOG (a_dialog), VERSION);
-        gtk_about_dialog_set_copyright (GTK_ABOUT_DIALOG (a_dialog), "Copyright (C) 2015");
-        gtk_about_dialog_set_comments (GTK_ABOUT_DIALOG (a_dialog),
-					_("Encrypt and decrypt files using different cipher algo and different cipher mode or"
-					" compute their hash using different algo"));
-        gtk_about_dialog_set_license(GTK_ABOUT_DIALOG(a_dialog),
-					"This program is free software: you can redistribute it and/or modify it under the terms"
-					" of the GNU General Public License as published by the Free Software Foundation, either version 3 of"
-					" the License, or (at your option) any later version.\n"
-					"This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even"
-					" the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. "
-					"See the GNU General Public License for more details.\n"
-					"You should have received a copy of the GNU General Public License along with this program."
-					"\nIf not, see http://www.gnu.org/licenses\n\nGTKCrypto is Copyright (C) 2015 by Paolo Stivanin.\n");
-        gtk_about_dialog_set_wrap_license (GTK_ABOUT_DIALOG (a_dialog), TRUE);
-        gtk_about_dialog_set_website (GTK_ABOUT_DIALOG (a_dialog), "http://www.paolostivanin.com");
-        gtk_about_dialog_set_authors (GTK_ABOUT_DIALOG (a_dialog), authors);
+	GtkWidget *a_dialog = gtk_about_dialog_new ();
+	gtk_about_dialog_set_program_name (GTK_ABOUT_DIALOG (a_dialog), "GTKCrypto");
+	if (logo != NULL)
+		gtk_about_dialog_set_logo (GTK_ABOUT_DIALOG (a_dialog), logo);
+   
+	gtk_about_dialog_set_version (GTK_ABOUT_DIALOG (a_dialog), VERSION);
+	gtk_about_dialog_set_copyright (GTK_ABOUT_DIALOG (a_dialog), "Copyright (C) 2015");
+	gtk_about_dialog_set_comments (GTK_ABOUT_DIALOG (a_dialog),
+				_("Encrypt and decrypt files using different cipher algo and different cipher mode or"
+				" compute their hash using different algo"));
+	gtk_about_dialog_set_license(GTK_ABOUT_DIALOG(a_dialog),
+				"This program is free software: you can redistribute it and/or modify it under the terms"
+				" of the GNU General Public License as published by the Free Software Foundation, either version 3 of"
+				" the License, or (at your option) any later version.\n"
+				"This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even"
+				" the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. "
+				"See the GNU General Public License for more details.\n"
+				"You should have received a copy of the GNU General Public License along with this program."
+				"\nIf not, see http://www.gnu.org/licenses\n\nGTKCrypto is Copyright (C) 2015 by Paolo Stivanin.\n");
+	gtk_about_dialog_set_wrap_license (GTK_ABOUT_DIALOG (a_dialog), TRUE);
+	gtk_about_dialog_set_website (GTK_ABOUT_DIALOG (a_dialog), "http://www.paolostivanin.com");
+	gtk_about_dialog_set_authors (GTK_ABOUT_DIALOG (a_dialog), authors);
 
-        gtk_dialog_run(GTK_DIALOG (a_dialog));
-        gtk_widget_destroy (a_dialog);
+	gtk_dialog_run(GTK_DIALOG (a_dialog));
+	gtk_widget_destroy (a_dialog);
 }
 
 
 static void
 startup (	GtkApplication *application,
-		gpointer __attribute__((__unused__)) data)
+			gpointer __attribute__((__unused__)) data)
 {
 	static const GActionEntry actions[] = {
 		{ "about", about },
@@ -109,19 +110,6 @@ static void
 activate (	GtkApplication *app,
 		struct main_vars *main_var)
 {
-	if (glib_check_version (2, 40, 0) != NULL){
-		error_dialog ( _("The required version of GLib is 2.40.0 or greater."));
-		return;
-	}
-	if (gtk_check_version (3, 12, 0) != NULL){
-		error_dialog ( _("The required version of GTK+ is 3.12.0 or greater."));
-		return;
-	}
-	if (!gcry_check_version ("1.5.0")){
-		error_dialog ( _("The required version of Gcrypt is 1.5.0 or greater."));
-		return;
-	}
-		
 	GtkWidget *button[NUM_OF_BUTTONS];
 	GtkWidget *frame[2];
 	GtkWidget *box[2];
@@ -133,21 +121,26 @@ activate (	GtkApplication *app,
 	const gchar *button_name[] = {"butEn", "butDe", "butEnTxt", "butDeTxt", "butHa", "butQ"}; //button 0,1,2,3,4,5
 
 	main_var->main_window = do_mainwin (app);
+	
+	if (!gcry_check_version ("1.5.0"))
+	{
+		error_dialog ( _("The required version of Gcrypt is 1.5.0 or greater."), main_var->main_window);
+		return;
+	}
 		
-	for (i=0; i<NUM_OF_BUTTONS; i++){
+	for (i=0; i<NUM_OF_BUTTONS; i++)
+	{
 		if(i == 5) j++;
 		button[i] = gtk_button_new_with_label (button_label[j]);
 		gtk_widget_set_name (GTK_WIDGET (button[i]), button_name[i]);
 		if(i%2 != 0) j++;
 	}
 	
-	for (i=0; i<NUM_OF_FRAMES; i++){
+	for (i=0; i<NUM_OF_FRAMES; i++)
 		frame[i] = gtk_frame_new (frame_label[i]);
-	}
 	
-	for (i=0; i<NUM_OF_BOXES; i++){
+	for (i=0; i<NUM_OF_BOXES; i++)
 		box[i] = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 2);
-	}
 	
 	gtk_box_pack_start (GTK_BOX (box[0]), button[0], TRUE, TRUE, 2);
 	gtk_box_pack_start (GTK_BOX (box[0]), button[2], TRUE, TRUE, 2);
@@ -159,12 +152,12 @@ activate (	GtkApplication *app,
 	
 	g_signal_connect (button[0], "clicked", G_CALLBACK (choose_file_dialog), main_var);
 	g_signal_connect (button[1], "clicked", G_CALLBACK (choose_file_dialog), main_var);
-	g_signal_connect (button[2], "clicked", G_CALLBACK (text_dialog), NULL);
-	g_signal_connect (button[3], "clicked", G_CALLBACK (text_dialog), NULL);
+	g_signal_connect (button[2], "clicked", G_CALLBACK (text_dialog), main_var->main_window);
+	g_signal_connect (button[3], "clicked", G_CALLBACK (text_dialog), main_var->main_window);
 	g_signal_connect (button[4], "clicked", G_CALLBACK (choose_file_dialog), main_var);
 	g_signal_connect (button[5], "clicked", G_CALLBACK (quit), app);
 	
-	grid = gtk_grid_new();
+	grid = gtk_grid_new ();
 	gtk_container_add (GTK_CONTAINER (main_var->main_window), grid);
 	gtk_grid_set_row_homogeneous (GTK_GRID (grid), TRUE);
 	gtk_grid_set_column_homogeneous (GTK_GRID (grid), TRUE);
@@ -182,7 +175,7 @@ activate (	GtkApplication *app,
 
 gint
 main (	int argc,
-	char *argv[])
+		char *argv[])
 {
 	gcry_control (GCRYCTL_INIT_SECMEM, 16384, 0);
 	gcry_control (GCRYCTL_INITIALIZATION_FINISHED, 0);
@@ -219,7 +212,7 @@ GtkWidget
 	
 	GdkPixbuf *logo = create_logo (0);
 
-	window = gtk_application_window_new(app);
+	window = gtk_application_window_new (app);
 	gtk_window_set_application (GTK_WINDOW (window), GTK_APPLICATION (app));
 	gtk_window_set_position (GTK_WINDOW (window), GTK_WIN_POS_CENTER);
 	gtk_window_set_resizable (GTK_WINDOW (window), FALSE);
@@ -250,13 +243,13 @@ GtkWidget
 
 
 static void
-choose_file_dialog (	GtkWidget *button,
-			struct main_vars *main_var)
+choose_file_dialog (GtkWidget *button,
+					struct main_vars *main_var)
 {
 	GtkWidget *file_dialog;
 	GtkFileChooserAction action = GTK_FILE_CHOOSER_ACTION_OPEN;
 	
-	file_dialog = gtk_file_chooser_dialog_new (_("Choose File"),
+	file_dialog = gtk_file_chooser_dialog_new ( _("Choose File"),
 						  GTK_WINDOW (main_var->main_window),
 						  action,
 						  _("OK"), GTK_RESPONSE_ACCEPT,
@@ -269,7 +262,7 @@ choose_file_dialog (	GtkWidget *button,
 			main_var->filename = gtk_file_chooser_get_filename (GTK_FILE_CHOOSER (file_dialog));
 			if (!g_utf8_validate (main_var->filename, -1, NULL))
 			{
-				error_dialog ( _("The name of the file you chose isn't a valid UTF-8 string."));
+				error_dialog ( _("The name of the file you chose isn't a valid UTF-8 string."), main_var->main_window);
 				g_free (main_var->filename);
 				break;
 			}
@@ -312,7 +305,7 @@ create_dialog (struct main_vars *main_var)
 				     NULL);
 				     
 	gtk_widget_set_size_request (main_var->bar_dialog, 600, 150);
-	gtk_dialog_set_response_sensitive (GTK_DIALOG(main_var->bar_dialog), GTK_RESPONSE_REJECT, FALSE);	   
+	gtk_dialog_set_response_sensitive (GTK_DIALOG (main_var->bar_dialog), GTK_RESPONSE_REJECT, FALSE);	   
 				     
 	content_area = gtk_dialog_get_content_area (GTK_DIALOG (main_var->bar_dialog));
 	main_var->pBar = gtk_progress_bar_new ();
@@ -322,11 +315,11 @@ create_dialog (struct main_vars *main_var)
 	
 	GThread *n = g_thread_new (NULL, crypt_file, main_var);
 
-	result = gtk_dialog_run (GTK_DIALOG(main_var->bar_dialog));
+	result = gtk_dialog_run (GTK_DIALOG (main_var->bar_dialog));
 	switch (result)
 	{
 		case GTK_RESPONSE_REJECT:
-			g_thread_join(n);
+			g_thread_join (n);
 			break;
 		default:
 			break;
@@ -337,8 +330,8 @@ create_dialog (struct main_vars *main_var)
 
 
 static void
-pwd_dialog (	GtkWidget *file_dialog,
-		struct main_vars *main_var)
+pwd_dialog (GtkWidget *file_dialog,
+			struct main_vars *main_var)
 {
 	gtk_widget_hide (file_dialog);
 	
@@ -372,7 +365,7 @@ pwd_dialog (	GtkWidget *file_dialog,
 		gtk_popover_set_modal (GTK_POPOVER (popover), TRUE);
 		g_signal_connect (main_var->menu, "toggled", G_CALLBACK (toggle_changed_cb), popover);
 	
-		gtk_header_bar_pack_start(GTK_HEADER_BAR (header_bar), GTK_WIDGET(main_var->menu));
+		gtk_header_bar_pack_start (GTK_HEADER_BAR (header_bar), GTK_WIDGET(main_var->menu));
 	}
 	
 	GtkDialogFlags flags = GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT;
@@ -465,9 +458,9 @@ pwd_dialog (	GtkWidget *file_dialog,
 				if (ret_val < 0)
 				{
 					if (ret_val == -1)
-						error_dialog ( _("Passwords are different, try again.\n"));
+						error_dialog ( _("Passwords are different, try again.\n"), main_var->main_window);
 					else
-						error_dialog ( _("Password is < 8 chars, try again\n"));
+						error_dialog ( _("Password is < 8 chars, try again\n"), main_var->main_window);
 							
 					gtk_widget_destroy (dialog);
 					goto restart;
@@ -514,7 +507,7 @@ hide_menu (struct main_vars *main_var)
 
 static void
 toggle_changed_cb (	GtkToggleButton *button,
-			GtkWidget *popover)
+					GtkWidget *popover)
 {
 	gtk_widget_set_visible (popover, gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (button)));
 }
@@ -522,8 +515,8 @@ toggle_changed_cb (	GtkToggleButton *button,
 
 static void
 compute_hash_dialog (	GtkWidget *file_dialog,
-			GtkWidget *main_window,
-			const gchar *filename)
+						GtkWidget *main_window,
+						const gchar *filename)
 {
 	gtk_widget_hide (GTK_WIDGET (file_dialog));
 	

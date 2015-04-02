@@ -16,7 +16,7 @@ static void crypt_text (struct text_vars *);
 
 static void
 close_dialog (	GtkWidget __attribute__((__unused__)) *bt,
-		gpointer user_data)
+				gpointer user_data)
 {
 	struct text_vars *text_var = user_data;
 	gtk_widget_destroy (text_var->dialog);
@@ -25,7 +25,7 @@ close_dialog (	GtkWidget __attribute__((__unused__)) *bt,
 
 void
 text_dialog (	GtkWidget *clickedButton,
-		gpointer __attribute__((__unused__)) user_data)
+				gpointer user_data)
 {	
 	GtkWidget *content_area;
 	GtkWidget *scrolled_win;
@@ -33,6 +33,7 @@ text_dialog (	GtkWidget *clickedButton,
 	GtkWidget *button[2];
 	
 	struct text_vars *text_var = (struct text_vars *)g_malloc (sizeof (struct text_vars));
+	text_var->parent = user_data;
 		
 	const gchar *btLabel = gtk_widget_get_name (clickedButton);
 	if (g_strcmp0 (btLabel, "butEnTxt") == 0)
@@ -41,6 +42,7 @@ text_dialog (	GtkWidget *clickedButton,
 		text_var->action = 1;
 		
 	text_var->dialog = gtk_dialog_new ();
+	gtk_window_set_transient_for (GTK_WINDOW (text_var->dialog), GTK_WINDOW (text_var->parent));
 	gtk_window_set_title (GTK_WINDOW (text_var->dialog), _("Insert Text"));
 	gtk_window_set_position (GTK_WINDOW (text_var->dialog), GTK_WIN_POS_CENTER);
 	content_area = gtk_dialog_get_content_area (GTK_DIALOG (text_var->dialog));
@@ -96,7 +98,7 @@ text_dialog (	GtkWidget *clickedButton,
 
 static void
 prepare_text (	GtkWidget __attribute__((__unused__)) *bt,
-		gpointer user_data)
+				gpointer user_data)
 {
 	struct text_vars *text_var = user_data;
 	gboolean valid;
@@ -107,12 +109,12 @@ prepare_text (	GtkWidget __attribute__((__unused__)) *bt,
 		ret = check_pwd (text_var->pwd[0], text_var->pwd[1]);
 		if (ret == -1)
 		{
-			error_dialog ( _("Passwords are different, try again."));
+			error_dialog ( _("Passwords are different, try again."), text_var->parent);
 			return;
 		}
 		else if (ret == -2)
 		{
-			error_dialog ( _("Password length must be >= 8"));
+			error_dialog ( _("Password length must be >= 8"), text_var->parent);
 			return;
 		}
 	}
@@ -147,7 +149,7 @@ prepare_text (	GtkWidget __attribute__((__unused__)) *bt,
 		ret = check_b64 (text_var->text);
 		if (ret == -1)
 		{
-			error_dialog ( _("This is not a base64 string, try again."));
+			error_dialog ( _("This is not a base64 string, try again."), text_var->parent);
 			return;
 		}
 		
@@ -158,7 +160,7 @@ prepare_text (	GtkWidget __attribute__((__unused__)) *bt,
 		valid = g_utf8_validate (text_var->decoded_text, -1, NULL);
 		if (!valid)
 		{
-			error_dialog ( _("The decoded text is not valid (maybe due to a wrong password)"));
+			error_dialog ( _("The decoded text is not valid (maybe due to a wrong password)"), text_var->parent);
 			return;
 		}
 		

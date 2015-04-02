@@ -1,0 +1,5 @@
+TODO:
+* NEW: multiple file selection for en/de/cryption
+* NEW: text hashes
+* IMPROVED: hashes computation now use threads
+* IMPROVED: encryption and decryption now use threads
