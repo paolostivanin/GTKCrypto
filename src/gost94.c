@@ -13,9 +13,8 @@
 #include "gtkcrypto.h"
 
 
-void
-compute_gost94 (GtkWidget __attribute__((__unused__)) *bt,
-				gpointer user_data)
+gpointer
+compute_gost94 (gpointer user_data)
 {
 	struct hash_vars *hash_var = user_data;
 	

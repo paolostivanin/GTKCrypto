@@ -11,7 +11,6 @@
 #include <glib.h>
 #include <gtk/gtk.h>
 
-
 GdkPixbuf *create_logo (gboolean);
 GtkWidget *do_mainwin (GtkApplication *);
 GtkWidget *create_popover (GtkWidget *, GtkPositionType, struct main_vars *);
@@ -20,11 +19,12 @@ gpointer crypt_file (gpointer);
 
 void text_dialog (GtkWidget *, gpointer);
 
-void compute_md5 (GtkWidget *, gpointer);
-void compute_gost94 (GtkWidget *, gpointer);
-void compute_sha1 (GtkWidget *, gpointer);
-void compute_sha2 (GtkWidget *, gpointer);
-void compute_sha3 (GtkWidget *, gpointer);
-void compute_whirlpool (GtkWidget *, gpointer);
+gpointer compute_md5 (gpointer);
+gpointer compute_gost94 (gpointer);
+gpointer compute_sha1 (gpointer);
+gpointer compute_sha2 (gpointer);
+gpointer compute_sha3 (gpointer);
+gpointer compute_whirlpool (gpointer);
+gpointer create_thread (GtkWidget *, gpointer);
 
 #endif

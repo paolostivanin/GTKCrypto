@@ -13,19 +13,13 @@
 #include "gtkcrypto.h"
 
 
-void
-compute_sha2 (	GtkWidget *checkBt,
-		gpointer user_data)
+gpointer
+compute_sha2 (gpointer user_data)
 {
 	struct hash_vars *hash_var = user_data;
 	gint bit = 0;
 	
-	if (g_strcmp0 (gtk_widget_get_name (checkBt), "BtSha256") == 0)
-		bit = 256;
-	else if (g_strcmp0 (gtk_widget_get_name (checkBt), "BtSha384") == 0)
-		bit = 384;
-	else if (g_strcmp0 (gtk_widget_get_name (checkBt), "BtSha512") == 0)
-		bit = 512;
+	bit = hash_var->n_bit;
 	
 	if (bit == 256)
 	{

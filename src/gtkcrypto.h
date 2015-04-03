@@ -45,11 +45,18 @@ extern struct main_vars main_var;
 		
 struct hash_vars		
 {		
-	gchar *filename;		
+	gint n_bit; //number of hash bit (256, 384, 512)
+	gboolean gth_created[10];
+	gchar *filename;	
 	GHashTable *hash_table;		
 	GtkWidget *hash_entry[10]; //md5, gost, sha1, sha256, sha3-256, sha384, sha3_384, sha512, sha3-512, whir		
 	GtkWidget *hash_check[10]; //md5, gost, sha1, sha256, sha3-256, sha384, sha3_384, sha512, sha3-512, whir		
-	gchar *key[10];		
+	gchar *key[10];
+	struct threads_list
+	{
+		GThread *gth[10];
+	} threads;
+		
 };		
 extern struct hash_vars hash_var;		
 		

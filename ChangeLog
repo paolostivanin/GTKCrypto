@@ -56,7 +56,7 @@
 ??/??/2015 - v3.0-beta.4
 	* NEW: multiple file selection for en/de/cryption
 	* IMPROVED: encryption process now use threads
-	* IMPROVED: deecryption process now use threads
+	* IMPROVED: decryption process now use threads
 	* IMPROVED: hash computation process now use threads
 
 ??/??/2015 - v3.1.0

@@ -13,9 +13,8 @@
 #include "gtkcrypto.h"
  
 
-void
-compute_sha1 (	GtkWidget __attribute__((__unused__)) *bt,
-		gpointer user_data)
+gpointer
+compute_sha1 (gpointer user_data)
 {
 	struct hash_vars *hash_var = user_data;
 	

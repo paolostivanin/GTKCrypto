@@ -16,6 +16,8 @@ static void hide_menu (struct main_vars *);
 static void toggle_changed_cb (GtkToggleButton *, GtkWidget *);
 static void compute_hash_dialog (GtkWidget *, GtkWidget *, const gchar *);
 
+const gchar *bt_names[] = {"BtMd5", "BtGost", "BtSha1", "BtSha256", "BtSha3_256", "BtSha384", "BtSha3_384", "BtSha512", "BtSha3_512", "BtWhirl" };
+gpointer (*hash_func[NUM_OF_HASH])(gpointer) = {compute_md5, compute_gost94, compute_sha1, compute_sha2, compute_sha3, compute_sha2, compute_sha3, compute_sha2, compute_sha3, compute_whirlpool};
 
 static void
 quit (	GSimpleAction __attribute__((__unused__)) *action,
@@ -108,7 +110,7 @@ startup (	GtkApplication *application,
 
 static void
 activate (	GtkApplication *app,
-		struct main_vars *main_var)
+			struct main_vars *main_var)
 {
 	GtkWidget *button[NUM_OF_BUTTONS];
 	GtkWidget *frame[2];
@@ -521,7 +523,7 @@ compute_hash_dialog (	GtkWidget *file_dialog,
 	gtk_widget_hide (GTK_WIDGET (file_dialog));
 	
 	struct hash_vars hash_var;
-	gint counter;
+	gint counter, i, result;;
 	
 	hash_var.hash_table = g_hash_table_new_full (g_str_hash, g_str_equal, g_free, g_free);
 	
@@ -535,8 +537,6 @@ compute_hash_dialog (	GtkWidget *file_dialog,
 	}
 	g_utf8_strncpy (hash_var.filename, filename, filename_length);
 	hash_var.filename[filename_length] = '\0';
-	
-	gint i, result;
 	
 	const gchar *label[] = {"MD5", "GOST94", "SHA-1", "SHA-256", "SHA3-256", "SHA-384", "SHA3-384", "SHA512", "SHA3-512", "WHIRLPOOL"};
 	gsize label_length;
@@ -588,32 +588,57 @@ compute_hash_dialog (	GtkWidget *file_dialog,
 	gtk_container_add (GTK_CONTAINER (content_area), grid);
 	gtk_widget_show_all (dialog);
 	
-	gtk_widget_set_name (GTK_WIDGET (hash_var.hash_check[3]), "BtSha256");
-	gtk_widget_set_name (GTK_WIDGET (hash_var.hash_check[4]), "BtSha3_256");
-	gtk_widget_set_name (GTK_WIDGET (hash_var.hash_check[5]), "BtSha384");
-	gtk_widget_set_name (GTK_WIDGET (hash_var.hash_check[6]), "BtSha3_384");
-	gtk_widget_set_name (GTK_WIDGET (hash_var.hash_check[7]), "BtSha512");
-	gtk_widget_set_name (GTK_WIDGET (hash_var.hash_check[8]), "BtSha3_512");
-	
-	g_signal_connect (hash_var.hash_check[0], "clicked", G_CALLBACK (compute_md5), &hash_var);
-	g_signal_connect (hash_var.hash_check[1], "clicked", G_CALLBACK (compute_gost94), &hash_var);
-	g_signal_connect (hash_var.hash_check[2], "clicked", G_CALLBACK (compute_sha1), &hash_var);
-	g_signal_connect (hash_var.hash_check[3], "clicked", G_CALLBACK (compute_sha2), &hash_var);
-	g_signal_connect (hash_var.hash_check[4], "clicked", G_CALLBACK (compute_sha3), &hash_var);
-	g_signal_connect (hash_var.hash_check[5], "clicked", G_CALLBACK (compute_sha2), &hash_var);
-	g_signal_connect (hash_var.hash_check[6], "clicked", G_CALLBACK (compute_sha3), &hash_var);
-	g_signal_connect (hash_var.hash_check[7], "clicked", G_CALLBACK (compute_sha2), &hash_var);
-	g_signal_connect (hash_var.hash_check[8], "clicked", G_CALLBACK (compute_sha3), &hash_var);
-	g_signal_connect (hash_var.hash_check[9], "clicked", G_CALLBACK (compute_whirlpool), &hash_var);
-	
+	for (i = 0; i < NUM_OF_HASH; i++)
+	{
+		gtk_widget_set_name (GTK_WIDGET (hash_var.hash_check[i]), bt_names[i]);
+		hash_var.gth_created[i] = FALSE;
+		g_signal_connect (hash_var.hash_check[i], "clicked", G_CALLBACK (create_thread), &hash_var);
+	}
 	
 	result = gtk_dialog_run (GTK_DIALOG (dialog));
 	switch (result)
 	{
 		case GTK_RESPONSE_REJECT:
+			for (i = 0; i < NUM_OF_HASH; i++)
+			{
+				if(hash_var.gth_created[i])
+					g_thread_join (hash_var.threads.gth[i]);
+			}
+				
 			g_free (hash_var.filename);
 			g_hash_table_destroy (hash_var.hash_table);
 			gtk_widget_destroy (dialog);
 			break;
 	}
 }
+
+
+gpointer
+create_thread (	GtkWidget *bt,
+				gpointer user_data)
+{
+	
+	gint i;
+	struct hash_vars *hash_var = user_data;
+	const gchar *name = gtk_widget_get_name (bt);
+	
+	for (i = 0; i < NUM_OF_HASH; i++)
+	{
+		if (g_strcmp0 (name, bt_names[i]) == 0)
+		{
+			if (g_strcmp0 (name, "BtSha256") == 0 || g_strcmp0 (name, "BtSha3_256") == 0)
+				hash_var->n_bit = 256;
+			else if (g_strcmp0 (name, "BtSha384") == 0 || g_strcmp0 (name, "BtSha3_384") == 0)
+				hash_var->n_bit = 384;
+			else if (g_strcmp0 (name, "BtSha512") == 0 || g_strcmp0 (name, "BtSha3_512") == 0)
+				hash_var->n_bit = 512;
+			
+			hash_var->gth_created[i] = TRUE;
+			hash_var->threads.gth[i] = g_thread_new (NULL, (GThreadFunc)hash_func[i], hash_var);
+		}
+	}
+}
+	
+	
+	
+	
