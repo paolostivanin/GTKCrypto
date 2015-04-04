@@ -63,13 +63,13 @@ text_dialog (	GtkWidget *clickedButton,
 	gtk_entry_set_placeholder_text (GTK_ENTRY (text_var->pwd[1]), _("Retype Password"));
 		
 	text_var->text_view = gtk_text_view_new ();
+	gtk_widget_set_name (GTK_WIDGET (text_var->text_view), "text_view");
 	gtk_container_add (GTK_CONTAINER (scrolled_win), text_var->text_view);
 	
-	PangoFontDescription *newFont = pango_font_description_new ();
-	pango_font_description_set_family (newFont, "monospace");
-	gtk_widget_override_font (GTK_WIDGET (text_var->text_view), newFont);
-	pango_font_description_free (newFont);
-	
+	GtkCssProvider *css = gtk_css_provider_new ();
+	gtk_css_provider_load_from_path (css, "./src/style.css", NULL); // !!!! >> change path to /usr/share/gtkcrypto << !!!!
+	gtk_style_context_add_provider (gtk_widget_get_style_context (text_var->text_view), GTK_STYLE_PROVIDER(css), GTK_STYLE_PROVIDER_PRIORITY_USER);
+
 	gtk_box_pack_start (GTK_BOX(box), text_var->pwd[0], TRUE, TRUE, 0);
 	if (!text_var->action)
 		gtk_box_pack_start (GTK_BOX (box), text_var->pwd[1], TRUE, TRUE, 0);

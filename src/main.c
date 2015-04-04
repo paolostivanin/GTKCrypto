@@ -523,7 +523,10 @@ compute_hash_dialog (	GtkWidget *file_dialog,
 	gtk_widget_hide (GTK_WIDGET (file_dialog));
 	
 	struct hash_vars hash_var;
-	gint counter, i, result;;
+	gint counter, i, result;
+	
+	GtkCssProvider *css = gtk_css_provider_new ();
+	gtk_css_provider_load_from_path (css, "./src/style.css", NULL); // !!!! >> change path to /usr/share/gtkcrypto << !!!!
 	
 	hash_var.hash_table = g_hash_table_new_full (g_str_hash, g_str_equal, g_free, g_free);
 	
@@ -544,9 +547,6 @@ compute_hash_dialog (	GtkWidget *file_dialog,
 	GtkWidget *content_area, *grid, *dialog;
 	GtkDialogFlags flags = GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT;
 
-	PangoFontDescription *new_font = pango_font_description_new ();
-	pango_font_description_set_family (new_font, "monospace");
-	
 	dialog = gtk_dialog_new_with_buttons ("Select Hash",
 				     GTK_WINDOW (main_window),
 				     flags,
@@ -568,11 +568,10 @@ compute_hash_dialog (	GtkWidget *file_dialog,
 	{
 		hash_var.hash_check[i] = gtk_check_button_new_with_label (label[i]);
 		hash_var.hash_entry[i] = gtk_entry_new ();
+		gtk_widget_set_name (GTK_WIDGET (hash_var.hash_entry[i]), "hash_entry");
 		gtk_editable_set_editable (GTK_EDITABLE (hash_var.hash_entry[i]), FALSE);
-		gtk_widget_override_font (GTK_WIDGET (hash_var.hash_entry[i]), new_font);
+		gtk_style_context_add_provider (gtk_widget_get_style_context (hash_var.hash_entry[i]), GTK_STYLE_PROVIDER(css), GTK_STYLE_PROVIDER_PRIORITY_USER);
 	}
-	
-	pango_font_description_free (new_font);
 	
 	grid = gtk_grid_new ();
 	gtk_grid_set_row_homogeneous (GTK_GRID (grid), TRUE);
