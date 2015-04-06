@@ -1,3 +1,5 @@
-* NEW: multiple file selection for en/de/cryption
-* IMPROVED: encryption and decryption now use threads
+3.0-beta.4:
+* multiple file selection for en/de/cryption
+* encryption and decryption now use threads
 * add configure script (check gtk 3.12 and glib 2.40)
+* change from progressbar to spinner when enc/dec ??????

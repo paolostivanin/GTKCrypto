@@ -54,10 +54,11 @@
 	* FIXED: deprecated property
 	
 ??/??/2015 - v3.0-beta.4
+	* NEW: configure script
 	* NEW: multiple file selection for en/de/cryption
-	* IMPROVED: encryption process now use threads
-	* IMPROVED: decryption process now use threads
-	* IMPROVED: hash computation process now use threads
+	* IMPROVED: encryption and decryption processes now use threads
+	* IMPROVED: hash computation process now use threads [✓]
+	* FIXED: various bugs [✓]
 
 ??/??/2015 - v3.1.0
 	* NEW: asymmetric encryption support (with RSA or with a ECC algo)
