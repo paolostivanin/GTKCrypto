@@ -38,6 +38,7 @@ compute_sha2 (gpointer user_data)
 			gtk_entry_set_text (GTK_ENTRY (hash_var->hash_entry[3]), (gchar *)g_hash_table_lookup (hash_var->hash_table, hash_var->key[3]));
 			goto fine;
 		}
+		gtk_spinner_start (GTK_SPINNER (hash_var->hash_spinner[3]));
 	}
 	else if (bit == 384)
 	{
@@ -55,7 +56,8 @@ compute_sha2 (gpointer user_data)
 		{
 			gtk_entry_set_text (GTK_ENTRY (hash_var->hash_entry[5]), (gchar *)g_hash_table_lookup (hash_var->hash_table, hash_var->key[5]));
 			goto fine;
-		}		
+		}
+		gtk_spinner_start (GTK_SPINNER (hash_var->hash_spinner[5]));
 	}
 	else
 	{
@@ -73,7 +75,8 @@ compute_sha2 (gpointer user_data)
 		{
 			gtk_entry_set_text (GTK_ENTRY (hash_var->hash_entry[7]), (gchar *)g_hash_table_lookup (hash_var->hash_table, hash_var->key[7]));
 			goto fine;
-		}		
+		}
+		gtk_spinner_start (GTK_SPINNER (hash_var->hash_spinner[7]));	
 	}
 	
 	guchar *digest;
@@ -167,7 +170,7 @@ compute_sha2 (gpointer user_data)
 		}
 		goto nowhile;
 	}
-	
+
 	while (fileSize > doneSize)
 	{
 		fAddr = mmap (NULL, BUF_FILE, PROT_READ, MAP_FILE | MAP_SHARED, fd, offset);
@@ -209,11 +212,11 @@ compute_sha2 (gpointer user_data)
 				sha256_update (&ctx256, diff, fAddr);
 				
 			else if (bit == 384)
-				sha384_update (&ctx384, BUF_FILE, fAddr);
+				sha384_update (&ctx384, diff, fAddr);
 			
 			else
 				sha512_update (&ctx512, diff, fAddr);
-				
+			
 			retVal = munmap(fAddr, diff);
 			if(retVal == -1){
 				g_printerr ("sha2: %s\n", g_strerror (errno));
@@ -274,5 +277,8 @@ compute_sha2 (gpointer user_data)
 	g_free (hash);
 	
 	fine:
+	gtk_spinner_stop (GTK_SPINNER (hash_var->hash_spinner[3]));
+	gtk_spinner_stop (GTK_SPINNER (hash_var->hash_spinner[5]));
+	gtk_spinner_stop (GTK_SPINNER (hash_var->hash_spinner[7]));
 	return;
 }

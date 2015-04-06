@@ -50,7 +50,8 @@ struct hash_vars
 	gchar *filename;	
 	GHashTable *hash_table;		
 	GtkWidget *hash_entry[10]; //md5, gost, sha1, sha256, sha3-256, sha384, sha3_384, sha512, sha3-512, whir		
-	GtkWidget *hash_check[10]; //md5, gost, sha1, sha256, sha3-256, sha384, sha3_384, sha512, sha3-512, whir		
+	GtkWidget *hash_check[10]; //md5, gost, sha1, sha256, sha3-256, sha384, sha3_384, sha512, sha3-512, whir	
+	GtkWidget *hash_spinner[10];
 	gchar *key[10];
 	struct threads_list
 	{

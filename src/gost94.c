@@ -33,6 +33,8 @@ compute_gost94 (gpointer user_data)
 		gtk_entry_set_text (GTK_ENTRY (hash_var->hash_entry[1]), (gchar *)g_hash_table_lookup (hash_var->hash_table, hash_var->key[1]));
 		goto fine;
 	}
+	
+	gtk_spinner_start (GTK_SPINNER (hash_var->hash_spinner[1]));
 
 	struct gosthash94_ctx ctx;
 	guint8 digest[GOSTHASH94_DIGEST_SIZE];
@@ -120,5 +122,6 @@ compute_gost94 (gpointer user_data)
 	g_close(fd, &err);
 	
 	fine:
+	gtk_spinner_stop (GTK_SPINNER (hash_var->hash_spinner[1]));
 	return;
 }

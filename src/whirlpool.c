@@ -33,6 +33,8 @@ compute_whirlpool (gpointer user_data)
 		goto fine;
 	}
 
+	gtk_spinner_start (GTK_SPINNER (hash_var->hash_spinner[9]));
+
 	gint algo, i, fd, retVal;
 	gchar hash[129];
 	guint8 *fAddr;
@@ -122,5 +124,6 @@ compute_whirlpool (gpointer user_data)
 	g_close(fd, &err);
 	
 	fine:
+	gtk_spinner_stop (GTK_SPINNER (hash_var->hash_spinner[9]));
 	return;
 }

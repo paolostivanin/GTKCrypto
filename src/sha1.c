@@ -33,6 +33,8 @@ compute_sha1 (gpointer user_data)
 		goto fine;
 	}
 
+	gtk_spinner_start (GTK_SPINNER (hash_var->hash_spinner[2]));
+
 	struct sha1_ctx ctx;
 	guint8 digest[SHA1_DIGEST_SIZE];
 	gint fd, i, retVal;
@@ -119,5 +121,6 @@ compute_sha1 (gpointer user_data)
 	g_close(fd, &err);
 	
 	fine:
+	gtk_spinner_stop (GTK_SPINNER (hash_var->hash_spinner[2]));
 	return;
 }

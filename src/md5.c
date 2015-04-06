@@ -33,6 +33,8 @@ compute_md5 (gpointer user_data)
 		goto fine;
 	}
 	
+	gtk_spinner_start (GTK_SPINNER (hash_var->hash_spinner[0]));
+	
 	struct md5_ctx ctx;
 	guint8 digest[MD5_DIGEST_SIZE];
 	gint fd, i, retVal;
@@ -119,5 +121,6 @@ compute_md5 (gpointer user_data)
 	g_close(fd, &err);
 		
 	fine:
+	gtk_spinner_stop (GTK_SPINNER (hash_var->hash_spinner[0]));
 	return;
 }

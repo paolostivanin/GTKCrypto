@@ -344,6 +344,8 @@ pwd_dialog (GtkWidget *file_dialog,
 	GValue left_margin = G_VALUE_INIT;
 	GValue top_margin = G_VALUE_INIT;
 	gint result, ret_val;
+	
+	label[1] = NULL;
 			
 	restart:
 	if (main_var->encrypt)
@@ -450,7 +452,7 @@ pwd_dialog (GtkWidget *file_dialog,
 	gtk_container_add (GTK_CONTAINER (content_area), grid);
 	gtk_widget_show_all (dialog);
 	
-	result = gtk_dialog_run (GTK_DIALOG(dialog));
+	result = gtk_dialog_run (GTK_DIALOG (dialog));
 	switch (result)
 	{
 		case GTK_RESPONSE_ACCEPT:
@@ -491,7 +493,7 @@ pwd_dialog (GtkWidget *file_dialog,
 			break;
 			
 		default:
-			g_printerr ("Exiting...\n");
+			g_printerr ( _("Exiting...\n"));
 			break;
 	}
 	
@@ -526,7 +528,7 @@ compute_hash_dialog (	GtkWidget *file_dialog,
 	gint counter, i, result;
 	
 	GtkCssProvider *css = gtk_css_provider_new ();
-	gtk_css_provider_load_from_path (css, "./src/style.css", NULL); // !!!! >> change path to /usr/share/gtkcrypto << !!!!
+	gtk_css_provider_load_from_path (css, "./src/style.css", NULL); // !!!! >> TODO: change path to /usr/share/gtkcrypto << !!!!
 	
 	hash_var.hash_table = g_hash_table_new_full (g_str_hash, g_str_equal, g_free, g_free);
 	
@@ -535,7 +537,7 @@ compute_hash_dialog (	GtkWidget *file_dialog,
 	hash_var.filename = g_malloc (filename_length + 1);
 	if (hash_var.filename == NULL)
 	{
-		g_printerr ("Error during memory allocation\n");
+		g_printerr ( _("Error during memory allocation\n"));
 		return;
 	}
 	g_utf8_strncpy (hash_var.filename, filename, filename_length);
@@ -544,20 +546,20 @@ compute_hash_dialog (	GtkWidget *file_dialog,
 	const gchar *label[] = {"MD5", "GOST94", "SHA-1", "SHA-256", "SHA3-256", "SHA-384", "SHA3-384", "SHA512", "SHA3-512", "WHIRLPOOL"};
 	gsize label_length;
 	
-	GtkWidget *content_area, *grid, *dialog;
+	GtkWidget *content_area, *dialog;
 	GtkDialogFlags flags = GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT;
 
-	dialog = gtk_dialog_new_with_buttons ("Select Hash",
+	dialog = gtk_dialog_new_with_buttons ( _("Select Hash"),
 				     GTK_WINDOW (main_window),
 				     flags,
 				     _("Cancel"), GTK_RESPONSE_REJECT,
 				     NULL);
 
-	gtk_widget_set_size_request (dialog, 250, 150);
+	gtk_widget_set_size_request (dialog, 740, 300);
 	
 	content_area = gtk_dialog_get_content_area (GTK_DIALOG (dialog));
 	
-	for(i = 0; i < NUM_OF_HASH; i++)
+	for (i = 0; i < NUM_OF_HASH; i++)
 	{
 		label_length = g_utf8_strlen (label[i], -1);
 		hash_var.key[i] = g_malloc (label_length + 1);
@@ -568,23 +570,37 @@ compute_hash_dialog (	GtkWidget *file_dialog,
 	{
 		hash_var.hash_check[i] = gtk_check_button_new_with_label (label[i]);
 		hash_var.hash_entry[i] = gtk_entry_new ();
+		hash_var.hash_spinner[i] = gtk_spinner_new ();
 		gtk_widget_set_name (GTK_WIDGET (hash_var.hash_entry[i]), "hash_entry");
 		gtk_editable_set_editable (GTK_EDITABLE (hash_var.hash_entry[i]), FALSE);
-		gtk_style_context_add_provider (gtk_widget_get_style_context (hash_var.hash_entry[i]), GTK_STYLE_PROVIDER(css), GTK_STYLE_PROVIDER_PRIORITY_USER);
+		gtk_style_context_add_provider (gtk_widget_get_style_context (hash_var.hash_entry[i]), GTK_STYLE_PROVIDER (css), GTK_STYLE_PROVIDER_PRIORITY_USER);
 	}
 	
-	grid = gtk_grid_new ();
-	gtk_grid_set_row_homogeneous (GTK_GRID (grid), TRUE);
-	gtk_grid_set_column_homogeneous (GTK_GRID (grid), TRUE);
-	gtk_grid_set_row_spacing (GTK_GRID (grid), 5);
+	GtkWidget *hbox[10];
+	GtkWidget *hbox2[10];
+	GtkWidget *vbox;
+	GtkWidget *vbox2;
+	GtkWidget *blo;
+	vbox = gtk_box_new (GTK_ORIENTATION_VERTICAL, 7);
+	vbox2 = gtk_box_new (GTK_ORIENTATION_VERTICAL, 4);
+	blo = gtk_box_new (GTK_ORIENTATION_HORIZONTAL, 5);
 	
 	for (counter = 0; counter < NUM_OF_HASH; counter++)
 	{
-		gtk_grid_attach (GTK_GRID (grid), hash_var.hash_check[counter], 0, counter, 1, 1);
-		gtk_grid_attach (GTK_GRID (grid), hash_var.hash_entry[counter], 2, counter, 6, 1);
+		hbox[counter] = gtk_box_new (GTK_ORIENTATION_HORIZONTAL, 5);
+		hbox2[counter] = gtk_box_new (GTK_ORIENTATION_HORIZONTAL, 5);
+		gtk_box_pack_start (GTK_BOX (hbox[counter]), GTK_WIDGET (hash_var.hash_spinner[counter]), FALSE, FALSE, 0);
+		gtk_box_pack_start (GTK_BOX (hbox[counter]), GTK_WIDGET (hash_var.hash_check[counter]), FALSE, FALSE, 0);
+		
+		gtk_container_add (GTK_CONTAINER (vbox), hbox[counter]);
+				
+		gtk_box_pack_start (GTK_BOX (hbox2[counter]), GTK_WIDGET (hash_var.hash_entry[counter]), TRUE, TRUE, 0);
+		gtk_container_add (GTK_CONTAINER (vbox2), hbox2[counter]);
 	}
-	
-	gtk_container_add (GTK_CONTAINER (content_area), grid);
+
+	gtk_box_pack_start (GTK_BOX (blo), vbox, FALSE, FALSE, 0);
+	gtk_box_pack_start (GTK_BOX (blo), vbox2, TRUE, TRUE, 0);
+	gtk_container_add (GTK_CONTAINER (content_area), blo);
 	gtk_widget_show_all (dialog);
 	
 	for (i = 0; i < NUM_OF_HASH; i++)
