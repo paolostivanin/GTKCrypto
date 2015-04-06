@@ -24,7 +24,7 @@ quit (	GSimpleAction __attribute__((__unused__)) *action,
 		GVariant __attribute__((__unused__)) *parameter,
 		gpointer app)
 {
-	g_application_quit (G_APPLICATION(app));
+	g_application_quit (G_APPLICATION (app));
 }
 
 
