@@ -12,9 +12,8 @@
 #include "gtkcrypto.h"
 
 
-void
-compute_whirlpool (	GtkWidget __attribute__((__unused__)) *bt,
-			gpointer user_data)
+gpointer
+compute_whirlpool (gpointer user_data)
 {
 	struct hash_vars *hash_var = user_data;
 	
@@ -33,6 +32,8 @@ compute_whirlpool (	GtkWidget __attribute__((__unused__)) *bt,
 		gtk_entry_set_text (GTK_ENTRY (hash_var->hash_entry[9]), (gchar *)g_hash_table_lookup (hash_var->hash_table, hash_var->key[9]));
 		goto fine;
 	}
+
+	gtk_spinner_start (GTK_SPINNER (hash_var->hash_spinner[9]));
 
 	gint algo, i, fd, retVal;
 	gchar hash[129];
@@ -123,5 +124,6 @@ compute_whirlpool (	GtkWidget __attribute__((__unused__)) *bt,
 	g_close(fd, &err);
 	
 	fine:
+	gtk_spinner_stop (GTK_SPINNER (hash_var->hash_spinner[9]));
 	return;
 }

@@ -13,20 +13,13 @@
 #include "gtkcrypto.h"
 
 
-void
-compute_sha3 (	GtkWidget *checkBt,
-		gpointer user_data)
+gpointer
+compute_sha3 (gpointer user_data)
 {
 	struct hash_vars *hash_var = user_data;
 	gint bit = 0;
 	
-	if (g_strcmp0 (gtk_widget_get_name (checkBt), "BtSha3_256") == 0)
-		bit = 256;
-	
-	else if (g_strcmp0 (gtk_widget_get_name (checkBt), "BtSha3_384") == 0)
-		bit = 384;
-	else
-		bit = 512;
+	bit = hash_var->n_bit;
 	
 	if (bit == 256)
 	{
@@ -45,6 +38,7 @@ compute_sha3 (	GtkWidget *checkBt,
 			gtk_entry_set_text (GTK_ENTRY (hash_var->hash_entry[4]), (gchar *)g_hash_table_lookup (hash_var->hash_table, hash_var->key[4]));
 			goto fine;
 		}
+		gtk_spinner_start (GTK_SPINNER (hash_var->hash_spinner[4]));
 	}
 	else if (bit == 384)
 	{
@@ -62,7 +56,8 @@ compute_sha3 (	GtkWidget *checkBt,
 		{
 			gtk_entry_set_text (GTK_ENTRY (hash_var->hash_entry[6]), (gchar *)g_hash_table_lookup (hash_var->hash_table, hash_var->key[6]));
 			goto fine;
-		}	
+		}
+		gtk_spinner_start (GTK_SPINNER (hash_var->hash_spinner[6]));
 	}
 	else
 	{
@@ -80,7 +75,8 @@ compute_sha3 (	GtkWidget *checkBt,
 		{
 			gtk_entry_set_text (GTK_ENTRY (hash_var->hash_entry[8]), (gchar *)g_hash_table_lookup (hash_var->hash_table, hash_var->key[8]));
 			goto fine;
-		}	
+		}
+		gtk_spinner_start (GTK_SPINNER (hash_var->hash_spinner[8]));
 	}
 	
 	guchar *digest;
@@ -280,5 +276,8 @@ compute_sha3 (	GtkWidget *checkBt,
 	g_free (hash);
 	
 	fine:
+	gtk_spinner_stop (GTK_SPINNER (hash_var->hash_spinner[4]));
+	gtk_spinner_stop (GTK_SPINNER (hash_var->hash_spinner[6]));
+	gtk_spinner_stop (GTK_SPINNER (hash_var->hash_spinner[8]));
 	return;
 }

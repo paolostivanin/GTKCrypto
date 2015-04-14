@@ -1,0 +1,13 @@
+3.0-beta.4:
+* multiple file selection for en/de/cryption
+* encryption and decryption now use threads
+* add configure script (check gtk 3.12 and glib 2.40)
+* change from progressbar to spinner when enc/dec ??????
+* riallinare dialog hashes (tutto su stesso hbox? ritornare a grid?)
+* capire xk errori su altre distro (xubuntu 14.04/10/15.04 Source ID 1540 was not found when attempting to remove it)
+* to have a thread for a long running operation, and every time you want to update your UI from a thread, you schedule a UI update using g_idle_add() or g_main_context_invoke()
+* look at GTask and GThreadPool instead of using an array of statically allocated threads
+il flow sarebbe:
+1) create the gtk_dialog with X gtk_entry and X gtk_check_button
+2) when a gtk_check_button is clicked a thread will be created (this thread won't update the UI, it will just compute an hash and return the result)
+3) inside the function which has created the gthread I have to add a g_idle_add to schedule the gui update. 

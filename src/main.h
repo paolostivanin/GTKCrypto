@@ -6,11 +6,10 @@
 #define NUM_OF_BOXES 2
 #define NUM_OF_HASH 10
 
-#define HEADERBAR_BUF 21 /* buffer for the headerbar's title */
+#define HEADERBAR_BUF 22 /* buffer for the headerbar's title */
 
 #include <glib.h>
 #include <gtk/gtk.h>
-
 
 GdkPixbuf *create_logo (gboolean);
 GtkWidget *do_mainwin (GtkApplication *);
@@ -20,11 +19,12 @@ gpointer crypt_file (gpointer);
 
 void text_dialog (GtkWidget *, gpointer);
 
-void compute_md5 (GtkWidget *, gpointer);
-void compute_gost94 (GtkWidget *, gpointer);
-void compute_sha1 (GtkWidget *, gpointer);
-void compute_sha2 (GtkWidget *, gpointer);
-void compute_sha3 (GtkWidget *, gpointer);
-void compute_whirlpool (GtkWidget *, gpointer);
+gpointer compute_md5 (gpointer);
+gpointer compute_gost94 (gpointer);
+gpointer compute_sha1 (gpointer);
+gpointer compute_sha2 (gpointer);
+gpointer compute_sha3 (gpointer);
+gpointer compute_whirlpool (gpointer);
+gpointer create_thread (GtkWidget *, gpointer);
 
 #endif

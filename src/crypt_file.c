@@ -18,34 +18,35 @@ static void end_from_error (guint, struct main_vars *, const gchar *);
 
 static void
 add_text (	gpointer data,
-		const gchar *text)
+			const gchar *text)
 {
-	gtk_progress_bar_set_show_text (GTK_PROGRESS_BAR(data), TRUE);
-	gtk_progress_bar_set_text(GTK_PROGRESS_BAR(data), text);
+	gtk_progress_bar_set_show_text (GTK_PROGRESS_BAR (data), TRUE);
+	gtk_progress_bar_set_text (GTK_PROGRESS_BAR (data), text);
 }
 
 
 static gboolean
 bar_full (gpointer data)
 {
+	
 	/*PangoFontDescription *new_font = pango_font_description_new ();
 	pango_font_description_set_weight (new_font, PANGO_WEIGHT_BOLD);
 	gtk_widget_override_font (GTK_WIDGET (data), new_font);*/
     	
-    	gtk_progress_bar_set_fraction (GTK_PROGRESS_BAR (data), 1);
+    gtk_progress_bar_set_fraction (GTK_PROGRESS_BAR (data), 1);
 	
 	//pango_font_description_free (new_font);
 	
-    	return TRUE;
+    return TRUE;
 }
 
 
 static gboolean
 bar_pulse (gpointer data)
 {
-    	gtk_progress_bar_pulse (GTK_PROGRESS_BAR (data));
-    	
-    	return TRUE;
+	gtk_progress_bar_pulse (GTK_PROGRESS_BAR (data));
+	
+	return TRUE;
 }
 
 
@@ -154,7 +155,7 @@ crypt_file (gpointer user_data)
 		}
 		else
 		{
-			output_fname = g_malloc(filename_length+5);
+			output_fname = g_malloc (filename_length+5);
 			g_utf8_strncpy (output_fname, input_fname, filename_length);
 			memcpy (output_fname+filename_length, ".dec", 4);
 			output_fname[filename_length+4] = '\0';
@@ -507,11 +508,11 @@ crypt_file (gpointer user_data)
 
 static void
 multiple_free (	gchar *inFl,
-		gchar *outFl,
-		guchar *buf,
-		guchar *dKey,
-		guchar *crKey,
-		guchar *mKey)
+				gchar *outFl,
+				guchar *buf,
+				guchar *dKey,
+				guchar *crKey,
+				guchar *mKey)
 {
 	if (inFl)
 		g_free (inFl);
@@ -535,7 +536,7 @@ multiple_free (	gchar *inFl,
 
 static void
 multiple_fclose (	FILE *fpIn,
-			FILE *fpOut)
+					FILE *fpOut)
 {
 	if (fpIn)
 		fclose (fpIn);
@@ -547,8 +548,8 @@ multiple_fclose (	FILE *fpIn,
 
 static void
 end_from_error (guint id,
-		struct main_vars *main_var,
-		const gchar *message)
+				struct main_vars *main_var,
+				const gchar *message)
 {
 	g_source_remove (id);
 	add_text (GTK_PROGRESS_BAR (main_var->pBar), message);

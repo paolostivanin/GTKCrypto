@@ -10,6 +10,7 @@ gint check_b64 (const gchar *);
 struct text_vars
 {
 	GtkWidget *dialog;
+	GtkWidget *parent;
 	GtkWidget *text_view;
 	GtkWidget *pwd[2];	
 	GtkTextBuffer *buffer;
