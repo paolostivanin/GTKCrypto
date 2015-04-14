@@ -11,12 +11,29 @@
 #include <nettle/md5.h>
 #include <sys/mman.h>
 #include "gtkcrypto.h"
-   
+
+
+static gboolean
+spin (gpointer data)
+{
+	gtk_spinner_start (GTK_SPINNER (data));
+	return TRUE;
+}
+
+
+static gboolean
+stop_spinner (gpointer data)
+{
+	gtk_spinner_stop (GTK_SPINNER (data));
+	return TRUE;
+}
+
 
 gpointer
 compute_md5 (gpointer user_data)
 {
 	struct hash_vars *hash_var = user_data;
+	guint id = 0;
 	
    	if (!gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (hash_var->hash_check[0])))
    	{
@@ -32,8 +49,9 @@ compute_md5 (gpointer user_data)
 		gtk_entry_set_text (GTK_ENTRY (hash_var->hash_entry[0]), (gchar *)g_hash_table_lookup (hash_var->hash_table, hash_var->key[0]));
 		goto fine;
 	}
-	
-	gtk_spinner_start (GTK_SPINNER (hash_var->hash_spinner[0]));
+
+	id = g_timeout_add (100, spin, (gpointer)hash_var->hash_spinner[0]);
+	//gtk_spinner_start (GTK_SPINNER (hash_var->hash_spinner[0]));
 	
 	struct md5_ctx ctx;
 	guint8 digest[MD5_DIGEST_SIZE];
@@ -121,6 +139,9 @@ compute_md5 (gpointer user_data)
 	g_close(fd, &err);
 		
 	fine:
-	gtk_spinner_stop (GTK_SPINNER (hash_var->hash_spinner[0]));
-	return;
+	if(id > 0) g_source_remove (id);
+	
+	stop_spinner (GTK_SPINNER (hash_var->hash_spinner[0]));
+	//gtk_spinner_stop (GTK_SPINNER (hash_var->hash_spinner[0]));
+	g_thread_exit (NULL);
 }

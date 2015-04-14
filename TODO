@@ -5,7 +5,8 @@
 * change from progressbar to spinner when enc/dec ??????
 * riallinare dialog hashes (tutto su stesso hbox? ritornare a grid?)
 * capire xk errori su altre distro (xubuntu 14.04/10/15.04 Source ID 1540 was not found when attempting to remove it)
-* to have a thread for a long running operation, and every time you want to update your UI from a thread, you schedule a UI update using g_idle_add() or g_main_context_invoke()
+* to have a thread for a long running operation, and every time you want to update your UI from a thread, you schedule a UI update
+  using g_idle_add() or g_main_context_invoke()
 * look at GTask and GThreadPool instead of using an array of statically allocated threads
 il flow sarebbe:
 1) create the gtk_dialog with X gtk_entry and X gtk_check_button
