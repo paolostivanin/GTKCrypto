@@ -34,7 +34,7 @@ compute_md5 (gpointer user_data)
 		goto fine;
 	}
 
-	id = g_idle_add (start_spin, (gpointer)hash_var->hash_spinner[0]);
+	id = g_timeout_add (100, start_spin, (gpointer)hash_var->hash_spinner[0]);
 	
 	struct md5_ctx ctx;
 	guint8 digest[MD5_DIGEST_SIZE];
