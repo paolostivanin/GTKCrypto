@@ -629,8 +629,7 @@ start_spin (gpointer data)
 gboolean
 stop_spin (gpointer data)
 {
-	gtk_entry_set_progress_pulse_step (GTK_ENTRY (data), 1.0);
-	gtk_entry_progress_pulse (GTK_ENTRY (data));
+	gtk_entry_set_progress_fraction (GTK_ENTRY (data), 0.0);
 	return FALSE;
 }
 

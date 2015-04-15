@@ -1,7 +1,6 @@
 3.0-beta.4:
 * multiple file selection for en/de/cryption
 * encryption and decryption now use threads
-* REMOVE PROGRESS AFTER COMPLETION, NOT FILL IT
 * add configure script (check gtk 3.12 and glib 2.40)
 * change from progressbar to spinner when enc/dec ??????
 * riallinare dialog hashes (tutto su stesso hbox? ritornare a grid?)
