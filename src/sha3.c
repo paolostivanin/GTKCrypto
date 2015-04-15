@@ -41,7 +41,7 @@ compute_sha3 (gpointer user_data)
 			//gtk_entry_set_text (GTK_ENTRY (hash_var->hash_entry[4]), (gchar *)g_hash_table_lookup (hash_var->hash_table, hash_var->key[4]));
 			goto fine;
 		}
-		id = g_idle_add (start_spin, (gpointer)hash_var->hash_spinner[spin_num]);
+		id = g_timeout_add (50, start_spin, (gpointer)hash_var->hash_entry[spin_num]);
 	}
 	else if (bit == 384)
 	{
@@ -61,7 +61,7 @@ compute_sha3 (gpointer user_data)
 			//gtk_entry_set_text (GTK_ENTRY (hash_var->hash_entry[6]), (gchar *)g_hash_table_lookup (hash_var->hash_table, hash_var->key[6]));
 			goto fine;
 		}
-		id = g_idle_add (start_spin, (gpointer)hash_var->hash_spinner[spin_num]);
+		id = g_timeout_add (50, start_spin, (gpointer)hash_var->hash_entry[spin_num]);
 	}
 	else
 	{
@@ -81,7 +81,7 @@ compute_sha3 (gpointer user_data)
 			gtk_entry_set_text (GTK_ENTRY (hash_var->hash_entry[8]), (gchar *)g_hash_table_lookup (hash_var->hash_table, hash_var->key[8]));
 			goto fine;
 		}
-		id = g_idle_add (start_spin, (gpointer)hash_var->hash_spinner[spin_num]);
+		id = g_timeout_add (50, start_spin, (gpointer)hash_var->hash_entry[spin_num]);
 	}
 	
 	guchar *digest;
@@ -283,7 +283,7 @@ compute_sha3 (gpointer user_data)
 	fine:
 	if (id > 0)
 	{
-		g_idle_add (stop_spin, (gpointer)hash_var->hash_spinner[spin_num]);
+		g_idle_add (stop_spin, (gpointer)hash_var->hash_entry[spin_num]);
 		g_source_remove (id);
 	}
 	

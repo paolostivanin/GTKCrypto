@@ -34,7 +34,7 @@ compute_sha1 (gpointer user_data)
 		goto fine;
 	}
 
-	id = g_idle_add (start_spin, (gpointer)hash_var->hash_spinner[2]);
+	id = g_timeout_add (50, start_spin, (gpointer)hash_var->hash_entry[2]);
 
 	struct sha1_ctx ctx;
 	guint8 digest[SHA1_DIGEST_SIZE];
@@ -124,7 +124,7 @@ compute_sha1 (gpointer user_data)
 	fine:
 	if (id > 0)
 	{
-		g_idle_add (stop_spin, (gpointer)hash_var->hash_spinner[2]);
+		g_idle_add (stop_spin, (gpointer)hash_var->hash_entry[2]);
 		g_source_remove (id);
 	}
 	
