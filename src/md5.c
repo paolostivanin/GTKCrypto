@@ -21,7 +21,7 @@ compute_md5 (gpointer user_data)
 	
    	if (!gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (hash_var->hash_check[0])))
    	{
-		gtk_entry_set_text (GTK_ENTRY (hash_var->hash_entry[0]), "");
+		//gtk_entry_set_text (GTK_ENTRY (hash_var->hash_entry[0]), "");
 		goto fine;
 	}
 	else if (g_utf8_strlen (gtk_entry_get_text (GTK_ENTRY (hash_var->hash_entry[0])), -1) == 32)
@@ -30,7 +30,7 @@ compute_md5 (gpointer user_data)
 	gpointer ptr = g_hash_table_lookup (hash_var->hash_table, hash_var->key[0]);
 	if (ptr != NULL)
 	{
-		gtk_entry_set_text (GTK_ENTRY (hash_var->hash_entry[0]), (gchar *)g_hash_table_lookup (hash_var->hash_table, hash_var->key[0]));
+		//gtk_entry_set_text (GTK_ENTRY (hash_var->hash_entry[0]), (gchar *)g_hash_table_lookup (hash_var->hash_table, hash_var->key[0]));
 		goto fine;
 	}
 
@@ -116,7 +116,7 @@ compute_md5 (gpointer user_data)
 		g_sprintf (hash+(i*2), "%02x", digest[i]);
 
  	hash[MD5_DIGEST_SIZE * 2] = '\0';
- 	gtk_entry_set_text (GTK_ENTRY (hash_var->hash_entry[0]), hash);
+ 	//gtk_entry_set_text (GTK_ENTRY (hash_var->hash_entry[0]), hash);
  	g_hash_table_insert (hash_var->hash_table, hash_var->key[0], strdup(hash));
  	
 	g_close(fd, &err);
