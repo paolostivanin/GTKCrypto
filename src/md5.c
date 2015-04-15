@@ -125,7 +125,7 @@ compute_md5 (gpointer user_data)
 	fine:
 	if (id > 0)
 	{
-		g_idle_add (stop_spin, (gpointer)hash_var->hash_spinner[0]);
+		g_idle_add (stop_spin, (gpointer)hash_var->hash_entry[0]);
 		g_source_remove (id);
 	}
 	
