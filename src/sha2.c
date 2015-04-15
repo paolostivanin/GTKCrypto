@@ -18,14 +18,17 @@ compute_sha2 (gpointer user_data)
 {
 	struct hash_vars *hash_var = user_data;
 	gint bit = 0;
+	guint id = 0;
+	gint spin_num;
 	
 	bit = hash_var->n_bit;
 	
 	if (bit == 256)
 	{
+		spin_num = 3;
 		if (!gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (hash_var->hash_check[3])))
 		{
-			gtk_entry_set_text (GTK_ENTRY (hash_var->hash_entry[3]), "");
+			//gtk_entry_set_text (GTK_ENTRY (hash_var->hash_entry[3]), "");
 			goto fine;
 		}
 		
@@ -35,16 +38,17 @@ compute_sha2 (gpointer user_data)
 		gpointer ptr = g_hash_table_lookup (hash_var->hash_table, hash_var->key[3]);
 		if (ptr != NULL)
 		{
-			gtk_entry_set_text (GTK_ENTRY (hash_var->hash_entry[3]), (gchar *)g_hash_table_lookup (hash_var->hash_table, hash_var->key[3]));
+			//gtk_entry_set_text (GTK_ENTRY (hash_var->hash_entry[3]), (gchar *)g_hash_table_lookup (hash_var->hash_table, hash_var->key[3]));
 			goto fine;
 		}
-		gtk_spinner_start (GTK_SPINNER (hash_var->hash_spinner[3]));
+		id = g_idle_add (start_spin, (gpointer)hash_var->hash_spinner[spin_num]);
 	}
 	else if (bit == 384)
 	{
+		spin_num = 5;
 		if (!gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (hash_var->hash_check[5])))
 		{
-			gtk_entry_set_text (GTK_ENTRY (hash_var->hash_entry[5]), "");
+			//gtk_entry_set_text (GTK_ENTRY (hash_var->hash_entry[5]), "");
 			goto fine;
 		}
 		
@@ -54,16 +58,17 @@ compute_sha2 (gpointer user_data)
 		gpointer ptr = g_hash_table_lookup (hash_var->hash_table, hash_var->key[5]);
 		if (ptr != NULL)
 		{
-			gtk_entry_set_text (GTK_ENTRY (hash_var->hash_entry[5]), (gchar *)g_hash_table_lookup (hash_var->hash_table, hash_var->key[5]));
+			//gtk_entry_set_text (GTK_ENTRY (hash_var->hash_entry[5]), (gchar *)g_hash_table_lookup (hash_var->hash_table, hash_var->key[5]));
 			goto fine;
 		}
-		gtk_spinner_start (GTK_SPINNER (hash_var->hash_spinner[5]));
+		id = g_idle_add (start_spin, (gpointer)hash_var->hash_spinner[spin_num]);
 	}
 	else
 	{
+		spin_num = 7;
 		if (!gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (hash_var->hash_check[7])))
 		{
-			gtk_entry_set_text (GTK_ENTRY (hash_var->hash_entry[7]), "");
+			//gtk_entry_set_text (GTK_ENTRY (hash_var->hash_entry[7]), "");
 			goto fine;
 		}
 		
@@ -73,10 +78,10 @@ compute_sha2 (gpointer user_data)
 		gpointer ptr = g_hash_table_lookup (hash_var->hash_table, hash_var->key[7]);
 		if (ptr != NULL)
 		{
-			gtk_entry_set_text (GTK_ENTRY (hash_var->hash_entry[7]), (gchar *)g_hash_table_lookup (hash_var->hash_table, hash_var->key[7]));
+			//gtk_entry_set_text (GTK_ENTRY (hash_var->hash_entry[7]), (gchar *)g_hash_table_lookup (hash_var->hash_table, hash_var->key[7]));
 			goto fine;
 		}
-		gtk_spinner_start (GTK_SPINNER (hash_var->hash_spinner[7]));	
+		id = g_idle_add (start_spin, (gpointer)hash_var->hash_spinner[spin_num]);	
 	}
 	
 	guchar *digest;
@@ -247,7 +252,7 @@ compute_sha2 (gpointer user_data)
 			g_sprintf (hash+(i*2), "%02x", digest[i]);
 
 		hash[SHA256_DIGEST_SIZE * 2] = '\0';
-		gtk_entry_set_text (GTK_ENTRY (hash_var->hash_entry[3]), hash);
+		//gtk_entry_set_text (GTK_ENTRY (hash_var->hash_entry[3]), hash);
 		g_hash_table_insert (hash_var->hash_table, hash_var->key[3], strdup(hash));		
 	}
 	else if (bit == 384)
@@ -257,7 +262,7 @@ compute_sha2 (gpointer user_data)
 			g_sprintf (hash+(i*2), "%02x", digest[i]);
 
 		hash[SHA384_DIGEST_SIZE * 2] = '\0';
-		gtk_entry_set_text (GTK_ENTRY (hash_var->hash_entry[5]), hash);
+		//gtk_entry_set_text (GTK_ENTRY (hash_var->hash_entry[5]), hash);
 		g_hash_table_insert (hash_var->hash_table, hash_var->key[5], strdup (hash));		
 	}
 	else
@@ -267,7 +272,7 @@ compute_sha2 (gpointer user_data)
 			g_sprintf (hash+(i*2), "%02x", digest[i]);
 
 		hash[SHA512_DIGEST_SIZE * 2] = '\0';
-		gtk_entry_set_text (GTK_ENTRY (hash_var->hash_entry[7]), hash);
+		//gtk_entry_set_text (GTK_ENTRY (hash_var->hash_entry[7]), hash);
 		g_hash_table_insert (hash_var->hash_table, hash_var->key[7], strdup (hash));		
 	}
 
@@ -277,8 +282,11 @@ compute_sha2 (gpointer user_data)
 	g_free (hash);
 	
 	fine:
-	gtk_spinner_stop (GTK_SPINNER (hash_var->hash_spinner[3]));
-	gtk_spinner_stop (GTK_SPINNER (hash_var->hash_spinner[5]));
-	gtk_spinner_stop (GTK_SPINNER (hash_var->hash_spinner[7]));
-	return;
+	if (id > 0)
+	{
+		g_idle_add (stop_spin, (gpointer)hash_var->hash_spinner[spin_num]);
+		g_source_remove (id);
+	}
+	
+	g_thread_exit (NULL);
 }

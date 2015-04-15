@@ -17,10 +17,11 @@ gpointer
 compute_sha1 (gpointer user_data)
 {
 	struct hash_vars *hash_var = user_data;
+	guint id = 0;
 	
    	if (!gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (hash_var->hash_check[2])))
    	{
-		gtk_entry_set_text(GTK_ENTRY(hash_var->hash_entry[2]), "");
+		//gtk_entry_set_text(GTK_ENTRY(hash_var->hash_entry[2]), "");
 		goto fine;
 	}
 	else if (g_utf8_strlen (gtk_entry_get_text (GTK_ENTRY (hash_var->hash_entry[2])), -1) == 40)
@@ -29,11 +30,11 @@ compute_sha1 (gpointer user_data)
 	gpointer ptr = g_hash_table_lookup (hash_var->hash_table, hash_var->key[2]);
 	if (ptr != NULL)
 	{
-		gtk_entry_set_text (GTK_ENTRY (hash_var->hash_entry[2]), (gchar *)g_hash_table_lookup (hash_var->hash_table, hash_var->key[2]));
+		//gtk_entry_set_text (GTK_ENTRY (hash_var->hash_entry[2]), (gchar *)g_hash_table_lookup (hash_var->hash_table, hash_var->key[2]));
 		goto fine;
 	}
 
-	gtk_spinner_start (GTK_SPINNER (hash_var->hash_spinner[2]));
+	id = g_idle_add (start_spin, (gpointer)hash_var->hash_spinner[2]);
 
 	struct sha1_ctx ctx;
 	guint8 digest[SHA1_DIGEST_SIZE];
@@ -115,12 +116,17 @@ compute_sha1 (gpointer user_data)
  		sprintf (hash+(i*2), "%02x", digest[i]);
  		
  	hash[SHA1_DIGEST_SIZE * 2] = '\0';
- 	gtk_entry_set_text (GTK_ENTRY (hash_var->hash_entry[2]), hash);
+ 	//gtk_entry_set_text (GTK_ENTRY (hash_var->hash_entry[2]), hash);
  	g_hash_table_insert (hash_var->hash_table, hash_var->key[2], strdup(hash));
  	
 	g_close(fd, &err);
 	
 	fine:
-	gtk_spinner_stop (GTK_SPINNER (hash_var->hash_spinner[2]));
-	return;
+	if (id > 0)
+	{
+		g_idle_add (stop_spin, (gpointer)hash_var->hash_spinner[2]);
+		g_source_remove (id);
+	}
+	
+	g_thread_exit (NULL);
 }
