@@ -17,7 +17,7 @@ gpointer
 compute_md5 (gpointer user_data)
 {
 	struct hash_vars *hash_var = user_data;
-	guint id = 0;
+	//guint id = 0;
 	
    	if (!gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (hash_var->hash_check[0])))
    	{
@@ -34,7 +34,7 @@ compute_md5 (gpointer user_data)
 		goto fine;
 	}
 
-	id = g_idle_add (start_spin, (gpointer)hash_var->hash_spinner[0]);
+	//id = g_idle_add (start_spin, (gpointer)hash_var->hash_spinner[0]);
 	
 	struct md5_ctx ctx;
 	guint8 digest[MD5_DIGEST_SIZE];
@@ -122,12 +122,7 @@ compute_md5 (gpointer user_data)
 	g_close(fd, &err);
 		
 	fine:
-	if (id > 0)
-	{
-		//stop_spin (GTK_SPINNER (hash_var->hash_spinner[0]));
-		stop_spin ((gpointer)hash_var->hash_spinner[0]);
-		g_source_remove (id);
-	}
+	stop_spin ((gpointer)hash_var->hash_spinner[0]);
 	
 	g_thread_exit (NULL);
 }
