@@ -631,9 +631,9 @@ compute_hash_dialog (	GtkWidget *file_dialog,
 gboolean
 start_spin (gpointer data)
 {
-	gtk_spinner_start (GTK_SPINNER (data));
-while (gtk_events_pending ())
-  gtk_main_iteration ();
+	//gtk_spinner_start (GTK_SPINNER (data));
+	gtk_entry_set_progress_pulse_step (GTK_ENTRY (data), 0.1);
+	gtk_entry_progress_pulse (GTK_ENTRY (data));
 	return TRUE;
 }
 
@@ -641,7 +641,9 @@ while (gtk_events_pending ())
 gboolean
 stop_spin (gpointer data)
 {
-	gtk_spinner_stop (GTK_SPINNER (data));
+	//gtk_spinner_stop (GTK_SPINNER (data));
+	gtk_entry_set_progress_pulse_step (GTK_ENTRY (data), 1.0);
+	gtk_entry_progress_pulse (GTK_ENTRY (data));
 	return FALSE;
 }
 
