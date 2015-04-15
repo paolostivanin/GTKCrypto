@@ -570,7 +570,6 @@ compute_hash_dialog (	GtkWidget *file_dialog,
 	{
 		hash_var.hash_check[i] = gtk_check_button_new_with_label (label[i]);
 		hash_var.hash_entry[i] = gtk_entry_new ();
-		hash_var.hash_spinner[i] = gtk_spinner_new ();
 		gtk_widget_set_name (GTK_WIDGET (hash_var.hash_entry[i]), "hash_entry");
 		gtk_editable_set_editable (GTK_EDITABLE (hash_var.hash_entry[i]), FALSE);
 		gtk_style_context_add_provider (gtk_widget_get_style_context (hash_var.hash_entry[i]), GTK_STYLE_PROVIDER (css), GTK_STYLE_PROVIDER_PRIORITY_USER);
@@ -589,7 +588,6 @@ compute_hash_dialog (	GtkWidget *file_dialog,
 	{
 		hbox[counter] = gtk_box_new (GTK_ORIENTATION_HORIZONTAL, 5);
 		hbox2[counter] = gtk_box_new (GTK_ORIENTATION_HORIZONTAL, 5);
-		gtk_box_pack_start (GTK_BOX (hbox[counter]), GTK_WIDGET (hash_var.hash_spinner[counter]), FALSE, FALSE, 0);
 		gtk_box_pack_start (GTK_BOX (hbox[counter]), GTK_WIDGET (hash_var.hash_check[counter]), FALSE, FALSE, 0);
 		
 		gtk_container_add (GTK_CONTAINER (vbox), hbox[counter]);
@@ -631,7 +629,6 @@ compute_hash_dialog (	GtkWidget *file_dialog,
 gboolean
 start_spin (gpointer data)
 {
-	//gtk_spinner_start (GTK_SPINNER (data));
 	gtk_entry_set_progress_pulse_step (GTK_ENTRY (data), 0.1);
 	gtk_entry_progress_pulse (GTK_ENTRY (data));
 	return TRUE;
@@ -641,7 +638,6 @@ start_spin (gpointer data)
 gboolean
 stop_spin (gpointer data)
 {
-	//gtk_spinner_stop (GTK_SPINNER (data));
 	gtk_entry_set_progress_pulse_step (GTK_ENTRY (data), 1.0);
 	gtk_entry_progress_pulse (GTK_ENTRY (data));
 	return FALSE;

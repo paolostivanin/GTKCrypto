@@ -34,7 +34,6 @@ compute_md5 (gpointer user_data)
 		goto fine;
 	}
 
-	//id = g_idle_add (start_spin, (gpointer)hash_var->hash_spinner[0]);
 	id = g_timeout_add (50, start_spin, (gpointer)hash_var->hash_entry[0]);
 	
 	struct md5_ctx ctx;
