@@ -11,3 +11,13 @@ il flow sarebbe:
 1) create the gtk_dialog with X gtk_entry and X gtk_check_button
 2) when a gtk_check_button is clicked a thread will be created (this thread won't update the UI, it will just compute an hash and return the result)
 3) inside the function which has created the gthread I have to add a g_idle_add to schedule the gui update. 
+
+Yes you could have as many threads as the system could handle. The problem occurs when you have say your 10 threads doing heavy computation. If that exceeds the number of cores on the system then you will have the extra overheads of the context switch between threads, because you will be accessing memory from a more random areas the cache, memory read ahead etc. will not work so well and the overall computation time will increase.
+
+Your system may have for example 1200 threads and processes running. Almost certainly all of these will be doing very little and be in a waiting state.
+
+You can get the number of threads that the system will schedule simultaneously using the function g_get_num_processors()
+
+In your case the use of GThreadPool would help as you can set the maximum number of threads to use using the above function. You then queue up your jobs and a job will be started as soon as a thread become available. This would be the most efficient if you are doing a number of heavy computations.
+
+This still does not solve your original problem of the GtkSpinner and the warning. The only way you are going to solve this is by re-factoring your code so that GTK is NOT called within any of your threads. One of the most popular ways in C and GTK is to use g_idle_add() in a worker thread to schedule a call-back in the main thread. The call-back will contain the GTK function calls to be done.
