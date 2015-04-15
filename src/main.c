@@ -632,6 +632,8 @@ gboolean
 start_spin (gpointer data)
 {
 	gtk_spinner_start (GTK_SPINNER (data));
+while (gtk_events_pending ())
+  gtk_main_iteration ();
 	return TRUE;
 }
 
