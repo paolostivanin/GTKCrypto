@@ -13,22 +13,6 @@
 #include "gtkcrypto.h"
 
 
-static gboolean
-spin (gpointer data)
-{
-	gtk_spinner_start (GTK_SPINNER (data));
-	return TRUE;
-}
-
-
-static gboolean
-stop_spinner (gpointer data)
-{
-	gtk_spinner_stop (GTK_SPINNER (data));
-	return TRUE;
-}
-
-
 gpointer
 compute_md5 (gpointer user_data)
 {
@@ -50,8 +34,7 @@ compute_md5 (gpointer user_data)
 		goto fine;
 	}
 
-	id = g_timeout_add (100, spin, (gpointer)hash_var->hash_spinner[0]);
-	//gtk_spinner_start (GTK_SPINNER (hash_var->hash_spinner[0]));
+	id = g_idle_add (start_spin, (gpointer)hash_var->hash_spinner[0]);
 	
 	struct md5_ctx ctx;
 	guint8 digest[MD5_DIGEST_SIZE];
@@ -139,9 +122,11 @@ compute_md5 (gpointer user_data)
 	g_close(fd, &err);
 		
 	fine:
-	if(id > 0) g_source_remove (id);
+	if (id > 0)
+	{
+		//stop_spin (GTK_SPINNER (hash_var->hash_spinner[0]));
+		g_source_remove (id);
+	}
 	
-	stop_spinner (GTK_SPINNER (hash_var->hash_spinner[0]));
-	//gtk_spinner_stop (GTK_SPINNER (hash_var->hash_spinner[0]));
 	g_thread_exit (NULL);
 }

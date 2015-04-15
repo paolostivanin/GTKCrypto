@@ -628,6 +628,22 @@ compute_hash_dialog (	GtkWidget *file_dialog,
 }
 
 
+gboolean
+start_spin (gpointer data)
+{
+	gtk_spinner_start (GTK_SPINNER (data));
+	return TRUE;
+}
+
+
+gboolean
+stop_spin (gpointer data)
+{
+	gtk_spinner_stop (GTK_SPINNER (data));
+	return TRUE;
+}
+
+
 gpointer
 create_thread (	GtkWidget *bt,
 				gpointer user_data)
