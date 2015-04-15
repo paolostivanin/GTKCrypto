@@ -628,17 +628,19 @@ compute_hash_dialog (	GtkWidget *file_dialog,
 }
 
 
-void
+gboolean
 start_spin (gpointer data)
 {
 	gtk_spinner_start (GTK_SPINNER (data));
+	return TRUE;
 }
 
 
-void
+gboolean
 stop_spin (gpointer data)
 {
 	gtk_spinner_stop (GTK_SPINNER (data));
+	return FALSE;
 }
 
 
@@ -663,7 +665,6 @@ create_thread (	GtkWidget *bt,
 				hash_var->n_bit = 512;
 			
 			hash_var->gth_created[i] = TRUE;
-			start_spin ((gpointer)hash_var->hash_spinner[i]);
 			hash_var->threads.gth[i] = g_thread_new (NULL, (GThreadFunc)hash_func[i], hash_var);
 		}
 	}

@@ -16,8 +16,8 @@
 goffset get_file_size (const gchar *);		
 gint check_pwd (GtkWidget *, GtkWidget *);		
 void error_dialog (const gchar *, GtkWidget *);	
-void start_spin (gpointer);	
-void stop_spin (gpointer);
+gboolean start_spin (gpointer);	
+gboolean stop_spin (gpointer);
 		
 		
 struct data		
