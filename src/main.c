@@ -629,7 +629,18 @@ start_spin (gpointer data)
 gboolean
 stop_spin (gpointer data)
 {
-	gtk_entry_set_progress_fraction (GTK_ENTRY (data), 0.0);
+	struct Data *func = data;
+	gtk_entry_set_progress_fraction (GTK_ENTRY (func->entry), 0.0);
+	gtk_entry_set_text (GTK_ENTRY (func->entry), (gchar *)g_hash_table_lookup (func->hash_table, func->key));
+	g_slice_free (struct Data, func);
+	return FALSE;
+}
+
+
+gboolean
+delete_entry (gpointer data)
+{
+	gtk_entry_set_text (GTK_ENTRY (data), "");
 	return FALSE;
 }
 

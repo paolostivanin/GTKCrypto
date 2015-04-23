@@ -16,12 +16,13 @@
 gpointer
 compute_md5 (gpointer user_data)
 {
+	struct Data *func_data = g_slice_new (struct Data);
 	struct hash_vars *hash_var = user_data;
 	guint id = 0;
 	
    	if (!gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (hash_var->hash_check[0])))
    	{
-		//gtk_entry_set_text (GTK_ENTRY (hash_var->hash_entry[0]), "");
+		g_idle_add (delete_entry, (gpointer)hash_var->hash_entry[0]);
 		goto fine;
 	}
 	else if (g_utf8_strlen (gtk_entry_get_text (GTK_ENTRY (hash_var->hash_entry[0])), -1) == 32)
@@ -30,7 +31,10 @@ compute_md5 (gpointer user_data)
 	gpointer ptr = g_hash_table_lookup (hash_var->hash_table, hash_var->key[0]);
 	if (ptr != NULL)
 	{
-		//gtk_entry_set_text (GTK_ENTRY (hash_var->hash_entry[0]), (gchar *)g_hash_table_lookup (hash_var->hash_table, hash_var->key[0]));
+		func_data->entry = hash_var->hash_entry[0];
+		func_data->hash_table = hash_var->hash_table;
+		func_data->key = hash_var->key[0];
+		g_idle_add (stop_spin, (gpointer)func_data);
 		goto fine;
 	}
 
@@ -38,10 +42,10 @@ compute_md5 (gpointer user_data)
 	
 	struct md5_ctx ctx;
 	guint8 digest[MD5_DIGEST_SIZE];
-	gint fd, i, retVal;
-	goffset fileSize = 0, doneSize = 0, diff = 0, offset = 0;
+	gint fd, i, ret_val;
+	goffset file_size = 0, done_size = 0, diff = 0, offset = 0;
 	gchar hash[(MD5_DIGEST_SIZE * 2) + 1];
-	guint8 *fAddr;
+	guint8 *addr;
 	GError *err = NULL;
 	
 	fd = g_open (hash_var->filename, O_RDONLY | O_NOFOLLOW);
@@ -51,21 +55,21 @@ compute_md5 (gpointer user_data)
 		return;
 	}
   	
-  	fileSize = get_file_size (hash_var->filename);
+  	file_size = get_file_size (hash_var->filename);
        
 	md5_init (&ctx);
 
-	if (fileSize < BUF_FILE)
+	if (file_size < BUF_FILE)
 	{
-		fAddr = mmap (NULL, fileSize, PROT_READ, MAP_FILE | MAP_SHARED, fd, 0);
-		if (fAddr == MAP_FAILED)
+		addr = mmap (NULL, file_size, PROT_READ, MAP_FILE | MAP_SHARED, fd, 0);
+		if (addr == MAP_FAILED)
 		{
 			g_printerr ("md5: %s\n", g_strerror (errno));
 			return;
 		}
-		md5_update (&ctx, fileSize, fAddr);
-		retVal = munmap (fAddr, fileSize);
-		if (retVal == -1)
+		md5_update (&ctx, file_size, addr);
+		ret_val = munmap (addr, file_size);
+		if (ret_val == -1)
 		{
 			g_printerr ("md5: munmap error\n");
 			return;
@@ -73,37 +77,37 @@ compute_md5 (gpointer user_data)
 		goto nowhile;
 	}
 
-	while (fileSize > doneSize)
+	while (file_size > done_size)
 	{
-		fAddr = mmap(NULL, BUF_FILE, PROT_READ, MAP_FILE | MAP_SHARED, fd, offset);
-		if (fAddr == MAP_FAILED)
+		addr = mmap (NULL, BUF_FILE, PROT_READ, MAP_FILE | MAP_SHARED, fd, offset);
+		if (addr == MAP_FAILED)
 		{
 			g_printerr ("md5: %s\n", g_strerror (errno));
 			return;
 		}
-		md5_update (&ctx, BUF_FILE, fAddr);
-		doneSize += BUF_FILE;
-		diff = fileSize - doneSize;
+		md5_update (&ctx, BUF_FILE, addr);
+		done_size += BUF_FILE;
+		diff = file_size - done_size;
 		offset += BUF_FILE;
 		if (diff < BUF_FILE && diff > 0)
 		{
-			fAddr = mmap (NULL, diff, PROT_READ, MAP_FILE | MAP_SHARED, fd, offset);
-			if (fAddr == MAP_FAILED)
+			addr = mmap (NULL, diff, PROT_READ, MAP_FILE | MAP_SHARED, fd, offset);
+			if (addr == MAP_FAILED)
 			{
 				g_printerr ("md5: %s\n", g_strerror (errno));
 				return;
 			}
-			md5_update (&ctx, diff, fAddr);
-			retVal = munmap (fAddr, diff);
-			if (retVal == -1)
+			md5_update (&ctx, diff, addr);
+			ret_val = munmap (addr, diff);
+			if (ret_val == -1)
 			{
 				g_printerr ("md5: munmap error\n");
 				return;
 			}
 			break;
 		}
-		retVal = munmap (fAddr, BUF_FILE);
-		if (retVal == -1)
+		ret_val = munmap (addr, BUF_FILE);
+		if (ret_val == -1)
 		{
 			g_printerr ("md5: munmap error\n");
 			return;
@@ -116,15 +120,17 @@ compute_md5 (gpointer user_data)
 		g_sprintf (hash+(i*2), "%02x", digest[i]);
 
  	hash[MD5_DIGEST_SIZE * 2] = '\0';
- 	//gtk_entry_set_text (GTK_ENTRY (hash_var->hash_entry[0]), hash);
- 	g_hash_table_insert (hash_var->hash_table, hash_var->key[0], strdup(hash));
+ 	g_hash_table_insert (hash_var->hash_table, hash_var->key[0], strdup (hash));
  	
-	g_close(fd, &err);
+	g_close (fd, &err);
 		
 	fine:
 	if (id > 0)
 	{
-		g_idle_add (stop_spin, (gpointer)hash_var->hash_entry[0]);
+		func_data->entry = hash_var->hash_entry[0];
+		func_data->hash_table = hash_var->hash_table;
+		func_data->key = hash_var->key[0];
+		g_idle_add (stop_spin, (gpointer)func_data);
 		g_source_remove (id);
 	}
 	

@@ -18,6 +18,7 @@ gint check_pwd (GtkWidget *, GtkWidget *);
 void error_dialog (const gchar *, GtkWidget *);	
 gboolean start_spin (gpointer);	
 gboolean stop_spin (gpointer);
+gboolean delete_entry (gpointer);
 		
 		
 struct data		
@@ -60,6 +61,14 @@ struct hash_vars
 	} threads;
 		
 };		
-extern struct hash_vars hash_var;		
+extern struct hash_vars hash_var;
+
+struct Data
+{
+	GtkWidget *entry;
+	GHashTable *hash_table;
+	gchar *key;
+};
+extern struct Data func_data;
 		
 #endif
