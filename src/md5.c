@@ -16,7 +16,7 @@
 gpointer
 compute_md5 (gpointer user_data)
 {
-	struct Data *func_data = g_slice_new (struct Data);
+	struct IdleData *func_data;
 	struct hash_vars *hash_var = user_data;
 	guint id = 0;
 	
@@ -31,6 +31,7 @@ compute_md5 (gpointer user_data)
 	gpointer ptr = g_hash_table_lookup (hash_var->hash_table, hash_var->key[0]);
 	if (ptr != NULL)
 	{
+		func_data = g_slice_new (struct IdleData);
 		func_data->entry = hash_var->hash_entry[0];
 		func_data->hash_table = hash_var->hash_table;
 		func_data->key = hash_var->key[0];
@@ -127,6 +128,7 @@ compute_md5 (gpointer user_data)
 	fine:
 	if (id > 0)
 	{
+		func_data = g_slice_new (struct IdleData);
 		func_data->entry = hash_var->hash_entry[0];
 		func_data->hash_table = hash_var->hash_table;
 		func_data->key = hash_var->key[0];

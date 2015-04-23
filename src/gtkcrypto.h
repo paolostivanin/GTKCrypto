@@ -63,12 +63,12 @@ struct hash_vars
 };		
 extern struct hash_vars hash_var;
 
-struct Data
+struct IdleData
 {
 	GtkWidget *entry;
 	GHashTable *hash_table;
 	gchar *key;
 };
-extern struct Data func_data;
+extern struct IdleData func_data;
 		
 #endif
