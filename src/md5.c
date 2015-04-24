@@ -22,7 +22,7 @@ compute_md5 (gpointer user_data)
 	
    	if (!gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (hash_var->hash_check[0])))
    	{
-		g_idle_add (delete_entry, (gpointer)hash_var->hash_entry[0]);
+		g_idle_add (delete_entry_text, (gpointer)hash_var->hash_entry[0]);
 		goto fine;
 	}
 	else if (g_utf8_strlen (gtk_entry_get_text (GTK_ENTRY (hash_var->hash_entry[0])), -1) == 32)
@@ -35,11 +35,11 @@ compute_md5 (gpointer user_data)
 		func_data->entry = hash_var->hash_entry[0];
 		func_data->hash_table = hash_var->hash_table;
 		func_data->key = hash_var->key[0];
-		g_idle_add (stop_spin, (gpointer)func_data);
+		g_idle_add (stop_entry_progress, (gpointer)func_data);
 		goto fine;
 	}
 
-	id = g_timeout_add (50, start_spin, (gpointer)hash_var->hash_entry[0]);
+	id = g_timeout_add (50, start_entry_progress, (gpointer)hash_var->hash_entry[0]);
 	
 	struct md5_ctx ctx;
 	guint8 digest[MD5_DIGEST_SIZE];
@@ -53,7 +53,7 @@ compute_md5 (gpointer user_data)
 	if (fd == -1)
 	{
 		g_printerr ("md5: %s\n", g_strerror (errno));
-		return;
+		g_thread_exit (NULL);
 	}
   	
   	file_size = get_file_size (hash_var->filename);
@@ -66,14 +66,14 @@ compute_md5 (gpointer user_data)
 		if (addr == MAP_FAILED)
 		{
 			g_printerr ("md5: %s\n", g_strerror (errno));
-			return;
+			g_thread_exit (NULL);
 		}
 		md5_update (&ctx, file_size, addr);
 		ret_val = munmap (addr, file_size);
 		if (ret_val == -1)
 		{
 			g_printerr ("md5: munmap error\n");
-			return;
+			g_thread_exit (NULL);
 		}
 		goto nowhile;
 	}
@@ -84,7 +84,7 @@ compute_md5 (gpointer user_data)
 		if (addr == MAP_FAILED)
 		{
 			g_printerr ("md5: %s\n", g_strerror (errno));
-			return;
+			g_thread_exit (NULL);
 		}
 		md5_update (&ctx, BUF_FILE, addr);
 		done_size += BUF_FILE;
@@ -96,14 +96,14 @@ compute_md5 (gpointer user_data)
 			if (addr == MAP_FAILED)
 			{
 				g_printerr ("md5: %s\n", g_strerror (errno));
-				return;
+				g_thread_exit (NULL);
 			}
 			md5_update (&ctx, diff, addr);
 			ret_val = munmap (addr, diff);
 			if (ret_val == -1)
 			{
 				g_printerr ("md5: munmap error\n");
-				return;
+				g_thread_exit (NULL);
 			}
 			break;
 		}
@@ -111,7 +111,7 @@ compute_md5 (gpointer user_data)
 		if (ret_val == -1)
 		{
 			g_printerr ("md5: munmap error\n");
-			return;
+			g_thread_exit (NULL);
 		}
 	}
 	
@@ -121,7 +121,7 @@ compute_md5 (gpointer user_data)
 		g_sprintf (hash+(i*2), "%02x", digest[i]);
 
  	hash[MD5_DIGEST_SIZE * 2] = '\0';
- 	g_hash_table_insert (hash_var->hash_table, hash_var->key[0], strdup (hash));
+ 	g_hash_table_insert (hash_var->hash_table, hash_var->key[0], g_strdup (hash));
  	
 	g_close (fd, &err);
 		
@@ -132,7 +132,7 @@ compute_md5 (gpointer user_data)
 		func_data->entry = hash_var->hash_entry[0];
 		func_data->hash_table = hash_var->hash_table;
 		func_data->key = hash_var->key[0];
-		g_idle_add (stop_spin, (gpointer)func_data);
+		g_idle_add (stop_entry_progress, (gpointer)func_data);
 		g_source_remove (id);
 	}
 	

@@ -16,19 +16,20 @@
 gpointer
 compute_sha3 (gpointer user_data)
 {
+	struct IdleData *func_data;
 	struct hash_vars *hash_var = user_data;
 	gint bit = 0;
 	guint id = 0;
-	gint spin_num;
+	gint entry_num;
 	
 	bit = hash_var->n_bit;
 	
 	if (bit == 256)
 	{
-		spin_num = 4;
+		entry_num = 4;
 		if (!gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (hash_var->hash_check[4])))
 		{
-			//gtk_entry_set_text (GTK_ENTRY (hash_var->hash_entry[4]), "");
+			g_idle_add (delete_entry_text, (gpointer)hash_var->hash_entry[entry_num]);
 			goto fine;
 		}
 		
@@ -38,17 +39,21 @@ compute_sha3 (gpointer user_data)
 		gpointer ptr = g_hash_table_lookup (hash_var->hash_table, hash_var->key[4]);
 		if (ptr != NULL)
 		{
-			//gtk_entry_set_text (GTK_ENTRY (hash_var->hash_entry[4]), (gchar *)g_hash_table_lookup (hash_var->hash_table, hash_var->key[4]));
+			func_data = g_slice_new (struct IdleData);
+			func_data->entry = hash_var->hash_entry[entry_num];
+			func_data->hash_table = hash_var->hash_table;
+			func_data->key = hash_var->key[entry_num];
+			g_idle_add (stop_entry_progress, (gpointer)func_data);
 			goto fine;
 		}
-		id = g_timeout_add (50, start_spin, (gpointer)hash_var->hash_entry[spin_num]);
+		id = g_timeout_add (50, start_entry_progress, (gpointer)hash_var->hash_entry[entry_num]);
 	}
 	else if (bit == 384)
 	{
-		spin_num = 6;
+		entry_num = 6;
 		if (!gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (hash_var->hash_check[6])))
 		{
-			//gtk_entry_set_text (GTK_ENTRY (hash_var->hash_entry[6]), "");
+			g_idle_add (delete_entry_text, (gpointer)hash_var->hash_entry[entry_num]);
 			goto fine;
 		}
 		
@@ -58,17 +63,21 @@ compute_sha3 (gpointer user_data)
 		gpointer ptr = g_hash_table_lookup (hash_var->hash_table, hash_var->key[6]);
 		if (ptr != NULL)
 		{
-			//gtk_entry_set_text (GTK_ENTRY (hash_var->hash_entry[6]), (gchar *)g_hash_table_lookup (hash_var->hash_table, hash_var->key[6]));
+			func_data = g_slice_new (struct IdleData);
+			func_data->entry = hash_var->hash_entry[entry_num];
+			func_data->hash_table = hash_var->hash_table;
+			func_data->key = hash_var->key[entry_num];
+			g_idle_add (stop_entry_progress, (gpointer)func_data);
 			goto fine;
 		}
-		id = g_timeout_add (50, start_spin, (gpointer)hash_var->hash_entry[spin_num]);
+		id = g_timeout_add (50, start_entry_progress, (gpointer)hash_var->hash_entry[entry_num]);
 	}
 	else
 	{
-		spin_num = 8;
+		entry_num = 8;
 		if (!gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (hash_var->hash_check[8])))
 		{
-			gtk_entry_set_text (GTK_ENTRY (hash_var->hash_entry[8]), "");
+			g_idle_add (delete_entry_text, (gpointer)hash_var->hash_entry[entry_num]);
 			goto fine;
 		}
 		
@@ -78,18 +87,22 @@ compute_sha3 (gpointer user_data)
 		gpointer ptr = g_hash_table_lookup (hash_var->hash_table, hash_var->key[8]);
 		if (ptr != NULL)
 		{
-			gtk_entry_set_text (GTK_ENTRY (hash_var->hash_entry[8]), (gchar *)g_hash_table_lookup (hash_var->hash_table, hash_var->key[8]));
+			func_data = g_slice_new (struct IdleData);
+			func_data->entry = hash_var->hash_entry[entry_num];
+			func_data->hash_table = hash_var->hash_table;
+			func_data->key = hash_var->key[entry_num];
+			g_idle_add (stop_entry_progress, (gpointer)func_data);
 			goto fine;
 		}
-		id = g_timeout_add (50, start_spin, (gpointer)hash_var->hash_entry[spin_num]);
+		id = g_timeout_add (50, start_entry_progress, (gpointer)hash_var->hash_entry[entry_num]);
 	}
 	
 	guchar *digest;
 	gchar *hash;
 	GError *err = NULL;
-	gint fd, i, retVal;
-	goffset fileSize, doneSize = 0, diff = 0, offset = 0;
-	guint8 *fAddr;
+	gint fd, i, ret_val;
+	goffset file_size, done_size = 0, diff = 0, offset = 0;
+	guint8 *addr;
 	
 	struct sha3_256_ctx ctx256;
 	struct sha3_384_ctx ctx384;
@@ -116,24 +129,24 @@ compute_sha3 (gpointer user_data)
 	if (digest == NULL)
 	{
 		g_printerr ("sha2: error during memory allocation\n");
-		return;
+		g_thread_exit (NULL);
 	}
 	
 	if (hash == NULL)
 	{
 		g_printerr ("sha2: error during memory allocation\n");
 		g_free (digest);
-		return;
+		g_thread_exit (NULL);
 	}
 	
 	fd = g_open (hash_var->filename, O_RDONLY | O_NOFOLLOW);
 	if (fd == -1)
 	{
 		g_printerr ("sha2: %s\n", g_strerror (errno));
-		return;
+		g_thread_exit (NULL);
 	}
   	
-  	fileSize = get_file_size (hash_var->filename);
+  	file_size = get_file_size (hash_var->filename);
   	
   	if (bit == 256)
 		sha3_256_init (&ctx256);
@@ -144,103 +157,103 @@ compute_sha3 (gpointer user_data)
 	else
 		sha3_512_init (&ctx512);
 		
-	if (fileSize < BUF_FILE)
+	if (file_size < BUF_FILE)
 	{
-		fAddr = mmap (NULL, fileSize, PROT_READ, MAP_FILE | MAP_SHARED, fd, 0);
-		if (fAddr == MAP_FAILED)
+		addr = mmap (NULL, file_size, PROT_READ, MAP_FILE | MAP_SHARED, fd, 0);
+		if (addr == MAP_FAILED)
 		{
 			g_printerr ("sha2: %s\n", g_strerror (errno));
 			g_free (digest);
 			g_free (hash);
 			g_close (fd, &err);
-			return;
+			g_thread_exit (NULL);
 		}
 		if (bit == 256)
-			sha3_256_update (&ctx256, fileSize, fAddr);
+			sha3_256_update (&ctx256, file_size, addr);
 		
 		else if (bit == 384)
-			sha3_384_update (&ctx384, fileSize, fAddr);
+			sha3_384_update (&ctx384, file_size, addr);
 		
 		else
-			sha3_512_update (&ctx512, fileSize, fAddr);
+			sha3_512_update (&ctx512, file_size, addr);
 			
-		retVal = munmap (fAddr, fileSize);
-		if (retVal == -1)
+		ret_val = munmap (addr, file_size);
+		if (ret_val == -1)
 		{
 			g_printerr ("sha2: %s\n", g_strerror (errno));
 			g_free (digest);
 			g_free (hash);
 			g_close (fd, &err);
-			return;
+			g_thread_exit (NULL);
 		}
 		goto nowhile;
 	}
 	
-	while (fileSize > doneSize)
+	while (file_size > done_size)
 	{
-		fAddr = mmap (NULL, BUF_FILE, PROT_READ, MAP_FILE | MAP_SHARED, fd, offset);
-		if (fAddr == MAP_FAILED)
+		addr = mmap (NULL, BUF_FILE, PROT_READ, MAP_FILE | MAP_SHARED, fd, offset);
+		if (addr == MAP_FAILED)
 		{
 			g_printerr ("sha2: %s\n", g_strerror (errno));
 			g_free (digest);
 			g_free (hash);
 			g_close (fd, &err);
-			return;
+			g_thread_exit (NULL);
 		}
 		
 		if (bit == 256)
-			sha3_256_update (&ctx256, BUF_FILE, fAddr);
+			sha3_256_update (&ctx256, BUF_FILE, addr);
 		
 		else if (bit == 384)
-			sha3_384_update (&ctx384, BUF_FILE, fAddr);
+			sha3_384_update (&ctx384, BUF_FILE, addr);
 		
 		else
-			sha3_512_update (&ctx512, BUF_FILE, fAddr);
+			sha3_512_update (&ctx512, BUF_FILE, addr);
 		
-		doneSize += BUF_FILE;
-		diff = fileSize - doneSize;
+		done_size += BUF_FILE;
+		diff = file_size - done_size;
 		offset += BUF_FILE;
 		
 		if (diff < BUF_FILE && diff > 0)
 		{
-			fAddr = mmap (NULL, diff, PROT_READ, MAP_FILE | MAP_SHARED, fd, offset);
-			if (fAddr == MAP_FAILED)
+			addr = mmap (NULL, diff, PROT_READ, MAP_FILE | MAP_SHARED, fd, offset);
+			if (addr == MAP_FAILED)
 			{
 				g_printerr ("sha2: %s\n", g_strerror (errno));
 				g_free (digest);
 				g_free (hash);
 				g_close (fd, &err);
-				return;
+				g_thread_exit (NULL);
 			}
 			
 			if (bit == 256)
-				sha3_256_update (&ctx256, diff, fAddr);
+				sha3_256_update (&ctx256, diff, addr);
 			
 			else if (bit == 384)
-				sha3_384_update (&ctx384, diff, fAddr);
+				sha3_384_update (&ctx384, diff, addr);
 			
 			else
-				sha3_512_update (&ctx512, diff, fAddr);
+				sha3_512_update (&ctx512, diff, addr);
 				
-			retVal = munmap(fAddr, diff);
-			if(retVal == -1){
+			ret_val = munmap(addr, diff);
+			if(ret_val == -1){
 				g_printerr ("sha2: %s\n", g_strerror (errno));
 				g_free (digest);
 				g_free (hash);
 				g_close (fd, &err);
-				return;
+				g_thread_exit (NULL);
 			}
 			break;
 		}
 		
-		retVal = munmap(fAddr, BUF_FILE);
-		if(retVal == -1)
+		ret_val = munmap(addr, BUF_FILE);
+		if(ret_val == -1)
 		{
 			g_printerr ("sha2: %s\n", g_strerror (errno));
 			g_free (digest);
 			g_free (hash);
 			g_close (fd, &err);
-			return;
+			g_thread_exit (NULL);
 		}
 	}
 	
@@ -283,7 +296,11 @@ compute_sha3 (gpointer user_data)
 	fine:
 	if (id > 0)
 	{
-		g_idle_add (stop_spin, (gpointer)hash_var->hash_entry[spin_num]);
+		func_data = g_slice_new (struct IdleData);
+		func_data->entry = hash_var->hash_entry[entry_num];
+		func_data->hash_table = hash_var->hash_table;
+		func_data->key = hash_var->key[entry_num];
+		g_idle_add (stop_entry_progress, (gpointer)func_data);
 		g_source_remove (id);
 	}
 	

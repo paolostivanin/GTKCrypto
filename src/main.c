@@ -618,7 +618,7 @@ compute_hash_dialog (	GtkWidget *file_dialog,
 
 
 gboolean
-start_spin (gpointer data)
+start_entry_progress (gpointer data)
 {
 	gtk_entry_set_progress_pulse_step (GTK_ENTRY (data), 0.1);
 	gtk_entry_progress_pulse (GTK_ENTRY (data));
@@ -627,7 +627,7 @@ start_spin (gpointer data)
 
 
 gboolean
-stop_spin (gpointer data)
+stop_entry_progress (gpointer data)
 {
 	struct IdleData *func = data;
 	gtk_entry_set_progress_fraction (GTK_ENTRY (func->entry), 0.0);
@@ -638,7 +638,7 @@ stop_spin (gpointer data)
 
 
 gboolean
-delete_entry (gpointer data)
+delete_entry_text (gpointer data)
 {
 	gtk_entry_set_text (GTK_ENTRY (data), "");
 	return FALSE;

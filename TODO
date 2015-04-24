@@ -1,12 +1,10 @@
 3.0-beta.4:
 * add configure script (check gtk 3.12 and glib 2.40)
-* added entry_progressbar
-* fix hashes gui (tutto su stesso hbox? ritornare a grid?)
-* fix thread bug (xubuntu 14.04/10/15.04 Source ID 1540 was not found when attempting to remove it)
+* struct rename?
 
 3.0-beta.5:
 * multiple file selection for en/de/cryption
-* encryption and decryption now use threads
+* (?) encryption and decryption now use threads (-> background, notification when finished?)
 
 --------------------------
 * to have a thread for a long running operation, and every time you want to update your UI from a thread, you schedule a UI update using g_idle_add() or g_main_context_invoke()
