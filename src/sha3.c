@@ -265,7 +265,6 @@ compute_sha3 (gpointer user_data)
 			g_sprintf (hash+(i*2), "%02x", digest[i]);
 
 		hash[SHA3_256_DIGEST_SIZE * 2] = '\0';
-		gtk_entry_set_text (GTK_ENTRY (hash_var->hash_entry[4]), hash);
 		g_hash_table_insert (hash_var->hash_table, hash_var->key[4], strdup (hash));		
 	}
 	else if (bit == 384)
@@ -275,7 +274,6 @@ compute_sha3 (gpointer user_data)
 			g_sprintf (hash+(i*2), "%02x", digest[i]);
 
 		hash[SHA3_384_DIGEST_SIZE * 2] = '\0';
-		gtk_entry_set_text (GTK_ENTRY (hash_var->hash_entry[6]), hash);
 		g_hash_table_insert (hash_var->hash_table, hash_var->key[6], strdup (hash));		
 	}
 	else
@@ -285,7 +283,6 @@ compute_sha3 (gpointer user_data)
 			g_sprintf (hash+(i*2), "%02x", digest[i]);
 
 		hash[SHA3_512_DIGEST_SIZE * 2] = '\0';
-		gtk_entry_set_text (GTK_ENTRY (hash_var->hash_entry[8]), hash);
 		g_hash_table_insert (hash_var->hash_table, hash_var->key[8], strdup (hash));		
 	}
  	

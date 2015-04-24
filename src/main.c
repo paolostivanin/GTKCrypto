@@ -187,7 +187,7 @@ main (	int argc,
 	setlocale (LC_ALL, "");
 	bindtextdomain (PACKAGE, LOCALE_DIR);
 	textdomain (PACKAGE);
-
+	
 	GtkApplication *app;
 	gint status;
 	
