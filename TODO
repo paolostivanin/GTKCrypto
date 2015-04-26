@@ -1,0 +1,14 @@
+3.0-beta.4:
+* [!!] GThreadPool + g_get_num_processor
+* [!!] if Cancel is pushed while a long thread is running -> errors
+* (?) struct rename
+
+3.0-beta.5:
+* add configure script (check gtk 3.12 and glib 2.40)
+* (?) encryption and decryption now use threads (-> background, notification when finished?)
+
+--------------------------
+Yes you could have as many threads as the system could handle. The problem occurs when you have say your 10 threads doing heavy computation. If that exceeds the number of cores on the system then you will have the extra overheads of the context switch between threads, because you will be accessing memory from a more random areas the cache, memory read ahead etc. will not work so well and the overall computation time will increase.
+Your system may have for example 1200 threads and processes running. Almost certainly all of these will be doing very little and be in a waiting state.
+You can get the number of threads that the system will schedule simultaneously using the function g_get_num_processors()
+In your case the use of GThreadPool would help as you can set the maximum number of threads to use using the above function. You then queue up your jobs and a job will be started as soon as a thread become available. This would be the most efficient if you are doing a number of heavy computations.
