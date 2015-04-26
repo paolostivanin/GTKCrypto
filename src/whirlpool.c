@@ -21,7 +21,10 @@ compute_whirlpool (gpointer user_data)
 	
    	if (!gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (hash_var->hash_check[9])))
    	{
-		g_idle_add (delete_entry_text, (gpointer)hash_var->hash_entry[9]);
+		func_data = g_slice_new (struct IdleData);
+		func_data->entry = hash_var->hash_entry[9];
+		func_data->check = hash_var->hash_check[9];
+		g_idle_add (delete_entry_text, (gpointer)func_data);
 		goto fine;
 	}
 	
@@ -35,6 +38,7 @@ compute_whirlpool (gpointer user_data)
 		func_data->entry = hash_var->hash_entry[9];
 		func_data->hash_table = hash_var->hash_table;
 		func_data->key = hash_var->key[9];
+		func_data->check = hash_var->hash_check[9];
 		g_idle_add (stop_entry_progress, (gpointer)func_data);
 		goto fine;
 	}
@@ -135,6 +139,7 @@ compute_whirlpool (gpointer user_data)
 		func_data->entry = hash_var->hash_entry[9];
 		func_data->hash_table = hash_var->hash_table;
 		func_data->key = hash_var->key[9];
+		func_data->check = hash_var->hash_check[9];
 		g_idle_add (stop_entry_progress, (gpointer)func_data);
 		g_source_remove (id);
 	}

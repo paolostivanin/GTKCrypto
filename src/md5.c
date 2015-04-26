@@ -22,7 +22,10 @@ compute_md5 (gpointer user_data)
 	
    	if (!gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (hash_var->hash_check[0])))
    	{
-		g_idle_add (delete_entry_text, (gpointer)hash_var->hash_entry[0]);
+		func_data = g_slice_new (struct IdleData);
+		func_data->entry = hash_var->hash_entry[0];
+		func_data->check = hash_var->hash_check[0];
+		g_idle_add (delete_entry_text, (gpointer)func_data);
 		goto fine;
 	}
 	else if (g_utf8_strlen (gtk_entry_get_text (GTK_ENTRY (hash_var->hash_entry[0])), -1) == 32)
@@ -35,6 +38,7 @@ compute_md5 (gpointer user_data)
 		func_data->entry = hash_var->hash_entry[0];
 		func_data->hash_table = hash_var->hash_table;
 		func_data->key = hash_var->key[0];
+		func_data->check = hash_var->hash_check[0];
 		g_idle_add (stop_entry_progress, (gpointer)func_data);
 		goto fine;
 	}
@@ -132,6 +136,7 @@ compute_md5 (gpointer user_data)
 		func_data->entry = hash_var->hash_entry[0];
 		func_data->hash_table = hash_var->hash_table;
 		func_data->key = hash_var->key[0];
+		func_data->check = hash_var->hash_check[0];
 		g_idle_add (stop_entry_progress, (gpointer)func_data);
 		g_source_remove (id);
 	}

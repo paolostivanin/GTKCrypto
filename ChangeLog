@@ -49,16 +49,13 @@
 	* NEW: possibility to choose between file or text encryption
 	* NEW: gui (header bar, popover, new main gui)
 	* NEW: possibility to choose between CBC and CTR mode
-	* NEW: text hashes
 	* FIXED: gtk_dialog transient
 	* FIXED: deprecated property
 	
 ??/??/2015 - v3.0-beta.4
 	* NEW: configure script
-	* NEW: multiple file selection for en/de/cryption
-	* IMPROVED: encryption and decryption processes now use threads
-	* IMPROVED: hash computation process now use threads [✓]
-	* FIXED: various bugs [✓]
+	* IMPROVED: hashes computation now use threads
+	* FIXED: tons of bugs
 
 ??/??/2015 - v3.1.0
 	* NEW: asymmetric encryption support (with RSA or with a ECC algo)

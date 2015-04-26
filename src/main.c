@@ -605,7 +605,7 @@ compute_hash_dialog (	GtkWidget *file_dialog,
 		case GTK_RESPONSE_REJECT:
 			for (i = 0; i < NUM_OF_HASH; i++)
 			{
-				if(hash_var.gth_created[i])
+				if (hash_var.gth_created[i])
 					g_thread_join (hash_var.threads.gth[i]);
 			}
 				
@@ -632,6 +632,7 @@ stop_entry_progress (gpointer data)
 	struct IdleData *func = data;
 	gtk_entry_set_progress_fraction (GTK_ENTRY (func->entry), 0.0);
 	gtk_entry_set_text (GTK_ENTRY (func->entry), (gchar *)g_hash_table_lookup (func->hash_table, func->key));
+	gtk_widget_set_sensitive (GTK_WIDGET (func->check), TRUE);
 	g_slice_free (struct IdleData, func);
 	return FALSE;
 }
@@ -640,7 +641,10 @@ stop_entry_progress (gpointer data)
 gboolean
 delete_entry_text (gpointer data)
 {
-	gtk_entry_set_text (GTK_ENTRY (data), "");
+	struct IdleData *func = data;
+	gtk_entry_set_text (GTK_ENTRY (func->entry), "");
+	gtk_widget_set_sensitive (GTK_WIDGET (func->check), TRUE);
+	g_slice_free (struct IdleData, func);
 	return FALSE;
 }
 
@@ -666,6 +670,7 @@ create_thread (	GtkWidget *bt,
 				hash_var->n_bit = 512;
 			
 			hash_var->gth_created[i] = TRUE;
+			gtk_widget_set_sensitive (GTK_WIDGET (hash_var->hash_check[i]), FALSE);
 			hash_var->threads.gth[i] = g_thread_new (NULL, (GThreadFunc)hash_func[i], hash_var);
 		}
 	}
