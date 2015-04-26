@@ -187,7 +187,7 @@ main (	int argc,
 	setlocale (LC_ALL, "");
 	bindtextdomain (PACKAGE, LOCALE_DIR);
 	textdomain (PACKAGE);
-
+	
 	GtkApplication *app;
 	gint status;
 	
@@ -546,7 +546,7 @@ compute_hash_dialog (	GtkWidget *file_dialog,
 	const gchar *label[] = {"MD5", "GOST94", "SHA-1", "SHA-256", "SHA3-256", "SHA-384", "SHA3-384", "SHA512", "SHA3-512", "WHIRLPOOL"};
 	gsize label_length;
 	
-	GtkWidget *content_area, *dialog;
+	GtkWidget *content_area, *dialog, *grid;
 	GtkDialogFlags flags = GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT;
 
 	dialog = gtk_dialog_new_with_buttons ( _("Select Hash"),
@@ -570,37 +570,26 @@ compute_hash_dialog (	GtkWidget *file_dialog,
 	{
 		hash_var.hash_check[i] = gtk_check_button_new_with_label (label[i]);
 		hash_var.hash_entry[i] = gtk_entry_new ();
-		hash_var.hash_spinner[i] = gtk_spinner_new ();
 		gtk_widget_set_name (GTK_WIDGET (hash_var.hash_entry[i]), "hash_entry");
 		gtk_editable_set_editable (GTK_EDITABLE (hash_var.hash_entry[i]), FALSE);
 		gtk_style_context_add_provider (gtk_widget_get_style_context (hash_var.hash_entry[i]), GTK_STYLE_PROVIDER (css), GTK_STYLE_PROVIDER_PRIORITY_USER);
 	}
 	
-	GtkWidget *hbox[10];
-	GtkWidget *hbox2[10];
-	GtkWidget *vbox;
-	GtkWidget *vbox2;
-	GtkWidget *blo;
-	vbox = gtk_box_new (GTK_ORIENTATION_VERTICAL, 7);
-	vbox2 = gtk_box_new (GTK_ORIENTATION_VERTICAL, 4);
-	blo = gtk_box_new (GTK_ORIENTATION_HORIZONTAL, 5);
+	grid = gtk_grid_new ();
+	gtk_grid_set_column_homogeneous (GTK_GRID (grid), FALSE);
 	
+	gint col = 0, row = 0, checkcolspan = 2, entrycolspan = 6, rowspan = 1;
+
 	for (counter = 0; counter < NUM_OF_HASH; counter++)
 	{
-		hbox[counter] = gtk_box_new (GTK_ORIENTATION_HORIZONTAL, 5);
-		hbox2[counter] = gtk_box_new (GTK_ORIENTATION_HORIZONTAL, 5);
-		gtk_box_pack_start (GTK_BOX (hbox[counter]), GTK_WIDGET (hash_var.hash_spinner[counter]), FALSE, FALSE, 0);
-		gtk_box_pack_start (GTK_BOX (hbox[counter]), GTK_WIDGET (hash_var.hash_check[counter]), FALSE, FALSE, 0);
-		
-		gtk_container_add (GTK_CONTAINER (vbox), hbox[counter]);
-				
-		gtk_box_pack_start (GTK_BOX (hbox2[counter]), GTK_WIDGET (hash_var.hash_entry[counter]), TRUE, TRUE, 0);
-		gtk_container_add (GTK_CONTAINER (vbox2), hbox2[counter]);
+		//col, row, col span, row span
+		gtk_grid_attach (GTK_GRID (grid), hash_var.hash_check[counter], col, row, checkcolspan, rowspan);
+		gtk_grid_attach (GTK_GRID (grid), hash_var.hash_entry[counter], col+2, row, entrycolspan, rowspan);
+		gtk_widget_set_hexpand (GTK_WIDGET (hash_var.hash_entry[counter]), TRUE);
+		row += 1;
 	}
 
-	gtk_box_pack_start (GTK_BOX (blo), vbox, FALSE, FALSE, 0);
-	gtk_box_pack_start (GTK_BOX (blo), vbox2, TRUE, TRUE, 0);
-	gtk_container_add (GTK_CONTAINER (content_area), blo);
+	gtk_container_add (GTK_CONTAINER (content_area), grid);
 	gtk_widget_show_all (dialog);
 	
 	for (i = 0; i < NUM_OF_HASH; i++)
@@ -616,7 +605,7 @@ compute_hash_dialog (	GtkWidget *file_dialog,
 		case GTK_RESPONSE_REJECT:
 			for (i = 0; i < NUM_OF_HASH; i++)
 			{
-				if(hash_var.gth_created[i])
+				if (hash_var.gth_created[i])
 					g_thread_join (hash_var.threads.gth[i]);
 			}
 				
@@ -625,6 +614,38 @@ compute_hash_dialog (	GtkWidget *file_dialog,
 			gtk_widget_destroy (dialog);
 			break;
 	}
+}
+
+
+gboolean
+start_entry_progress (gpointer data)
+{
+	gtk_entry_set_progress_pulse_step (GTK_ENTRY (data), 0.1);
+	gtk_entry_progress_pulse (GTK_ENTRY (data));
+	return TRUE;
+}
+
+
+gboolean
+stop_entry_progress (gpointer data)
+{
+	struct IdleData *func = data;
+	gtk_entry_set_progress_fraction (GTK_ENTRY (func->entry), 0.0);
+	gtk_entry_set_text (GTK_ENTRY (func->entry), (gchar *)g_hash_table_lookup (func->hash_table, func->key));
+	gtk_widget_set_sensitive (GTK_WIDGET (func->check), TRUE);
+	g_slice_free (struct IdleData, func);
+	return FALSE;
+}
+
+
+gboolean
+delete_entry_text (gpointer data)
+{
+	struct IdleData *func = data;
+	gtk_entry_set_text (GTK_ENTRY (func->entry), "");
+	gtk_widget_set_sensitive (GTK_WIDGET (func->check), TRUE);
+	g_slice_free (struct IdleData, func);
+	return FALSE;
 }
 
 
@@ -649,6 +670,7 @@ create_thread (	GtkWidget *bt,
 				hash_var->n_bit = 512;
 			
 			hash_var->gth_created[i] = TRUE;
+			gtk_widget_set_sensitive (GTK_WIDGET (hash_var->hash_check[i]), FALSE);
 			hash_var->threads.gth[i] = g_thread_new (NULL, (GThreadFunc)hash_func[i], hash_var);
 		}
 	}

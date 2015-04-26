@@ -15,7 +15,10 @@
 		
 goffset get_file_size (const gchar *);		
 gint check_pwd (GtkWidget *, GtkWidget *);		
-void error_dialog (const gchar *, GtkWidget *);		
+void error_dialog (const gchar *, GtkWidget *);	
+gboolean start_entry_progress (gpointer);	
+gboolean stop_entry_progress (gpointer);
+gboolean delete_entry_text (gpointer);
 		
 		
 struct data		
@@ -51,7 +54,6 @@ struct hash_vars
 	GHashTable *hash_table;		
 	GtkWidget *hash_entry[10]; //md5, gost, sha1, sha256, sha3-256, sha384, sha3_384, sha512, sha3-512, whir		
 	GtkWidget *hash_check[10]; //md5, gost, sha1, sha256, sha3-256, sha384, sha3_384, sha512, sha3-512, whir	
-	GtkWidget *hash_spinner[10];
 	gchar *key[10];
 	struct threads_list
 	{
@@ -59,6 +61,15 @@ struct hash_vars
 	} threads;
 		
 };		
-extern struct hash_vars hash_var;		
+extern struct hash_vars hash_var;
+
+struct IdleData
+{
+	GtkWidget *entry;
+	GtkWidget *check;
+	GHashTable *hash_table;
+	gchar *key;
+};
+extern struct IdleData func_data;
 		
 #endif

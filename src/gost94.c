@@ -16,97 +16,107 @@
 gpointer
 compute_gost94 (gpointer user_data)
 {
+	struct IdleData *func_data;
 	struct hash_vars *hash_var = user_data;
+	guint id = 0;
 	
    	if (!gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (hash_var->hash_check[1])))
    	{
-		gtk_entry_set_text (GTK_ENTRY (hash_var->hash_entry[1]), "");
+		func_data = g_slice_new (struct IdleData);
+		func_data->entry = hash_var->hash_entry[1];
+		func_data->check = hash_var->hash_check[1];
+		g_idle_add (delete_entry_text, (gpointer)func_data);
 		goto fine;
 	}
 	
-	else if (g_utf8_strlen (gtk_entry_get_text (GTK_ENTRY (hash_var->hash_entry[7])), -1) == 32)
+	else if (g_utf8_strlen (gtk_entry_get_text (GTK_ENTRY (hash_var->hash_entry[1])), -1) == 32)
 		goto fine;
 		
 	gpointer ptr = g_hash_table_lookup (hash_var->hash_table, hash_var->key[1]);
 	if (ptr != NULL)
 	{
-		gtk_entry_set_text (GTK_ENTRY (hash_var->hash_entry[1]), (gchar *)g_hash_table_lookup (hash_var->hash_table, hash_var->key[1]));
+		func_data = g_slice_new (struct IdleData);
+		func_data->entry = hash_var->hash_entry[1];
+		func_data->hash_table = hash_var->hash_table;
+		func_data->key = hash_var->key[1];
+		func_data->check = hash_var->hash_check[1];
+		g_idle_add (stop_entry_progress, (gpointer)func_data);
 		goto fine;
 	}
 	
-	gtk_spinner_start (GTK_SPINNER (hash_var->hash_spinner[1]));
-
+	id = g_timeout_add (50, start_entry_progress, (gpointer)hash_var->hash_entry[1]);
+	
 	struct gosthash94_ctx ctx;
 	guint8 digest[GOSTHASH94_DIGEST_SIZE];
-	gint fd, i, retVal;
-	goffset fileSize, doneSize = 0, diff = 0, offset = 0;
+	gint fd, i, ret_val;
+	goffset file_size, done_size = 0, diff = 0, offset = 0;
 	gchar hash[(GOSTHASH94_DIGEST_SIZE * 2) + 1];
-	guint8 *fAddr;
+	guint8 *addr;
 	GError *err = NULL;
 	
 	fd = g_open (hash_var->filename, O_RDONLY | O_NOFOLLOW);
 	if (fd == -1)
 	{
 		g_printerr ("gost94: %s\n", g_strerror (errno));
-		return;
+		g_thread_exit (NULL);
 	}
 	
-  	fileSize = get_file_size (hash_var->filename);
+  	file_size = get_file_size (hash_var->filename);
        
 	gosthash94_init (&ctx);
 
-	if (fileSize < BUF_FILE)
+	if (file_size < BUF_FILE)
 	{
-		fAddr = mmap (NULL, fileSize, PROT_READ, MAP_FILE | MAP_SHARED, fd, 0);
-		if (fAddr == MAP_FAILED)
+		addr = mmap (NULL, file_size, PROT_READ, MAP_FILE | MAP_SHARED, fd, 0);
+		if (addr == MAP_FAILED)
 		{
 			g_printerr ("gost94: %s\n", g_strerror (errno));
-			return;
+			g_thread_exit (NULL);
 		}
-		gosthash94_update (&ctx, fileSize, fAddr);
-		retVal = munmap (fAddr, fileSize);
-		if(retVal == -1)
+		gosthash94_update (&ctx, file_size, addr);
+		ret_val = munmap (addr, file_size);
+		if(ret_val == -1)
 		{
 			g_printerr ("gost94: munmap error\n");
-			return;
+			g_thread_exit (NULL);
 		}
 		goto nowhile;
 	}
 
-	while (fileSize > doneSize)
+	while (file_size > done_size)
 	{
-		fAddr = mmap (NULL, BUF_FILE, PROT_READ, MAP_FILE | MAP_SHARED, fd, offset);
-		if (fAddr == MAP_FAILED)
+		addr = mmap (NULL, BUF_FILE, PROT_READ, MAP_FILE | MAP_SHARED, fd, offset);
+		if (addr == MAP_FAILED)
 		{
 			g_printerr ("gost94: %s\n", g_strerror (errno));
-			return;
+			g_thread_exit (NULL);
 		}
-		gosthash94_update (&ctx, BUF_FILE, fAddr);
-		doneSize += BUF_FILE;
-		diff = fileSize - doneSize;
+		gosthash94_update (&ctx, BUF_FILE, addr);
+		done_size += BUF_FILE;
+		diff = file_size - done_size;
 		offset += BUF_FILE;
 		if (diff < BUF_FILE && diff > 0)
 		{
-			fAddr = mmap (NULL, diff, PROT_READ, MAP_FILE | MAP_SHARED, fd, offset);
-			if (fAddr == MAP_FAILED)
+			addr = mmap (NULL, diff, PROT_READ, MAP_FILE | MAP_SHARED, fd, offset);
+			if (addr == MAP_FAILED)
 			{
 				g_printerr ("gost94: %s\n", g_strerror (errno));
-				return;
+				g_thread_exit (NULL);
 			}
-			gosthash94_update (&ctx, diff, fAddr);
-			retVal = munmap (fAddr, diff);
-			if (retVal == -1)
+			gosthash94_update (&ctx, diff, addr);
+			ret_val = munmap (addr, diff);
+			if (ret_val == -1)
 			{
 				g_printerr ("gost94: munmap error\n");
-				return;
+				g_thread_exit (NULL);
 			}
 			break;
 		}
-		retVal = munmap (fAddr, BUF_FILE);
-		if (retVal == -1)
+		ret_val = munmap (addr, BUF_FILE);
+		if (ret_val == -1)
 		{
 			g_printerr ("gost94: munmap error\n");
-			return;
+			g_thread_exit (NULL);
 		}
 	}
 	
@@ -116,12 +126,21 @@ compute_gost94 (gpointer user_data)
 		g_sprintf (hash+(i*2), "%02x", digest[i]);
 
  	hash[GOSTHASH94_DIGEST_SIZE * 2] = '\0';
- 	gtk_entry_set_text (GTK_ENTRY (hash_var->hash_entry[1]), hash);
- 	g_hash_table_insert (hash_var->hash_table, hash_var->key[1], strdup(hash));
+ 	g_hash_table_insert (hash_var->hash_table, hash_var->key[1], g_strdup (hash));
  	
 	g_close(fd, &err);
 	
 	fine:
-	gtk_spinner_stop (GTK_SPINNER (hash_var->hash_spinner[1]));
-	return;
+	if (id > 0)
+	{
+		func_data = g_slice_new (struct IdleData);
+		func_data->entry = hash_var->hash_entry[1];
+		func_data->hash_table = hash_var->hash_table;
+		func_data->key = hash_var->key[1];
+		func_data->check = hash_var->hash_check[1];
+		g_idle_add (stop_entry_progress, (gpointer)func_data);
+		g_source_remove (id);
+	}
+	
+	g_thread_exit (NULL);
 }

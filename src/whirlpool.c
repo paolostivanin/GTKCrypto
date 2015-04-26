@@ -15,11 +15,16 @@
 gpointer
 compute_whirlpool (gpointer user_data)
 {
+	struct IdleData *func_data;
 	struct hash_vars *hash_var = user_data;
+	guint id = 0;
 	
    	if (!gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (hash_var->hash_check[9])))
    	{
-		gtk_entry_set_text (GTK_ENTRY (hash_var->hash_entry[9]), "");
+		func_data = g_slice_new (struct IdleData);
+		func_data->entry = hash_var->hash_entry[9];
+		func_data->check = hash_var->hash_check[9];
+		g_idle_add (delete_entry_text, (gpointer)func_data);
 		goto fine;
 	}
 	
@@ -29,84 +34,89 @@ compute_whirlpool (gpointer user_data)
 	gpointer ptr = g_hash_table_lookup (hash_var->hash_table, hash_var->key[9]);
 	if (ptr != NULL)
 	{
-		gtk_entry_set_text (GTK_ENTRY (hash_var->hash_entry[9]), (gchar *)g_hash_table_lookup (hash_var->hash_table, hash_var->key[9]));
+		func_data = g_slice_new (struct IdleData);
+		func_data->entry = hash_var->hash_entry[9];
+		func_data->hash_table = hash_var->hash_table;
+		func_data->key = hash_var->key[9];
+		func_data->check = hash_var->hash_check[9];
+		g_idle_add (stop_entry_progress, (gpointer)func_data);
 		goto fine;
 	}
 
-	gtk_spinner_start (GTK_SPINNER (hash_var->hash_spinner[9]));
+	id = g_timeout_add (50, start_entry_progress, (gpointer)hash_var->hash_entry[9]);
 
-	gint algo, i, fd, retVal;
+	gint algo, i, fd, ret_val;
 	gchar hash[129];
-	guint8 *fAddr;
+	guint8 *addr;
 	const gchar *name = gcry_md_algo_name(GCRY_MD_WHIRLPOOL);
 	algo = gcry_md_map_name(name);
-	goffset fileSize = 0, doneSize = 0, diff = 0, offset = 0;
+	goffset file_size = 0, done_size = 0, diff = 0, offset = 0;
 	GError *err = NULL;
 
 	fd = g_open (hash_var->filename, O_RDONLY | O_NOFOLLOW);
 	if (fd == -1)
 	{
 		g_printerr ("whirlpool: %s\n", g_strerror (errno));
-		return;
+		g_thread_exit (NULL);
 	}
   	
-  	fileSize = get_file_size (hash_var->filename);
+  	file_size = get_file_size (hash_var->filename);
 
 	gcry_md_hd_t hd;
 	gcry_md_open(&hd, algo, 0);
 
-	if (fileSize < BUF_FILE)
+	if (file_size < BUF_FILE)
 	{
-		fAddr = mmap (NULL, fileSize, PROT_READ, MAP_FILE | MAP_SHARED, fd, 0);
-		if (fAddr == MAP_FAILED)
+		addr = mmap (NULL, file_size, PROT_READ, MAP_FILE | MAP_SHARED, fd, 0);
+		if (addr == MAP_FAILED)
 		{
 			g_printerr ("whirlpool: %s\n", g_strerror (errno));
-			return;
+			g_thread_exit (NULL);
 		}
-		gcry_md_write (hd, fAddr, fileSize);
-		retVal = munmap (fAddr, fileSize);
-		if (retVal == -1)
+		gcry_md_write (hd, addr, file_size);
+		ret_val = munmap (addr, file_size);
+		if (ret_val == -1)
 		{
 			g_printerr ("whirlpool: munmap error");
-			return;
+			g_thread_exit (NULL);
 		}
 		goto nowhile;
 	}
 
-	while (fileSize > doneSize)
+	while (file_size > done_size)
 	{
-		fAddr = mmap (NULL, BUF_FILE, PROT_READ, MAP_FILE | MAP_SHARED, fd, offset);
-		if (fAddr == MAP_FAILED)
+		addr = mmap (NULL, BUF_FILE, PROT_READ, MAP_FILE | MAP_SHARED, fd, offset);
+		if (addr == MAP_FAILED)
 		{
 			g_printerr ("whirlpool: %s\n", g_strerror (errno));
-			return;
+			g_thread_exit (NULL);
 		}
-		gcry_md_write (hd, fAddr, BUF_FILE);
-		doneSize += BUF_FILE;
-		diff = fileSize - doneSize;
+		gcry_md_write (hd, addr, BUF_FILE);
+		done_size += BUF_FILE;
+		diff = file_size - done_size;
 		offset += BUF_FILE;
 		if (diff < BUF_FILE && diff > 0)
 		{
-			fAddr = mmap (NULL, diff, PROT_READ, MAP_FILE | MAP_SHARED, fd, offset);
-			if (fAddr == MAP_FAILED)
+			addr = mmap (NULL, diff, PROT_READ, MAP_FILE | MAP_SHARED, fd, offset);
+			if (addr == MAP_FAILED)
 			{
 				g_printerr ("whirlpool: %s\n", g_strerror (errno));
-				return;
+				g_thread_exit (NULL);
 			}
-			gcry_md_write (hd, fAddr, diff);
-			retVal = munmap (fAddr, diff);
-			if (retVal == -1)
+			gcry_md_write (hd, addr, diff);
+			ret_val = munmap (addr, diff);
+			if (ret_val == -1)
 			{
 				g_printerr ("whirlpool: munmap error");
-				return;
+				g_thread_exit (NULL);
 			}
 			break;
 		}
-		retVal = munmap (fAddr, BUF_FILE);
-		if (retVal == -1)
+		ret_val = munmap (addr, BUF_FILE);
+		if (ret_val == -1)
 		{
 			g_printerr ("whirlpool: munmap error");
-			return;
+			g_thread_exit (NULL);
 		}
 	}
 	
@@ -117,13 +127,22 @@ compute_whirlpool (gpointer user_data)
  		g_sprintf (hash+(i*2), "%02x", whirlpool[i]);
  	
  	hash[128] = '\0';
- 	gtk_entry_set_text (GTK_ENTRY (hash_var->hash_entry[9]), hash);
  	g_hash_table_insert (hash_var->hash_table, hash_var->key[9], strdup(hash));
  	
 	gcry_md_close (hd);
 	g_close(fd, &err);
 	
 	fine:
-	gtk_spinner_stop (GTK_SPINNER (hash_var->hash_spinner[9]));
-	return;
+	if (id > 0)
+	{
+		func_data = g_slice_new (struct IdleData);
+		func_data->entry = hash_var->hash_entry[9];
+		func_data->hash_table = hash_var->hash_table;
+		func_data->key = hash_var->key[9];
+		func_data->check = hash_var->hash_check[9];
+		g_idle_add (stop_entry_progress, (gpointer)func_data);
+		g_source_remove (id);
+	}
+	
+	g_thread_exit (NULL);
 }
