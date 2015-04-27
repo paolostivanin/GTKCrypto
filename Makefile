@@ -2,11 +2,15 @@ CC = gcc
 #CC = clang
 
 #if GCC < 4.9.0
-#CFLAGS = -Wall -Wextra -O2 -Wformat=2 -fstack-protector-all -fPIE -fdiagnostics-color=always -Wstrict-prototypes -Wunreachable-code  -Wwrite-strings -Wpointer-arith -Wbad-function-cast -Wcast-qual -Wcast-align $(shell pkg-config --cflags gtk+-3.0)
+#CFLAGS = -Wall -Wextra -O2 -Wformat=2 -fstack-protector-all -fPIE -Wstrict-prototypes -Wunreachable-code  -Wwrite-strings -Wpointer-arith -Wbad-function-cast -Wcast-qual -Wcast-align $(shell pkg-config --cflags gtk+-3.0)
+#else
 CFLAGS = -Wall -Wextra -O2 -Wformat=2 -fstack-protector-all -fPIE -fdiagnostics-color=always -Wstrict-prototypes -Wunreachable-code  -Wwrite-strings -Wpointer-arith -Wbad-function-cast -Wcast-qual -Wcast-align $(shell pkg-config --cflags gtk+-3.0)
+
 DFLAGS = -D_FILE_OFFSET_BITS=64 -U_FORTIFY_SOURCE -D_FORTIFY_SOURCE=2
 
-#delete -Wno-cast-qual after glib-2.44.1 has been released
+#if glib >= 2.44.1
+#NOFLAGS = -Wno-missing-field-initializers -Wno-return-type
+#else
 NOFLAGS = -Wno-missing-field-initializers -Wno-return-type -Wno-cast-qual
 
 LDFLAGS = -Wl,-z,now -Wl,-z,relro

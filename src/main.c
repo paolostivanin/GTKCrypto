@@ -598,22 +598,26 @@ compute_hash_dialog (	GtkWidget *file_dialog,
 		hash_var.gth_created[i] = FALSE;
 		g_signal_connect (hash_var.hash_check[i], "clicked", G_CALLBACK (create_thread), &hash_var);
 	}
+
+	hash_var.pool = g_thread_pool_new ((GFunc)prepare_thread, (gpointer)&hash_var, g_get_num_processors (), TRUE, NULL);
 	
 	result = gtk_dialog_run (GTK_DIALOG (dialog));
 	switch (result)
 	{
 		case GTK_RESPONSE_REJECT:
-			for (i = 0; i < NUM_OF_HASH; i++)
-			{
-				if (hash_var.gth_created[i])
-					g_thread_join (hash_var.threads.gth[i]);
-			}
-				
+			g_thread_pool_free (hash_var.pool, FALSE, FALSE);
 			g_free (hash_var.filename);
 			g_hash_table_destroy (hash_var.hash_table);
 			gtk_widget_destroy (dialog);
 			break;
 	}
+}
+
+gpointer prepare_thread (gpointer data, gpointer user_data)
+{
+	gpointer (*func)(gpointer);
+	func = data;
+	func (user_data);
 }
 
 
@@ -653,7 +657,6 @@ gpointer
 create_thread (	GtkWidget *bt,
 				gpointer user_data)
 {
-	
 	gint i;
 	struct hash_vars *hash_var = user_data;
 	const gchar *name = gtk_widget_get_name (bt);
@@ -669,9 +672,9 @@ create_thread (	GtkWidget *bt,
 			else if (g_strcmp0 (name, "BtSha512") == 0 || g_strcmp0 (name, "BtSha3_512") == 0)
 				hash_var->n_bit = 512;
 			
-			hash_var->gth_created[i] = TRUE;
+			
 			gtk_widget_set_sensitive (GTK_WIDGET (hash_var->hash_check[i]), FALSE);
-			hash_var->threads.gth[i] = g_thread_new (NULL, (GThreadFunc)hash_func[i], hash_var);
+			g_thread_pool_push (hash_var->pool, hash_func[i], NULL);
 		}
 	}
 }

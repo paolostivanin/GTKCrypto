@@ -19,6 +19,7 @@ void error_dialog (const gchar *, GtkWidget *);
 gboolean start_entry_progress (gpointer);	
 gboolean stop_entry_progress (gpointer);
 gboolean delete_entry_text (gpointer);
+gpointer prepare_thread (gpointer, gpointer);
 		
 		
 struct data		
@@ -49,9 +50,9 @@ extern struct main_vars main_var;
 struct hash_vars		
 {		
 	gint n_bit; //number of hash bit (256, 384, 512)
-	gboolean gth_created[10];
 	gchar *filename;	
-	GHashTable *hash_table;		
+	GHashTable *hash_table;
+	GThreadPool *pool;	
 	GtkWidget *hash_entry[10]; //md5, gost, sha1, sha256, sha3-256, sha384, sha3_384, sha512, sha3-512, whir		
 	GtkWidget *hash_check[10]; //md5, gost, sha1, sha256, sha3-256, sha384, sha3_384, sha512, sha3-512, whir	
 	gchar *key[10];

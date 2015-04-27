@@ -314,6 +314,4 @@ compute_sha2 (gpointer user_data)
 		g_idle_add (stop_entry_progress, (gpointer)func_data);
 		g_source_remove (id);
 	}
-	
-	g_thread_exit (NULL);
 }
