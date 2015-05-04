@@ -595,17 +595,16 @@ compute_hash_dialog (	GtkWidget *file_dialog,
 	for (i = 0; i < NUM_OF_HASH; i++)
 	{
 		gtk_widget_set_name (GTK_WIDGET (hash_var.hash_check[i]), bt_names[i]);
-		hash_var.gth_created[i] = FALSE;
 		g_signal_connect (hash_var.hash_check[i], "clicked", G_CALLBACK (create_thread), &hash_var);
 	}
 
-	hash_var.pool = g_thread_pool_new ((GFunc)prepare_thread, (gpointer)&hash_var, g_get_num_processors (), TRUE, NULL);
+	hash_var.pool = g_thread_pool_new ((GFunc)prepare_thread, (gpointer)&hash_var, g_get_num_processors (), FALSE, NULL);
 	
 	result = gtk_dialog_run (GTK_DIALOG (dialog));
 	switch (result)
 	{
 		case GTK_RESPONSE_REJECT:
-			g_thread_pool_free (hash_var.pool, FALSE, FALSE);
+			g_thread_pool_free (hash_var.pool, FALSE, TRUE);
 			g_free (hash_var.filename);
 			g_hash_table_destroy (hash_var.hash_table);
 			gtk_widget_destroy (dialog);
@@ -671,7 +670,6 @@ create_thread (	GtkWidget *bt,
 				hash_var->n_bit = 384;
 			else if (g_strcmp0 (name, "BtSha512") == 0 || g_strcmp0 (name, "BtSha3_512") == 0)
 				hash_var->n_bit = 512;
-			
 			
 			gtk_widget_set_sensitive (GTK_WIDGET (hash_var->hash_check[i]), FALSE);
 			g_thread_pool_push (hash_var->pool, hash_func[i], NULL);
