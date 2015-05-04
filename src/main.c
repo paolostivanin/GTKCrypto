@@ -530,6 +530,7 @@ compute_hash_dialog (	GtkWidget *file_dialog,
 	GtkCssProvider *css = gtk_css_provider_new ();
 	gtk_css_provider_load_from_path (css, "./src/style.css", NULL); // !!!! >> TODO: change path to /usr/share/gtkcrypto << !!!!
 	
+	hash_var.mainwin = main_window;
 	hash_var.hash_table = g_hash_table_new_full (g_str_hash, g_str_equal, g_free, g_free);
 	
 	gsize filename_length = strlen (filename);
@@ -595,10 +596,10 @@ compute_hash_dialog (	GtkWidget *file_dialog,
 	for (i = 0; i < NUM_OF_HASH; i++)
 	{
 		gtk_widget_set_name (GTK_WIDGET (hash_var.hash_check[i]), bt_names[i]);
-		g_signal_connect (hash_var.hash_check[i], "clicked", G_CALLBACK (create_thread), &hash_var);
+		hash_var.sig[i] = g_signal_connect (hash_var.hash_check[i], "clicked", G_CALLBACK (create_thread), &hash_var);
 	}
 
-	hash_var.pool = g_thread_pool_new ((GFunc)prepare_thread, (gpointer)&hash_var, g_get_num_processors (), FALSE, NULL);
+	hash_var.pool = g_thread_pool_new ((GFunc)launch_thread, (gpointer)&hash_var, g_get_num_processors (), FALSE, NULL);
 	
 	result = gtk_dialog_run (GTK_DIALOG (dialog));
 	switch (result)
@@ -612,7 +613,7 @@ compute_hash_dialog (	GtkWidget *file_dialog,
 	}
 }
 
-gpointer prepare_thread (gpointer data, gpointer user_data)
+gpointer launch_thread (gpointer data, gpointer user_data)
 {
 	gpointer (*func)(gpointer);
 	func = data;
@@ -659,6 +660,10 @@ create_thread (	GtkWidget *bt,
 	gint i;
 	struct hash_vars *hash_var = user_data;
 	const gchar *name = gtk_widget_get_name (bt);
+	const char *tmp_msg = _("For performance reason you cannot run\nmore threads than your system support");
+	char *msg;
+	msg = g_malloc (strlen(tmp_msg)+3+1); //msg len+max_core_len_(number btw 1 and 999)+\0
+	g_snprintf (msg, strlen(tmp_msg)+6, "%s (%d)", tmp_msg, g_get_num_processors());
 	
 	for (i = 0; i < NUM_OF_HASH; i++)
 	{
@@ -671,10 +676,21 @@ create_thread (	GtkWidget *bt,
 			else if (g_strcmp0 (name, "BtSha512") == 0 || g_strcmp0 (name, "BtSha3_512") == 0)
 				hash_var->n_bit = 512;
 			
+			if (g_thread_pool_get_num_threads (hash_var->pool) == g_get_num_processors ())
+			{
+				g_signal_handler_block (hash_var->hash_check[i], hash_var->sig[i]);
+				gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (hash_var->hash_check[i]), FALSE);
+				error_dialog (msg, hash_var->mainwin);
+				g_free (msg);
+				g_signal_handler_unblock (hash_var->hash_check[i], hash_var->sig[i]);
+				return NULL;
+			}
+			
 			gtk_widget_set_sensitive (GTK_WIDGET (hash_var->hash_check[i]), FALSE);
 			g_thread_pool_push (hash_var->pool, hash_func[i], NULL);
 		}
 	}
+	g_free (msg);
 }
 	
 	
