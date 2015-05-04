@@ -679,7 +679,7 @@ create_thread (	GtkWidget *bt,
 			if (g_thread_pool_get_num_threads (hash_var->pool) == g_get_num_processors ())
 			{
 				g_signal_handler_block (hash_var->hash_check[i], hash_var->sig[i]);
-				if (!gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (hash_var->hash_check[i])))
+				if (gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (hash_var->hash_check[i])))
 					gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (hash_var->hash_check[i]), FALSE);
 				else
 					gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (hash_var->hash_check[i]), TRUE);
