@@ -1,4 +1,4 @@
-GTKCrypto
+GTKCrypto (under development)
 ========
 
 This software let you to:
@@ -6,7 +6,7 @@ This software let you to:
 * Encrypt and decrypt text using AES, Twofish, Serpent or Camellia (256bit, CTR mode)
 * Compute hashes of a given file (supported hashes are MD5, GOST94, SHA-1, SHA-256, SHA-384, SHA-512, SHA3-256, SHA3-384, SHA3-512 and Whirlpool);
 
-This software is developed by Paolo "Polslinux" Stivanin (https://www.paolostivanin.com)
+This software is developed by Paolo "Polslinux" Stivanin (http://paolostivanin.com)
 
 
 Security
