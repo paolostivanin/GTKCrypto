@@ -556,7 +556,7 @@ compute_hash_dialog (	GtkWidget *file_dialog,
 				     _("Cancel"), GTK_RESPONSE_REJECT,
 				     NULL);
 
-	gtk_widget_set_size_request (dialog, 740, 300);
+	gtk_widget_set_size_request (dialog, 800, 300);
 	
 	content_area = gtk_dialog_get_content_area (GTK_DIALOG (dialog));
 	
@@ -578,6 +578,7 @@ compute_hash_dialog (	GtkWidget *file_dialog,
 	
 	grid = gtk_grid_new ();
 	gtk_grid_set_column_homogeneous (GTK_GRID (grid), FALSE);
+	gtk_grid_set_row_spacing (GTK_GRID(grid), 2);
 	
 	gint col = 0, row = 0, checkcolspan = 2, entrycolspan = 6, rowspan = 1;
 
@@ -612,6 +613,7 @@ compute_hash_dialog (	GtkWidget *file_dialog,
 			break;
 	}
 }
+
 
 gpointer launch_thread (gpointer data, gpointer user_data)
 {

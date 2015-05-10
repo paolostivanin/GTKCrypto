@@ -61,6 +61,7 @@ struct hash_vars
 };		
 extern struct hash_vars hash_var;
 
+
 struct IdleData
 {
 	GtkWidget *entry;

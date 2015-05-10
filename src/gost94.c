@@ -7,7 +7,6 @@
 #include <glib/gi18n.h>
 #include <locale.h>
 #include <libintl.h>
-#include <libnotify/notify.h>
 #include <nettle/gosthash94.h>
 #include <sys/mman.h>
 #include "gtkcrypto.h"

@@ -1,7 +1,6 @@
 #include <gtk/gtk.h>
 #include <glib.h>
 #include <glib/gstdio.h>
-#include <libnotify/notify.h>
 #include <gcrypt.h>
 #include <glib/gi18n.h>
 #include <locale.h>
