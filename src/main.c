@@ -546,18 +546,16 @@ compute_hash_dialog (	GtkWidget *file_dialog,
 	const gchar *label[] = {"MD5", "GOST94", "SHA-1", "SHA-256", "SHA3-256", "SHA-384", "SHA3-384", "SHA512", "SHA3-512", "WHIRLPOOL"};
 	gsize label_length;
 	
-	GtkWidget *content_area, *dialog, *grid;
-	GtkDialogFlags flags = GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT;
+	GtkWidget *content_area, *grid;
 
-	dialog = gtk_dialog_new_with_buttons ( _("Select Hash"),
-				     GTK_WINDOW (main_window),
-				     flags,
-				     _("Cancel"), GTK_RESPONSE_REJECT,
-				     NULL);
-
-	gtk_widget_set_size_request (dialog, 800, 300);
+	hash_var.dialog = gtk_dialog_new ();
+    gtk_window_set_title (GTK_WINDOW (hash_var.dialog), _("Select Hash"));
+    gtk_window_set_transient_for (GTK_WINDOW (hash_var.dialog), GTK_WINDOW (hash_var.mainwin));
+    gtk_dialog_add_button (GTK_DIALOG (hash_var.dialog), _("Cancel"), GTK_RESPONSE_CANCEL);
+    
+	gtk_widget_set_size_request (hash_var.dialog, 800, 300);
 	
-	content_area = gtk_dialog_get_content_area (GTK_DIALOG (dialog));
+	content_area = gtk_dialog_get_content_area (GTK_DIALOG (hash_var.dialog));
 	
 	for (i = 0; i < NUM_OF_HASH; i++)
 	{
@@ -591,7 +589,7 @@ compute_hash_dialog (	GtkWidget *file_dialog,
 	}
 
 	gtk_container_add (GTK_CONTAINER (content_area), grid);
-	gtk_widget_show_all (dialog);
+	gtk_widget_show_all (hash_var.dialog);
 	
 	for (i = 0; i < NUM_OF_HASH; i++)
 	{
@@ -601,14 +599,14 @@ compute_hash_dialog (	GtkWidget *file_dialog,
 
 	hash_var.pool = g_thread_pool_new ((GFunc)launch_thread, (gpointer)&hash_var, g_get_num_processors (), FALSE, NULL);
 	
-	result = gtk_dialog_run (GTK_DIALOG (dialog));
+	result = gtk_dialog_run (GTK_DIALOG (hash_var.dialog));
 	switch (result)
 	{
-		case GTK_RESPONSE_REJECT:
+		case GTK_RESPONSE_CANCEL:
 			g_thread_pool_free (hash_var.pool, FALSE, TRUE);
 			g_free (hash_var.filename);
 			g_hash_table_destroy (hash_var.hash_table);
-			gtk_widget_destroy (dialog);
+			gtk_widget_destroy (hash_var.dialog);
 			break;
 	}
 }
@@ -642,6 +640,22 @@ stop_entry_progress (gpointer data)
 	return FALSE;
 }
 
+gboolean
+stop_btn (gpointer data)
+{
+    struct hash_vars *func = data;
+    gtk_dialog_set_response_sensitive (GTK_DIALOG (func->dialog), GTK_RESPONSE_CANCEL, FALSE);
+    return FALSE;
+}
+
+gboolean
+start_btn (gpointer data)
+{
+    struct hash_vars *func = data;
+    if (g_thread_pool_get_num_threads (func->pool) == 1 && g_thread_pool_unprocessed (func->pool) == 0)
+        gtk_dialog_set_response_sensitive (GTK_DIALOG (func->dialog), GTK_RESPONSE_CANCEL, TRUE);
+    return FALSE;
+}
 
 gboolean
 delete_entry_text (gpointer data)
@@ -661,7 +675,7 @@ create_thread (	GtkWidget *bt,
 	gint i;
 	struct hash_vars *hash_var = user_data;
 	const gchar *name = gtk_widget_get_name (bt);
-	const char *tmp_msg = _("For performance reason you cannot run\nmore threads than your system support");
+	const char *tmp_msg = _("For performance reason you cannot run\nmore threads than your system supports");
 	char *msg;
 	msg = g_malloc (strlen(tmp_msg)+3+1); //msg len+max_core_len_(number btw 1 and 999)+\0
 	g_snprintf (msg, strlen(tmp_msg)+6, "%s (%d)", tmp_msg, g_get_num_processors());

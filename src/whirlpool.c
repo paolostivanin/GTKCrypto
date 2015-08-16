@@ -43,6 +43,7 @@ compute_whirlpool (gpointer user_data)
 	}
 
 	id = g_timeout_add (50, start_entry_progress, (gpointer)hash_var->hash_entry[9]);
+    g_idle_add (stop_btn, (gpointer)hash_var);
 
 	gint algo, i, fd, ret_val;
 	gchar hash[129];
@@ -132,6 +133,7 @@ compute_whirlpool (gpointer user_data)
 	g_close(fd, &err);
 	
 	fine:
+    g_idle_add (start_btn, (gpointer)hash_var);
 	if (id > 0)
 	{
 		func_data = g_slice_new (struct IdleData);

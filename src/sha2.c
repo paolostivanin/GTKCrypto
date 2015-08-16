@@ -118,6 +118,8 @@ compute_sha2 (gpointer user_data)
 	struct sha256_ctx ctx256;
 	struct sha384_ctx ctx384;
 	struct sha512_ctx ctx512;
+    
+    g_idle_add (stop_btn, (gpointer)hash_var);
 	
 	if (bit == 256)
 	{
@@ -303,6 +305,7 @@ compute_sha2 (gpointer user_data)
 	g_free (hash);
 	
 	fine:
+    g_idle_add (start_btn, (gpointer)hash_var);
 	if (id > 0)
 	{
 		func_data = g_slice_new (struct IdleData);

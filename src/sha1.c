@@ -43,6 +43,7 @@ compute_sha1 (gpointer user_data)
 	}
 
 	id = g_timeout_add (50, start_entry_progress, (gpointer)hash_var->hash_entry[2]);
+    g_idle_add (stop_btn, (gpointer)hash_var);
 
 	struct sha1_ctx ctx;
 	guint8 digest[SHA1_DIGEST_SIZE];
@@ -129,6 +130,7 @@ compute_sha1 (gpointer user_data)
 	g_close(fd, &err);
 	
 	fine:
+    g_idle_add (start_btn, (gpointer)hash_var);
 	if (id > 0)
 	{
 		func_data = g_slice_new (struct IdleData);

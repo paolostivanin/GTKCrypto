@@ -18,6 +18,8 @@ gint check_pwd (GtkWidget *, GtkWidget *);
 void error_dialog (const gchar *, GtkWidget *);	
 gboolean start_entry_progress (gpointer);	
 gboolean stop_entry_progress (gpointer);
+gboolean stop_btn (gpointer);
+gboolean start_btn (gpointer);
 gboolean delete_entry_text (gpointer);
 gpointer launch_thread (gpointer, gpointer);
 		
@@ -52,6 +54,7 @@ struct hash_vars
 	gint n_bit; //number of hash bit (256, 384, 512)
 	gulong sig[10];
 	GtkWidget *mainwin;
+    GtkWidget *dialog;
 	gchar *filename;	
 	GHashTable *hash_table;
 	GThreadPool *pool;	
@@ -64,6 +67,7 @@ extern struct hash_vars hash_var;
 
 struct IdleData
 {
+    GtkWidget *dialog;
 	GtkWidget *entry;
 	GtkWidget *check;
 	GHashTable *hash_table;
