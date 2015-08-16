@@ -64,7 +64,6 @@ about (	GSimpleAction __attribute__((__unused__)) *action,
 	gtk_about_dialog_set_wrap_license (GTK_ABOUT_DIALOG (a_dialog), TRUE);
 	gtk_about_dialog_set_website (GTK_ABOUT_DIALOG (a_dialog), "http://www.paolostivanin.com");
 	gtk_about_dialog_set_authors (GTK_ABOUT_DIALOG (a_dialog), authors);
-
 	gtk_dialog_run(GTK_DIALOG (a_dialog));
 	gtk_widget_destroy (a_dialog);
 }
