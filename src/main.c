@@ -675,39 +675,39 @@ create_thread (	GtkWidget *bt,
 	gint i;
 	struct hash_vars *hash_var = user_data;
 	const gchar *name = gtk_widget_get_name (bt);
-	const char *tmp_msg = _("For performance reason you cannot run\nmore threads than your system supports");
+	const char *tmp_msg = _("For performance reason you shouldn't run\nmore threads than your system supports");
 	char *msg;
 	msg = g_malloc (strlen(tmp_msg)+3+1); //msg len+max_core_len_(number btw 1 and 999)+\0
 	g_snprintf (msg, strlen(tmp_msg)+6, "%s (%d)", tmp_msg, g_get_num_processors());
 	
-	for (i = 0; i < NUM_OF_HASH; i++)
-	{
-		if (g_strcmp0 (name, bt_names[i]) == 0)
-		{
-			if (g_strcmp0 (name, "BtSha256") == 0 || g_strcmp0 (name, "BtSha3_256") == 0)
-				hash_var->n_bit = 256;
-			else if (g_strcmp0 (name, "BtSha384") == 0 || g_strcmp0 (name, "BtSha3_384") == 0)
-				hash_var->n_bit = 384;
-			else if (g_strcmp0 (name, "BtSha512") == 0 || g_strcmp0 (name, "BtSha3_512") == 0)
-				hash_var->n_bit = 512;
-			
-			if (g_thread_pool_get_num_threads (hash_var->pool) == g_get_num_processors ())
-			{
-				g_signal_handler_block (hash_var->hash_check[i], hash_var->sig[i]);
-				if (gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (hash_var->hash_check[i])))
-					gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (hash_var->hash_check[i]), FALSE);
-				else
-					gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (hash_var->hash_check[i]), TRUE);
-				error_dialog (msg, hash_var->mainwin);
-				g_free (msg);
-				g_signal_handler_unblock (hash_var->hash_check[i], hash_var->sig[i]);
-				return NULL;
-			}
-			
-			gtk_widget_set_sensitive (GTK_WIDGET (hash_var->hash_check[i]), FALSE);
-			g_thread_pool_push (hash_var->pool, hash_func[i], NULL);
-		}
-	}
+    for (i = 0; i < NUM_OF_HASH; i++)
+    {
+        if (g_strcmp0 (name, bt_names[i]) == 0)
+        {
+            if (g_strcmp0 (name, "BtSha256") == 0 || g_strcmp0 (name, "BtSha3_256") == 0)
+                hash_var->n_bit = 256;
+            else if (g_strcmp0 (name, "BtSha384") == 0 || g_strcmp0 (name, "BtSha3_384") == 0)
+                hash_var->n_bit = 384;
+            else if (g_strcmp0 (name, "BtSha512") == 0 || g_strcmp0 (name, "BtSha3_512") == 0)
+                hash_var->n_bit = 512;
+
+            if (g_thread_pool_get_num_threads (hash_var->pool) == g_get_num_processors ())
+            {
+                g_signal_handler_block (hash_var->hash_check[i], hash_var->sig[i]);
+                if (gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (hash_var->hash_check[i])))
+                    gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (hash_var->hash_check[i]), FALSE);
+                else
+                    gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (hash_var->hash_check[i]), TRUE);
+                error_dialog (msg, hash_var->mainwin);
+                g_free (msg);
+                g_signal_handler_unblock (hash_var->hash_check[i], hash_var->sig[i]);
+                return NULL;
+            }
+
+            gtk_widget_set_sensitive (GTK_WIDGET (hash_var->hash_check[i]), FALSE);
+            g_thread_pool_push (hash_var->pool, hash_func[i], NULL);
+        }
+    }
 	g_free (msg);
 }
 	
