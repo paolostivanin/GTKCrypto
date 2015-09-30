@@ -27,6 +27,115 @@ quit (	GSimpleAction __attribute__((__unused__)) *action,
 	g_application_quit (G_APPLICATION (app));
 }
 
+/* ======================== FROM HERE ======================================== */
+enum {
+    COLUMN_BOOLEAN,
+    COLUMN_ACNM,
+    COLUMN_OTP,
+    NUM_COLUMNS
+};
+
+
+static GtkTreeModel *
+create_model (void)
+{
+    GtkListStore *store;
+    GtkTreeIter iter;
+
+    /* create list store */
+    store = gtk_list_store_new (NUM_COLUMNS,
+                                G_TYPE_BOOLEAN,
+                                G_TYPE_STRING,
+                                G_TYPE_STRING);
+
+    /* add data to the list store */
+    gtk_list_store_append (store, &iter);
+    gtk_list_store_set (store, &iter,
+                        COLUMN_BOOLEAN, FALSE,
+                        COLUMN_ACNM, "Entry 1",
+                        COLUMN_OTP, "",
+                        -1);
+    gtk_list_store_append (store, &iter);
+    gtk_list_store_set (store, &iter,
+                        COLUMN_BOOLEAN, FALSE,
+                        COLUMN_ACNM, "Entry 2",
+                        COLUMN_OTP, "",
+                        -1);  
+
+    return GTK_TREE_MODEL (store);
+}
+
+
+static void
+fixed_toggled (GtkCellRendererToggle *cell __attribute__((__unused__)),
+               gchar                 *path_str,
+               gpointer               data)
+{
+    GtkTreeModel *model = (GtkTreeModel *)data;
+    GtkTreeIter  iter;
+    GtkTreePath *path = gtk_tree_path_new_from_string (path_str);
+    gboolean fixed;
+
+    /* get toggled iter */
+    gtk_tree_model_get_iter (model, &iter, path);
+    gtk_tree_model_get (model, &iter, COLUMN_BOOLEAN, &fixed, -1);
+
+    /* do something with the value */
+    fixed ^= 1;
+
+    /* set new value */
+    gtk_list_store_set (GTK_LIST_STORE (model), &iter, COLUMN_BOOLEAN, fixed, -1);
+
+    /* clean up */
+    gtk_tree_path_free (path);
+}
+
+
+static void
+add_columns (GtkTreeView *treeview)
+{
+    GtkCellRenderer *renderer;
+    GtkTreeViewColumn *column;
+    GtkTreeModel *model = gtk_tree_view_get_model (treeview);
+
+    /* column for fixed toggles */
+    renderer = gtk_cell_renderer_toggle_new ();
+    g_signal_connect (renderer, "toggled",
+                    G_CALLBACK (fixed_toggled), model);
+
+    column = gtk_tree_view_column_new_with_attributes ( "Show",
+                                                        renderer,
+                                                        "active", COLUMN_BOOLEAN,
+                                                        NULL);
+
+    /* set this column to a fixed sizing (of 50 pixels) */
+    gtk_tree_view_column_set_sizing (GTK_TREE_VIEW_COLUMN (column),
+                                   GTK_TREE_VIEW_COLUMN_FIXED);
+    gtk_tree_view_column_set_fixed_width (GTK_TREE_VIEW_COLUMN (column), 50);
+    gtk_tree_view_append_column (treeview, column);
+
+    /* column for severities */
+    renderer = gtk_cell_renderer_text_new ();
+    column = gtk_tree_view_column_new_with_attributes ( "Account Name",
+                                                        renderer,
+                                                        "text",
+                                                        COLUMN_ACNM,
+                                                        NULL);
+    gtk_tree_view_column_set_sort_column_id (column, COLUMN_ACNM);
+    gtk_tree_view_append_column (treeview, column);
+
+    /* column for description */
+    renderer = gtk_cell_renderer_text_new ();
+    column = gtk_tree_view_column_new_with_attributes ( "OTP Value",
+                                                        renderer,
+                                                        "text",
+                                                        COLUMN_OTP,
+                                                        NULL);
+    gtk_tree_view_column_set_sort_column_id (column, COLUMN_OTP);
+    gtk_tree_view_append_column (treeview, column);
+}
+
+/* ============================ TO HERE ===================================== */
 
 static void
 about (	GSimpleAction __attribute__((__unused__)) *action,
@@ -258,42 +367,46 @@ static void
 choose_file_dialog (GtkWidget *button,
 					struct main_vars *main_var)
 {
+    const gchar *name = gtk_widget_get_name (GTK_WIDGET (button));
 	GtkWidget *file_dialog;
-	GtkFileChooserAction action = GTK_FILE_CHOOSER_ACTION_OPEN;
 
 	file_dialog = gtk_file_chooser_dialog_new ( _("Choose File"),
 						  GTK_WINDOW (main_var->main_window),
-						  action,
+						  GTK_FILE_CHOOSER_ACTION_OPEN,
 						  _("OK"), GTK_RESPONSE_ACCEPT,
 						  _("Cancel"), GTK_RESPONSE_REJECT,
 						  NULL);
+    if (g_strcmp0 (name, "butHa") == 0)
+        gtk_file_chooser_set_select_multiple (GTK_FILE_CHOOSER (file_dialog), FALSE);
+    else
+        gtk_file_chooser_set_select_multiple (GTK_FILE_CHOOSER (file_dialog), TRUE);
+
 	gint result = gtk_dialog_run (GTK_DIALOG (file_dialog));
 	switch (result)
 	{
 		case GTK_RESPONSE_ACCEPT:
-			main_var->filename = gtk_file_chooser_get_filename (GTK_FILE_CHOOSER (file_dialog));
-			if (!g_utf8_validate (main_var->filename, -1, NULL))
-			{
-				error_dialog ( _("The name of the file you chose isn't a valid UTF-8 string."), main_var->main_window);
-				g_free (main_var->filename);
-				break;
-			}
-
-			const gchar *name = gtk_widget_get_name (GTK_WIDGET (button));
-			if (g_strcmp0 (name, "butEn") == 0)
-			{
-				main_var->encrypt = TRUE;
-				pwd_dialog (file_dialog, main_var);
-			}
-			else if (g_strcmp0 (name, "butDe") == 0)
-			{
-				main_var->encrypt = FALSE;
-				pwd_dialog (file_dialog, main_var);
-			}
-			else if (g_strcmp0 (name, "butHa") == 0)
+            if (g_strcmp0 (name, "butHa") == 0)
+            {
+                if (!g_utf8_validate (main_var->filename, -1, NULL))
+                {
+                    error_dialog ( _("The name of the file you have chose isn't a valid UTF-8 string."), main_var->main_window);
+                    g_free (main_var->filename);
+                    break;
+                }
+                main_var->filename = gtk_file_chooser_get_filename (GTK_FILE_CHOOSER (file_dialog));
 				compute_hash_dialog (file_dialog, main_var->main_window, main_var->filename);
-
-			g_free (main_var->filename);
+                g_free (main_var->filename);
+            }
+            else
+            {
+                if (g_strcmp0 (name, "butEn") == 0)
+                    main_var->encrypt = TRUE;
+                else
+                    main_var->encrypt = FALSE;
+                
+                main_var->filenames = gtk_file_chooser_get_filenames (GTK_FILE_CHOOSER (file_dialog));
+                pwd_dialog (file_dialog, main_var);
+            }
 			break;
 
 		default:
@@ -304,11 +417,16 @@ choose_file_dialog (GtkWidget *button,
 }
 
 
+/* ==================== AND THE FUNCTION BELOW ================================= */
 static void
-create_dialog (struct main_vars *main_var)
+create_dialog_single_file (struct main_vars *main_var)
 {
 	GtkWidget *content_area;
 	gint result;
+    
+    main_var->filename = g_strdup (main_var->filenames->data);
+    g_print ("%s\n", main_var->filename);
+    g_free (main_var->filenames->data);
 
 	main_var->bar_dialog = gtk_dialog_new_with_buttons ("Progress Bar",
 				     GTK_WINDOW (main_var->main_window),
@@ -337,7 +455,64 @@ create_dialog (struct main_vars *main_var)
 			break;
 	}
 
+    g_free (main_var->filename);
+    g_slist_free (main_var->filenames);
+
 	gtk_widget_destroy (main_var->bar_dialog);
+}
+
+
+static void
+create_dialog_multiple_files (struct main_vars *main_var)
+{
+    /* TODO:
+     * - check if all the filenames are valid UTF8
+     * - create a treeview with filename(s) and their enc status IF g_slist_length(GSList is > 1). Otherwise copy the only filename in main_var->filename and free it after
+     */
+	GtkWidget *diag, *content_area, *btn;
+    GtkTreeModel *model;
+    GtkWidget *treeview;
+    GtkWidget *sw;
+	gint result;
+
+	diag = gtk_dialog_new ();
+    btn = gtk_dialog_add_button (GTK_DIALOG (diag), _("_OK"), GTK_RESPONSE_OK);
+    gtk_window_set_transient_for (GTK_WINDOW (diag), GTK_WINDOW (main_var->main_window));
+    gtk_window_set_default_size (GTK_WINDOW (diag), 280, 250); 
+    
+	content_area = gtk_dialog_get_content_area (GTK_DIALOG (diag));
+    
+    sw = gtk_scrolled_window_new (NULL, NULL);
+    gtk_scrolled_window_set_shadow_type (GTK_SCROLLED_WINDOW (sw), GTK_SHADOW_ETCHED_IN);
+    gtk_scrolled_window_set_policy (GTK_SCROLLED_WINDOW (sw), GTK_POLICY_NEVER, GTK_POLICY_AUTOMATIC);
+    gtk_box_pack_start (GTK_BOX (content_area), sw, TRUE, TRUE, 0);
+
+    /* create tree model */
+    model = create_model ();
+
+    /* create tree view */
+    treeview = gtk_tree_view_new_with_model (model);
+    gtk_tree_view_set_search_column (GTK_TREE_VIEW (treeview), COLUMN_ACNM);
+
+    g_object_unref (model);
+    
+    gtk_container_add (GTK_CONTAINER (sw), treeview);
+
+    /* add columns to the tree view */
+    add_columns (GTK_TREE_VIEW (treeview));
+
+	gtk_widget_show_all (diag);
+
+	result = gtk_dialog_run (GTK_DIALOG (diag));
+	switch (result)
+	{
+		case GTK_RESPONSE_OK:
+			break;
+		default:
+			break;
+	}
+
+	gtk_widget_destroy (diag);
 }
 
 
@@ -482,7 +657,10 @@ pwd_dialog (GtkWidget *file_dialog,
 				else
 				{
 					gtk_widget_hide (dialog);
-					create_dialog (main_var);
+                    if (g_slist_length (main_var->filenames) == 1)
+                        create_dialog_single_file (main_var);
+                    else
+                        create_dialog_multiple_files (main_var);
 				}
 
 			}
@@ -490,7 +668,7 @@ pwd_dialog (GtkWidget *file_dialog,
 			{
 				main_var->hmac_error = FALSE;
 				gtk_widget_hide (dialog);
-				create_dialog (main_var);
+				create_dialog_single_file (main_var);
 				if (main_var->hmac_error)
 				{
 					gtk_widget_destroy (dialog);
