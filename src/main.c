@@ -16,8 +16,10 @@ static void hide_menu (struct main_vars *);
 static void toggle_changed_cb (GtkToggleButton *, GtkWidget *);
 static void compute_hash_dialog (GtkWidget *, GtkWidget *, const gchar *);
 
+
 const gchar *bt_names[] = {"BtMd5", "BtGost", "BtSha1", "BtSha256", "BtSha3_256", "BtSha384", "BtSha3_384", "BtSha512", "BtSha3_512", "BtWhirl" };
 gpointer (*hash_func[NUM_OF_HASH])(gpointer) = {compute_md5, compute_gost94, compute_sha1, compute_sha2, compute_sha3, compute_sha2, compute_sha3, compute_sha2, compute_sha3, compute_whirlpool};
+
 
 static void
 quit (	GSimpleAction __attribute__((__unused__)) *action,
@@ -27,67 +29,37 @@ quit (	GSimpleAction __attribute__((__unused__)) *action,
 	g_application_quit (G_APPLICATION (app));
 }
 
+
 /* ======================== FROM HERE ======================================== */
 enum {
-    COLUMN_BOOLEAN,
     COLUMN_ACNM,
-    COLUMN_OTP,
     NUM_COLUMNS
 };
 
 
 static GtkTreeModel *
-create_model (void)
+create_model (struct main_vars *main_var)
 {
     GtkListStore *store;
     GtkTreeIter iter;
-
+    GSList *list;
+    
     /* create list store */
-    store = gtk_list_store_new (NUM_COLUMNS,
-                                G_TYPE_BOOLEAN,
-                                G_TYPE_STRING,
-                                G_TYPE_STRING);
+    store = gtk_list_store_new (NUM_COLUMNS, G_TYPE_STRING);
 
     /* add data to the list store */
-    gtk_list_store_append (store, &iter);
-    gtk_list_store_set (store, &iter,
-                        COLUMN_BOOLEAN, FALSE,
-                        COLUMN_ACNM, "Entry 1",
-                        COLUMN_OTP, "",
-                        -1);
-    gtk_list_store_append (store, &iter);
-    gtk_list_store_set (store, &iter,
-                        COLUMN_BOOLEAN, FALSE,
-                        COLUMN_ACNM, "Entry 2",
-                        COLUMN_OTP, "",
-                        -1);  
-
+    for (list = main_var->filenames; list; list = list->next)
+    {
+        if (list->data)
+        {
+            gtk_list_store_append (store, &iter);
+            gtk_list_store_set (store, &iter, COLUMN_ACNM, list->data, -1);
+            g_free (list->data);
+        }
+    }
+    g_slist_free (main_var->filenames);
+    
     return GTK_TREE_MODEL (store);
-}
-
-
-static void
-fixed_toggled (GtkCellRendererToggle *cell __attribute__((__unused__)),
-               gchar                 *path_str,
-               gpointer               data)
-{
-    GtkTreeModel *model = (GtkTreeModel *)data;
-    GtkTreeIter  iter;
-    GtkTreePath *path = gtk_tree_path_new_from_string (path_str);
-    gboolean fixed;
-
-    /* get toggled iter */
-    gtk_tree_model_get_iter (model, &iter, path);
-    gtk_tree_model_get (model, &iter, COLUMN_BOOLEAN, &fixed, -1);
-
-    /* do something with the value */
-    fixed ^= 1;
-
-    /* set new value */
-    gtk_list_store_set (GTK_LIST_STORE (model), &iter, COLUMN_BOOLEAN, fixed, -1);
-
-    /* clean up */
-    gtk_tree_path_free (path);
 }
 
 
@@ -96,46 +68,15 @@ add_columns (GtkTreeView *treeview)
 {
     GtkCellRenderer *renderer;
     GtkTreeViewColumn *column;
-    GtkTreeModel *model = gtk_tree_view_get_model (treeview);
-
-    /* column for fixed toggles */
-    renderer = gtk_cell_renderer_toggle_new ();
-    g_signal_connect (renderer, "toggled",
-                    G_CALLBACK (fixed_toggled), model);
-
-    column = gtk_tree_view_column_new_with_attributes ( "Show",
-                                                        renderer,
-                                                        "active", COLUMN_BOOLEAN,
-                                                        NULL);
-
-    /* set this column to a fixed sizing (of 50 pixels) */
-    gtk_tree_view_column_set_sizing (GTK_TREE_VIEW_COLUMN (column),
-                                   GTK_TREE_VIEW_COLUMN_FIXED);
-    gtk_tree_view_column_set_fixed_width (GTK_TREE_VIEW_COLUMN (column), 50);
-    gtk_tree_view_append_column (treeview, column);
 
     /* column for severities */
     renderer = gtk_cell_renderer_text_new ();
-    column = gtk_tree_view_column_new_with_attributes ( "Account Name",
-                                                        renderer,
-                                                        "text",
-                                                        COLUMN_ACNM,
-                                                        NULL);
+    column = gtk_tree_view_column_new_with_attributes ("File Name", renderer, "text", COLUMN_ACNM, NULL);
     gtk_tree_view_column_set_sort_column_id (column, COLUMN_ACNM);
     gtk_tree_view_append_column (treeview, column);
-
-    /* column for description */
-    renderer = gtk_cell_renderer_text_new ();
-    column = gtk_tree_view_column_new_with_attributes ( "OTP Value",
-                                                        renderer,
-                                                        "text",
-                                                        COLUMN_OTP,
-                                                        NULL);
-    gtk_tree_view_column_set_sort_column_id (column, COLUMN_OTP);
-    gtk_tree_view_append_column (treeview, column);
 }
-
 /* ============================ TO HERE ===================================== */
+
 
 static void
 about (	GSimpleAction __attribute__((__unused__)) *action,
@@ -417,7 +358,6 @@ choose_file_dialog (GtkWidget *button,
 }
 
 
-/* ==================== AND THE FUNCTION BELOW ================================= */
 static void
 create_dialog_single_file (struct main_vars *main_var)
 {
@@ -462,6 +402,7 @@ create_dialog_single_file (struct main_vars *main_var)
 }
 
 
+/* ==================== AND THE FUNCTION BELOW ================================= */
 static void
 create_dialog_multiple_files (struct main_vars *main_var)
 {
@@ -488,7 +429,7 @@ create_dialog_multiple_files (struct main_vars *main_var)
     gtk_box_pack_start (GTK_BOX (content_area), sw, TRUE, TRUE, 0);
 
     /* create tree model */
-    model = create_model ();
+    model = create_model (main_var);
 
     /* create tree view */
     treeview = gtk_tree_view_new_with_model (model);

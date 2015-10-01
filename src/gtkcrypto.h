@@ -38,7 +38,8 @@ struct main_vars
 {		
 	gboolean encrypt; //TRUE := enc, FALSE := dec		
 	gboolean hmac_error;		
-	gchar *filename;		
+	gchar *filename;
+    GSList *filenames;
 	GtkWidget *main_window;		
 	GtkWidget *pwd_entry[2];		
 	GtkWidget *menu, *popover;		
