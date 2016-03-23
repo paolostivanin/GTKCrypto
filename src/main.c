@@ -9,7 +9,6 @@
 #include "gtkcrypto.h"
 #include "main.h"
 
-
 static void choose_file_dialog (GtkWidget *, struct main_vars *);
 static void pwd_dialog (GtkWidget *, struct main_vars *);
 static void hide_menu (struct main_vars *);
@@ -36,7 +35,6 @@ enum {
     NUM_COLUMNS
 };
 
-
 static GtkTreeModel *
 create_model (struct main_vars *main_var)
 {
@@ -52,6 +50,7 @@ create_model (struct main_vars *main_var)
     {
         if (list->data)
         {
+            // maybe use the basename instead of the full path? Evalute this option
             gtk_list_store_append (store, &iter);
             gtk_list_store_set (store, &iter, COLUMN_ACNM, list->data, -1);
             g_free (list->data);
@@ -112,7 +111,7 @@ about (	GSimpleAction __attribute__((__unused__)) *action,
 				"You should have received a copy of the GNU General Public License along with this program."
 				"\nIf not, see http://www.gnu.org/licenses\n\nGTKCrypto is Copyright (C) 2015 by Paolo Stivanin.\n");
 	gtk_about_dialog_set_wrap_license (GTK_ABOUT_DIALOG (a_dialog), TRUE);
-	gtk_about_dialog_set_website (GTK_ABOUT_DIALOG (a_dialog), "http://www.paolostivanin.com");
+	gtk_about_dialog_set_website (GTK_ABOUT_DIALOG (a_dialog), "https://www.paolostivanin.com");
 	gtk_about_dialog_set_authors (GTK_ABOUT_DIALOG (a_dialog), authors);
 	gtk_dialog_run(GTK_DIALOG (a_dialog));
 	gtk_widget_destroy (a_dialog);
