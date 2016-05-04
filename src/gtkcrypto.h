@@ -32,8 +32,7 @@ gboolean delete_entry_text (gpointer);
 gpointer launch_thread (gpointer, gpointer);
 		
 		
-struct data		
-{		
+struct data {
 	gint8 algo_type; //(NULL|0=aes),(1=serpent),(2=twofish),(3=camellia)		
 	gint8 block_cipher_mode; //1=CBC,2=CTR		
 	guint8 salt[32];		
@@ -42,8 +41,7 @@ struct data
 extern struct data metadata;		
 		
 		
-struct main_vars		
-{		
+struct main_vars {
 	gboolean encrypt; //TRUE := enc, FALSE := dec		
 	gboolean hmac_error;		
 	gchar *filename;
@@ -58,8 +56,7 @@ struct main_vars
 extern struct main_vars main_var;		
 		
 		
-struct hash_vars		
-{		
+struct hash_vars {
 	gint n_bit; //number of hash bit (256, 384, 512)
 	gulong sig[10];
 	GtkWidget *mainwin;
@@ -74,8 +71,7 @@ struct hash_vars
 extern struct hash_vars hash_var;
 
 
-struct IdleData
-{
+struct IdleData {
     GtkWidget *dialog;
 	GtkWidget *entry;
 	GtkWidget *check;

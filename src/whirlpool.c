@@ -43,7 +43,7 @@ compute_whirlpool (gpointer user_data) {
     g_idle_add (stop_btn, (gpointer)hash_var);
 
 	gint algo, i, fd, ret_val;
-	gchar hash[129];
+	gchar hash[WHIRLPOOL_DIGEST_SIZE * 2 + 1];
 	guint8 *addr;
 	const gchar *name = gcry_md_algo_name(GCRY_MD_WHIRLPOOL);
 	algo = gcry_md_map_name(name);
@@ -110,14 +110,14 @@ compute_whirlpool (gpointer user_data) {
 	nowhile:
 	gcry_md_final (hd);
 	guchar *whirlpool = gcry_md_read (hd, algo);
- 	for (i=0; i<64; i++)
+ 	for (i = 0; i < WHIRLPOOL_DIGEST_SIZE; i++)
  		g_sprintf (hash+(i*2), "%02x", whirlpool[i]);
  	
- 	hash[128] = '\0';
+ 	hash[WHIRLPOOL_DIGEST_SIZE * 2] = '\0';
  	g_hash_table_insert (hash_var->hash_table, hash_var->key[9], strdup(hash));
  	
 	gcry_md_close (hd);
-	g_close(fd, &err);
+	g_close (fd, &err);
 	
 	fine:
     g_idle_add (start_btn, (gpointer)hash_var);

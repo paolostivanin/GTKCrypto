@@ -1,17 +1,13 @@
 #include <gtk/gtk.h>
 #include <glib.h>
 #include <glib/gstdio.h>
-#include <gcrypt.h>
 #include <glib/gi18n.h>
 #include "gtkcrypto.h"
 #include "main.h"
 
 
 GtkWidget
-*create_popover (	GtkWidget *parent,
-			GtkPositionType pos,
-			struct main_vars *main_var)
-{
+*create_popover (GtkWidget *parent, GtkPositionType pos, struct main_vars *main_var) {
 
 	GtkWidget *popover, *box[3], *label[2], *hline[2], *vline;
 	const gchar *algo[] = {"Serpent", "Twofish", "Camellia-256"};

@@ -1,18 +1,12 @@
 #include <gtk/gtk.h>
 #include <glib.h>
-#include <glib/gstdio.h>
 #include <gdk-pixbuf/gdk-pixbuf.h>
-#include <gcrypt.h>
-#include <glib/gi18n.h>
-#include <locale.h>
-#include <libintl.h>
 #include "gtkcrypto.h"
 #include "main.h"
 
 
 GdkPixbuf
-*create_logo (gboolean is_about)
-{
+*create_logo (gboolean is_about) {
 	GError *err = NULL;
 	GdkPixbuf *logo;
 	
