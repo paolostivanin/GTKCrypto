@@ -11,7 +11,7 @@
 #include <sys/mman.h>
 #include "gtkcrypto.h"
 
-
+//TODO: use gcrypt instead of nettle
 gpointer
 compute_sha3 (gpointer user_data)
 {

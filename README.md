@@ -26,8 +26,7 @@ The latest can be found here: https://github.com/polslinux/GTKCrypto/releases
 Requirements
 ------------
 * GCC or Clang	: required version of Clang **>= 3.2**, of GCC **>= 4.4.0**;
-* Gcrypt	: required version **>=1.5.0**;
-* Nettle	: required version **>=2.6.0**;
+* Gcrypt	: required version **>=1.7.0**;
 * GTK+		: required version **>=3.12.0**;
 * Glib		: required version **>=2.40.0**;
 

@@ -7,7 +7,6 @@
 #include <glib/gi18n.h>
 #include <locale.h>
 #include <libintl.h>
-#include <nettle/md5.h>
 #include <sys/mman.h>
 #include "gtkcrypto.h"
 
@@ -44,14 +43,14 @@ compute_md5 (gpointer user_data)
 
 	id = g_timeout_add (50, start_entry_progress, (gpointer)hash_var->hash_entry[0]);
 	g_idle_add (stop_btn, (gpointer)hash_var);
-	
-	struct md5_ctx ctx;
-	guint8 digest[MD5_DIGEST_SIZE];
-	gint fd, i, ret_val;
-	goffset file_size = 0, done_size = 0, diff = 0, offset = 0;
-	gchar hash[(MD5_DIGEST_SIZE * 2) + 1];
-	guint8 *addr;
-	GError *err = NULL;
+
+    gint algo, i, fd, ret_val;
+    gchar hash[MD5_DIGEST_SIZE * 2 + 1];
+    guint8 *addr;
+    const gchar *name = gcry_md_algo_name(GCRY_MD_MD5);
+    algo = gcry_md_map_name(name);
+    gsize file_size = 0, done_size = 0, diff = 0, offset = 0;
+    GError *err = NULL;
 	
 	fd = g_open (hash_var->filename, O_RDONLY | O_NOFOLLOW);
 	if (fd == -1)
@@ -60,9 +59,10 @@ compute_md5 (gpointer user_data)
 		g_thread_exit (NULL);
 	}
   	
-  	file_size = get_file_size (hash_var->filename);
-       
-	md5_init (&ctx);
+  	file_size = (gsize)get_file_size (hash_var->filename);
+
+    gcry_md_hd_t hd;
+    gcry_md_open(&hd, algo, 0);
 
 	if (file_size < BUF_FILE)
 	{
@@ -72,7 +72,7 @@ compute_md5 (gpointer user_data)
 			g_printerr ("md5: %s\n", g_strerror (errno));
 			g_thread_exit (NULL);
 		}
-		md5_update (&ctx, file_size, addr);
+        gcry_md_write (hd, addr, file_size);
 		ret_val = munmap (addr, file_size);
 		if (ret_val == -1)
 		{
@@ -90,7 +90,7 @@ compute_md5 (gpointer user_data)
 			g_printerr ("md5: %s\n", g_strerror (errno));
 			g_thread_exit (NULL);
 		}
-		md5_update (&ctx, BUF_FILE, addr);
+        gcry_md_write (hd, addr, BUF_FILE);
 		done_size += BUF_FILE;
 		diff = file_size - done_size;
 		offset += BUF_FILE;
@@ -102,7 +102,7 @@ compute_md5 (gpointer user_data)
 				g_printerr ("md5: %s\n", g_strerror (errno));
 				g_thread_exit (NULL);
 			}
-			md5_update (&ctx, diff, addr);
+            gcry_md_write (hd, addr, diff);
 			ret_val = munmap (addr, diff);
 			if (ret_val == -1)
 			{
@@ -119,10 +119,11 @@ compute_md5 (gpointer user_data)
 		}
 	}
 	
-	nowhile:	
-	md5_digest (&ctx, MD5_DIGEST_SIZE, digest);
+	nowhile:
+    gcry_md_final (hd);
+    guchar *md5 = gcry_md_read (hd, algo);
  	for (i = 0; i < MD5_DIGEST_SIZE; i++)
-		g_sprintf (hash+(i*2), "%02x", digest[i]);
+		g_sprintf (hash+(i*2), "%02x", md5[i]);
 
  	hash[MD5_DIGEST_SIZE * 2] = '\0';
  	g_hash_table_insert (hash_var->hash_table, hash_var->key[0], g_strdup (hash));
