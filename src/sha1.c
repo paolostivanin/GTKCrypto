@@ -12,14 +12,12 @@
  
 
 gpointer
-compute_sha1 (gpointer user_data)
-{
+compute_sha1 (gpointer user_data) {
 	struct IdleData *func_data;
 	struct hash_vars *hash_var = user_data;
 	guint id = 0;
 	
-   	if (!gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (hash_var->hash_check[2])))
-   	{
+   	if (!gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (hash_var->hash_check[2]))) {
 		func_data = g_slice_new (struct IdleData);
 		func_data->entry = hash_var->hash_entry[2];
 		func_data->check = hash_var->hash_check[2];
@@ -30,8 +28,7 @@ compute_sha1 (gpointer user_data)
 		goto fine;
 	
 	gpointer ptr = g_hash_table_lookup (hash_var->hash_table, hash_var->key[2]);
-	if (ptr != NULL)
-	{
+	if (ptr != NULL) {
 		func_data = g_slice_new (struct IdleData);
 		func_data->entry = hash_var->hash_entry[2];
 		func_data->hash_table = hash_var->hash_table;
@@ -53,8 +50,7 @@ compute_sha1 (gpointer user_data)
 	GError *err = NULL;
 	
 	fd = g_open (hash_var->filename, O_RDONLY | O_NOFOLLOW);
-	if(fd == -1)
-	{
+	if(fd == -1) {
 		g_printerr ("sha1: %s\n", g_strerror (errno));
 		g_thread_exit (NULL);
 	}
@@ -64,29 +60,24 @@ compute_sha1 (gpointer user_data)
 	gcry_md_hd_t hd;
 	gcry_md_open(&hd, algo, 0);
 
-	if (file_size < BUF_FILE)
-	{
+	if (file_size < BUF_FILE) {
 		addr = mmap (NULL, file_size, PROT_READ, MAP_FILE | MAP_SHARED, fd, 0);
-		if (addr == MAP_FAILED)
-		{
+		if (addr == MAP_FAILED) {
 			g_printerr ("sha1: %s\n", g_strerror (errno));
 			g_thread_exit (NULL);
 		}
 		gcry_md_write (hd, addr, file_size);
 		ret_val = munmap (addr, file_size);
-		if (ret_val == -1)
-		{
+		if (ret_val == -1) {
 			g_printerr ("sha1: munmap error");
 			g_thread_exit (NULL);
 		}
 		goto nowhile;
 	}
 
-	while (file_size > done_size)
-	{
+	while (file_size > done_size) {
 		addr = mmap (NULL, BUF_FILE, PROT_READ, MAP_FILE | MAP_SHARED, fd, offset);
-		if (addr == MAP_FAILED)
-		{
+		if (addr == MAP_FAILED) {
 			g_printerr ("sha1: %s\n", g_strerror (errno));
 			g_thread_exit (NULL);
 		}
@@ -94,26 +85,22 @@ compute_sha1 (gpointer user_data)
 		done_size += BUF_FILE;
 		diff = file_size - done_size;
 		offset += BUF_FILE;
-		if (diff < BUF_FILE && diff > 0)
-		{
+		if (diff < BUF_FILE && diff > 0) {
 			addr = mmap (NULL, diff, PROT_READ, MAP_FILE | MAP_SHARED, fd, offset);
-			if (addr == MAP_FAILED)
-			{
+			if (addr == MAP_FAILED) {
 				g_printerr ("sha1: %s\n", g_strerror (errno));
 				g_thread_exit (NULL);
 			}
             gcry_md_write (hd, addr, diff);
 			ret_val = munmap (addr, diff);
-			if (ret_val == -1)
-			{
+			if (ret_val == -1) {
 				g_printerr ("sha1: munmap error");
 				g_thread_exit (NULL);
 			}
 			break;
 		}
 		ret_val = munmap (addr, BUF_FILE);
-		if (ret_val == -1)
-		{
+		if (ret_val == -1) {
 			g_printerr ("sha1: munmap error");
 			g_thread_exit (NULL);
 		}
@@ -132,8 +119,7 @@ compute_sha1 (gpointer user_data)
 	
 	fine:
     g_idle_add (start_btn, (gpointer)hash_var);
-	if (id > 0)
-	{
+	if (id > 0) {
 		func_data = g_slice_new (struct IdleData);
 		func_data->entry = hash_var->hash_entry[2];
 		func_data->hash_table = hash_var->hash_table;
