@@ -8,7 +8,7 @@ LDFLAGS = -Wl,-z,now -Wl,-z,relro
 
 LIBS = -lgcrypt $(shell pkg-config --libs gtk+-3.0)
 
-SOURCES = $(wildcard src/*.c)
+SOURCES = $(wildcard src/*.c src/hash/*.c)
 OBJS = ${SOURCES:.c=.o}
 
 PROG = gtkcrypto

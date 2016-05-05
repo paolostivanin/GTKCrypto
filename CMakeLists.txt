@@ -22,20 +22,20 @@ set(SOURCE_FILES
     src/crypt_file.h
     src/delete_input_file.c
     src/get_file_size.c
-    src/gost94.c
     src/gtkcrypto.h
     src/hmac.c
     src/main.c
     src/main.h
-    src/md5.c
     src/message_dialog.c
     src/random_write.c
-    src/sha1.c
-    src/sha2.c
-    src/sha3.c
+    src/hash/md5.c
+    src/hash/gost94.c
+    src/hash/sha1.c
+    src/hash/sha2.c
+    src/hash/sha3.c
+    src/hash/whirlpool.c
     src/text.c
     src/text.h
-    src/whirlpool.c
     src/zero_write.c)
 
 add_executable(GTKCrypto ${SOURCE_FILES})

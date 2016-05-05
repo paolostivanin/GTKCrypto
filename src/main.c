@@ -29,53 +29,53 @@ quit (GSimpleAction __attribute__((__unused__)) *action, GVariant __attribute__(
 
 /* ======================== FROM HERE ======================================== */
 enum {
-    COLUMN_ACNM,
-    NUM_COLUMNS
+	COLUMN_ACNM,
+	NUM_COLUMNS
 };
 
 static GtkTreeModel *
 create_model (struct main_vars *main_var) {
-    GtkListStore *store;
-    GtkTreeIter iter;
-    GSList *list;
-    
-    /* create list store */
-    store = gtk_list_store_new (NUM_COLUMNS, G_TYPE_STRING);
+	GtkListStore *store;
+	GtkTreeIter iter;
+	GSList *list;
 
-    /* add data to the list store */
-    for (list = main_var->filenames; list; list = list->next)
-    {
-        if (list->data)
-        {
-            // maybe use the basename instead of the full path? Evalute this option
-            gtk_list_store_append (store, &iter);
-            gtk_list_store_set (store, &iter, COLUMN_ACNM, list->data, -1);
-            g_free (list->data);
-        }
-    }
-    g_slist_free (main_var->filenames);
-    
-    return GTK_TREE_MODEL (store);
+	/* create list store */
+	store = gtk_list_store_new (NUM_COLUMNS, G_TYPE_STRING);
+
+	/* add data to the list store */
+	for (list = main_var->filenames; list; list = list->next)
+	{
+		if (list->data)
+		{
+			// maybe use the basename instead of the full path? Evalute this option
+			gtk_list_store_append (store, &iter);
+			gtk_list_store_set (store, &iter, COLUMN_ACNM, list->data, -1);
+			g_free (list->data);
+		}
+	}
+	g_slist_free (main_var->filenames);
+
+	return GTK_TREE_MODEL (store);
 }
 
 
 static void
 add_columns (GtkTreeView *treeview) {
-    GtkCellRenderer *renderer;
-    GtkTreeViewColumn *column;
+	GtkCellRenderer *renderer;
+	GtkTreeViewColumn *column;
 
-    /* column for severities */
-    renderer = gtk_cell_renderer_text_new ();
-    column = gtk_tree_view_column_new_with_attributes ("File Name", renderer, "text", COLUMN_ACNM, NULL);
-    gtk_tree_view_column_set_sort_column_id (column, COLUMN_ACNM);
-    gtk_tree_view_append_column (treeview, column);
+	/* column for severities */
+	renderer = gtk_cell_renderer_text_new ();
+	column = gtk_tree_view_column_new_with_attributes ("File Name", renderer, "text", COLUMN_ACNM, NULL);
+	gtk_tree_view_column_set_sort_column_id (column, COLUMN_ACNM);
+	gtk_tree_view_append_column (treeview, column);
 }
 /* ============================ TO HERE ===================================== */
 
 
 static void
 about (GSimpleAction __attribute__((__unused__)) *action, GVariant __attribute__((__unused__)) *parameter,
-       gpointer __attribute__((__unused__)) data) {
+	   gpointer __attribute__((__unused__)) data) {
 
 	const gchar *authors[] = {
 			"Paolo Stivanin <info@paolostivanin.com>",
@@ -92,17 +92,17 @@ about (GSimpleAction __attribute__((__unused__)) *action, GVariant __attribute__
 	gtk_about_dialog_set_version (GTK_ABOUT_DIALOG (a_dialog), VERSION);
 	gtk_about_dialog_set_copyright (GTK_ABOUT_DIALOG (a_dialog), "Copyright (C) 2015");
 	gtk_about_dialog_set_comments (GTK_ABOUT_DIALOG (a_dialog),
-				_("Encrypt and decrypt files using different cipher algo and different cipher mode or"
-				" compute their hash using different algo"));
+								   _("Encrypt and decrypt files using different cipher algo and different cipher mode or"
+											 " compute their hash using different algo"));
 	gtk_about_dialog_set_license(GTK_ABOUT_DIALOG(a_dialog),
-				"This program is free software: you can redistribute it and/or modify it under the terms"
-				" of the GNU General Public License as published by the Free Software Foundation, either version 3 of"
-				" the License, or (at your option) any later version.\n"
-				"This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even"
-				" the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. "
-				"See the GNU General Public License for more details.\n"
-				"You should have received a copy of the GNU General Public License along with this program."
-				"\nIf not, see http://www.gnu.org/licenses\n\nGTKCrypto is Copyright (C) 2015 by Paolo Stivanin.\n");
+								 "This program is free software: you can redistribute it and/or modify it under the terms"
+										 " of the GNU General Public License as published by the Free Software Foundation, either version 3 of"
+										 " the License, or (at your option) any later version.\n"
+										 "This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even"
+										 " the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. "
+										 "See the GNU General Public License for more details.\n"
+										 "You should have received a copy of the GNU General Public License along with this program."
+										 "\nIf not, see http://www.gnu.org/licenses\n\nGTKCrypto is Copyright (C) 2015 by Paolo Stivanin.\n");
 	gtk_about_dialog_set_wrap_license (GTK_ABOUT_DIALOG (a_dialog), TRUE);
 	gtk_about_dialog_set_website (GTK_ABOUT_DIALOG (a_dialog), "https://www.paolostivanin.com");
 	gtk_about_dialog_set_authors (GTK_ABOUT_DIALOG (a_dialog), authors);
@@ -114,8 +114,8 @@ about (GSimpleAction __attribute__((__unused__)) *action, GVariant __attribute__
 static void
 startup (GtkApplication *application, gpointer __attribute__((__unused__)) data) {
 	static const GActionEntry actions[] = {
-		{ "about", about },
-		{ "quit", quit }
+			{ "about", about },
+			{ "quit", quit }
 	};
 
 	const gchar *quit_accels[2] = { "<Ctrl>Q", NULL };
@@ -164,13 +164,13 @@ activate (GtkApplication *app, struct main_vars *main_var) {
 
 	for (i=0; i<NUM_OF_BUTTONS; i++) {
 		if(i == 5)
-            j++;
-		
-        button[i] = gtk_button_new_with_label (button_label[j]);
+			j++;
+
+		button[i] = gtk_button_new_with_label (button_label[j]);
 		gtk_widget_set_name (GTK_WIDGET (button[i]), button_name[i]);
-		
-        if(i%2 != 0)
-            j++;
+
+		if(i%2 != 0)
+			j++;
 	}
 
 	for (i=0; i<NUM_OF_FRAMES; i++)
@@ -182,17 +182,17 @@ activate (GtkApplication *app, struct main_vars *main_var) {
 	gtk_box_pack_start (GTK_BOX (box[0]), button[0], TRUE, TRUE, 2);
 	gtk_box_pack_start (GTK_BOX (box[0]), button[2], TRUE, TRUE, 2);
 	gtk_container_add (GTK_CONTAINER (frame[0]), box[0]);
-    
+
 	gtk_box_pack_start (GTK_BOX (box[1]), button[1], TRUE, TRUE, 2);
 	gtk_box_pack_start (GTK_BOX (box[1]), button[3], TRUE, TRUE, 2);
 	gtk_container_add (GTK_CONTAINER (frame[1]), box[1]);
-    
-    GValue bottom_margin = G_VALUE_INIT;
-    if (!G_IS_VALUE (&bottom_margin))
-        g_value_init (&bottom_margin, G_TYPE_UINT);
-    g_value_set_uint (&bottom_margin, 2);
-    for (i = 0; i < NUM_OF_BUTTONS; i++)
-        g_object_set_property (G_OBJECT (button[i]), "margin-bottom", &bottom_margin);
+
+	GValue bottom_margin = G_VALUE_INIT;
+	if (!G_IS_VALUE (&bottom_margin))
+		g_value_init (&bottom_margin, G_TYPE_UINT);
+	g_value_set_uint (&bottom_margin, 2);
+	for (i = 0; i < NUM_OF_BUTTONS; i++)
+		g_object_set_property (G_OBJECT (button[i]), "margin-bottom", &bottom_margin);
 
 	g_signal_connect (button[0], "clicked", G_CALLBACK (choose_file_dialog), main_var);
 	g_signal_connect (button[1], "clicked", G_CALLBACK (choose_file_dialog), main_var);
@@ -285,39 +285,41 @@ GtkWidget
 
 static void
 choose_file_dialog (GtkWidget *button, struct main_vars *main_var) {
-    const gchar *name = gtk_widget_get_name (GTK_WIDGET (button));
+	const gchar *name = gtk_widget_get_name (GTK_WIDGET (button));
 	GtkWidget *file_dialog;
 
 	file_dialog = gtk_file_chooser_dialog_new (_("Choose File"), GTK_WINDOW (main_var->main_window),
-                                               GTK_FILE_CHOOSER_ACTION_OPEN, _("OK"), GTK_RESPONSE_ACCEPT,
-                                               _("Cancel"), GTK_RESPONSE_REJECT, NULL);
-    if (g_strcmp0 (name, "butHa") == 0)
-        gtk_file_chooser_set_select_multiple (GTK_FILE_CHOOSER (file_dialog), FALSE);
-    else
-        gtk_file_chooser_set_select_multiple (GTK_FILE_CHOOSER (file_dialog), TRUE);
+											   GTK_FILE_CHOOSER_ACTION_OPEN, _("OK"), GTK_RESPONSE_ACCEPT,
+											   _("Cancel"), GTK_RESPONSE_REJECT, NULL);
+	if (g_strcmp0 (name, "butHa") == 0) {
+		gtk_file_chooser_set_select_multiple(GTK_FILE_CHOOSER (file_dialog), FALSE);
+	}
+	else {
+        gtk_file_chooser_set_select_multiple(GTK_FILE_CHOOSER (file_dialog), TRUE);
+    }
 
 	gint result = gtk_dialog_run (GTK_DIALOG (file_dialog));
 	switch (result) {
 		case GTK_RESPONSE_ACCEPT:
-            if (g_strcmp0 (name, "butHa") == 0) {
-                if (!g_utf8_validate (main_var->filename, -1, NULL)) {
-                    error_dialog ( _("The name of the file you have chose isn't a valid UTF-8 string."), main_var->main_window);
-                    g_free (main_var->filename);
-                    break;
-                }
-                main_var->filename = gtk_file_chooser_get_filename (GTK_FILE_CHOOSER (file_dialog));
+			if (g_strcmp0 (name, "butHa") == 0) {
+				if (!g_utf8_validate (main_var->filename, -1, NULL)) {
+					error_dialog ( _("The name of the file you have chose isn't a valid UTF-8 string."), main_var->main_window);
+					g_free (main_var->filename);
+					break;
+				}
+				main_var->filename = gtk_file_chooser_get_filename (GTK_FILE_CHOOSER (file_dialog));
 				compute_hash_dialog (file_dialog, main_var->main_window, main_var->filename);
-                g_free (main_var->filename);
-            }
-            else {
-                if (g_strcmp0 (name, "butEn") == 0)
-                    main_var->encrypt = TRUE;
-                else
-                    main_var->encrypt = FALSE;
-                
-                main_var->filenames = gtk_file_chooser_get_filenames (GTK_FILE_CHOOSER (file_dialog));
-                pwd_dialog (file_dialog, main_var);
-            }
+				g_free (main_var->filename);
+			}
+			else {
+				if (g_strcmp0 (name, "butEn") == 0)
+					main_var->encrypt = TRUE;
+				else
+					main_var->encrypt = FALSE;
+
+				main_var->filenames = gtk_file_chooser_get_filenames (GTK_FILE_CHOOSER (file_dialog));
+				pwd_dialog (file_dialog, main_var);
+			}
 			break;
 
 		default:
@@ -332,13 +334,13 @@ static void
 create_dialog_single_file (struct main_vars *main_var) {
 	GtkWidget *content_area;
 	gint result;
-    
-    main_var->filename = g_strdup (main_var->filenames->data);
-    g_print ("%s\n", main_var->filename);
-    g_free (main_var->filenames->data);
+
+	main_var->filename = g_strdup (main_var->filenames->data);
+	g_print ("%s\n", main_var->filename);
+	g_free (main_var->filenames->data);
 
 	main_var->bar_dialog = gtk_dialog_new_with_buttons ("Progress Bar", GTK_WINDOW (main_var->main_window),
-				     GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT, _("Close"), GTK_RESPONSE_REJECT, NULL);
+														GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT, _("Close"), GTK_RESPONSE_REJECT, NULL);
 
 	gtk_widget_set_size_request (main_var->bar_dialog, 250, 80);
 	gtk_dialog_set_response_sensitive (GTK_DIALOG (main_var->bar_dialog), GTK_RESPONSE_REJECT, FALSE);
@@ -360,8 +362,8 @@ create_dialog_single_file (struct main_vars *main_var) {
 			break;
 	}
 
-    g_free (main_var->filename);
-    g_slist_free (main_var->filenames);
+	g_free (main_var->filename);
+	g_slist_free (main_var->filenames);
 
 	gtk_widget_destroy (main_var->bar_dialog);
 }
@@ -370,41 +372,41 @@ create_dialog_single_file (struct main_vars *main_var) {
 /* ==================== AND THE FUNCTION BELOW ================================= */
 static void
 create_dialog_multiple_files (struct main_vars *main_var) {
-    /* TODO:
+	/* TODO:
      * - check if all the filenames are valid UTF8
      * - create a treeview with filename(s) and their enc status IF g_slist_length(GSList is > 1). Otherwise copy the only filename in main_var->filename and free it after
      */
 	GtkWidget *diag, *content_area, *btn;
-    GtkTreeModel *model;
-    GtkWidget *treeview;
-    GtkWidget *sw;
+	GtkTreeModel *model;
+	GtkWidget *treeview;
+	GtkWidget *sw;
 	gint result;
 
 	diag = gtk_dialog_new ();
-    btn = gtk_dialog_add_button (GTK_DIALOG (diag), _("_OK"), GTK_RESPONSE_OK);
-    gtk_window_set_transient_for (GTK_WINDOW (diag), GTK_WINDOW (main_var->main_window));
-    gtk_window_set_default_size (GTK_WINDOW (diag), 280, 250); 
-    
+	btn = gtk_dialog_add_button (GTK_DIALOG (diag), _("_OK"), GTK_RESPONSE_OK);
+	gtk_window_set_transient_for (GTK_WINDOW (diag), GTK_WINDOW (main_var->main_window));
+	gtk_window_set_default_size (GTK_WINDOW (diag), 280, 250);
+
 	content_area = gtk_dialog_get_content_area (GTK_DIALOG (diag));
-    
-    sw = gtk_scrolled_window_new (NULL, NULL);
-    gtk_scrolled_window_set_shadow_type (GTK_SCROLLED_WINDOW (sw), GTK_SHADOW_ETCHED_IN);
-    gtk_scrolled_window_set_policy (GTK_SCROLLED_WINDOW (sw), GTK_POLICY_NEVER, GTK_POLICY_AUTOMATIC);
-    gtk_box_pack_start (GTK_BOX (content_area), sw, TRUE, TRUE, 0);
 
-    /* create tree model */
-    model = create_model (main_var);
+	sw = gtk_scrolled_window_new (NULL, NULL);
+	gtk_scrolled_window_set_shadow_type (GTK_SCROLLED_WINDOW (sw), GTK_SHADOW_ETCHED_IN);
+	gtk_scrolled_window_set_policy (GTK_SCROLLED_WINDOW (sw), GTK_POLICY_NEVER, GTK_POLICY_AUTOMATIC);
+	gtk_box_pack_start (GTK_BOX (content_area), sw, TRUE, TRUE, 0);
 
-    /* create tree view */
-    treeview = gtk_tree_view_new_with_model (model);
-    gtk_tree_view_set_search_column (GTK_TREE_VIEW (treeview), COLUMN_ACNM);
+	/* create tree model */
+	model = create_model (main_var);
 
-    g_object_unref (model);
-    
-    gtk_container_add (GTK_CONTAINER (sw), treeview);
+	/* create tree view */
+	treeview = gtk_tree_view_new_with_model (model);
+	gtk_tree_view_set_search_column (GTK_TREE_VIEW (treeview), COLUMN_ACNM);
 
-    /* add columns to the tree view */
-    add_columns (GTK_TREE_VIEW (treeview));
+	g_object_unref (model);
+
+	gtk_container_add (GTK_CONTAINER (sw), treeview);
+
+	/* add columns to the tree view */
+	add_columns (GTK_TREE_VIEW (treeview));
 
 	gtk_widget_show_all (diag);
 
@@ -460,7 +462,7 @@ pwd_dialog (GtkWidget *file_dialog, struct main_vars *main_var) {
 
 	GtkDialogFlags flags = GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT;
 	dialog = gtk_dialog_new_with_buttons ("Password", GTK_WINDOW (main_var->main_window), flags,
-				     _("OK"), GTK_RESPONSE_ACCEPT, _("Cancel"), GTK_RESPONSE_REJECT, NULL);
+										  _("OK"), GTK_RESPONSE_ACCEPT, _("Cancel"), GTK_RESPONSE_REJECT, NULL);
 
 	content_area = gtk_dialog_get_content_area (GTK_DIALOG (dialog));
 	if (main_var->encrypt) {
@@ -545,10 +547,10 @@ pwd_dialog (GtkWidget *file_dialog, struct main_vars *main_var) {
 				}
 				else {
 					gtk_widget_hide (dialog);
-                    if (g_slist_length (main_var->filenames) == 1)
-                        create_dialog_single_file (main_var);
-                    else
-                        create_dialog_multiple_files (main_var);
+					if (g_slist_length (main_var->filenames) == 1)
+						create_dialog_single_file (main_var);
+					else
+						create_dialog_multiple_files (main_var);
 				}
 
 			}
@@ -617,9 +619,9 @@ compute_hash_dialog (GtkWidget *file_dialog, GtkWidget *main_window, const gchar
 	GtkWidget *content_area, *grid;
 
 	hash_var.dialog = gtk_dialog_new ();
-    gtk_window_set_title (GTK_WINDOW (hash_var.dialog), _("Select Hash"));
-    gtk_window_set_transient_for (GTK_WINDOW (hash_var.dialog), GTK_WINDOW (hash_var.mainwin));
-    gtk_dialog_add_button (GTK_DIALOG (hash_var.dialog), _("Cancel"), GTK_RESPONSE_CANCEL);
+	gtk_window_set_title (GTK_WINDOW (hash_var.dialog), _("Select Hash"));
+	gtk_window_set_transient_for (GTK_WINDOW (hash_var.dialog), GTK_WINDOW (hash_var.mainwin));
+	gtk_dialog_add_button (GTK_DIALOG (hash_var.dialog), _("Cancel"), GTK_RESPONSE_CANCEL);
 
 	gtk_widget_set_size_request (hash_var.dialog, 800, 300);
 
@@ -702,17 +704,17 @@ stop_entry_progress (gpointer data) {
 
 gboolean
 stop_btn (gpointer data) {
-    struct hash_vars *func = data;
-    gtk_dialog_set_response_sensitive (GTK_DIALOG (func->dialog), GTK_RESPONSE_CANCEL, FALSE);
-    return FALSE;
+	struct hash_vars *func = data;
+	gtk_dialog_set_response_sensitive (GTK_DIALOG (func->dialog), GTK_RESPONSE_CANCEL, FALSE);
+	return FALSE;
 }
 
 gboolean
 start_btn (gpointer data) {
-    struct hash_vars *func = data;
-    if (g_thread_pool_get_num_threads (func->pool) == 1 && g_thread_pool_unprocessed (func->pool) == 0)
-        gtk_dialog_set_response_sensitive (GTK_DIALOG (func->dialog), GTK_RESPONSE_CANCEL, TRUE);
-    return FALSE;
+	struct hash_vars *func = data;
+	if (g_thread_pool_get_num_threads (func->pool) == 1 && g_thread_pool_unprocessed (func->pool) == 0)
+		gtk_dialog_set_response_sensitive (GTK_DIALOG (func->dialog), GTK_RESPONSE_CANCEL, TRUE);
+	return FALSE;
 }
 
 gboolean
@@ -735,30 +737,30 @@ create_thread (GtkWidget *bt, gpointer user_data) {
 	msg = g_malloc (strlen(tmp_msg)+3+1); //msg len+max_core_len_(number btw 1 and 999)+\0
 	g_snprintf (msg, strlen(tmp_msg)+6, "%s (%d)", tmp_msg, g_get_num_processors());
 
-    for (i = 0; i < NUM_OF_HASH; i++) {
-        if (g_strcmp0 (name, bt_names[i]) == 0) {
-            if (g_strcmp0 (name, "BtSha256") == 0 || g_strcmp0 (name, "BtSha3_256") == 0)
-                hash_var->n_bit = 256;
-            else if (g_strcmp0 (name, "BtSha384") == 0 || g_strcmp0 (name, "BtSha3_384") == 0)
-                hash_var->n_bit = 384;
-            else if (g_strcmp0 (name, "BtSha512") == 0 || g_strcmp0 (name, "BtSha3_512") == 0)
-                hash_var->n_bit = 512;
+	for (i = 0; i < NUM_OF_HASH; i++) {
+		if (g_strcmp0 (name, bt_names[i]) == 0) {
+			if (g_strcmp0 (name, "BtSha256") == 0 || g_strcmp0 (name, "BtSha3_256") == 0)
+				hash_var->n_bit = 256;
+			else if (g_strcmp0 (name, "BtSha384") == 0 || g_strcmp0 (name, "BtSha3_384") == 0)
+				hash_var->n_bit = 384;
+			else if (g_strcmp0 (name, "BtSha512") == 0 || g_strcmp0 (name, "BtSha3_512") == 0)
+				hash_var->n_bit = 512;
 
-            if (g_thread_pool_get_num_threads (hash_var->pool) == g_get_num_processors ()) {
-                g_signal_handler_block (hash_var->hash_check[i], hash_var->sig[i]);
-                if (gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (hash_var->hash_check[i])))
-                    gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (hash_var->hash_check[i]), FALSE);
-                else
-                    gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (hash_var->hash_check[i]), TRUE);
-                error_dialog (msg, hash_var->mainwin);
-                g_free (msg);
-                g_signal_handler_unblock (hash_var->hash_check[i], hash_var->sig[i]);
-                return NULL;
-            }
+			if (g_thread_pool_get_num_threads (hash_var->pool) == g_get_num_processors ()) {
+				g_signal_handler_block (hash_var->hash_check[i], hash_var->sig[i]);
+				if (gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (hash_var->hash_check[i])))
+					gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (hash_var->hash_check[i]), FALSE);
+				else
+					gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (hash_var->hash_check[i]), TRUE);
+				error_dialog (msg, hash_var->mainwin);
+				g_free (msg);
+				g_signal_handler_unblock (hash_var->hash_check[i], hash_var->sig[i]);
+				return NULL;
+			}
 
-            gtk_widget_set_sensitive (GTK_WIDGET (hash_var->hash_check[i]), FALSE);
-            g_thread_pool_push (hash_var->pool, hash_func[i], NULL);
-        }
-    }
+			gtk_widget_set_sensitive (GTK_WIDGET (hash_var->hash_check[i]), FALSE);
+			g_thread_pool_push (hash_var->pool, hash_func[i], NULL);
+		}
+	}
 	g_free (msg);
 }
