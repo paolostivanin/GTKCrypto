@@ -1,18 +1,10 @@
 #include <gtk/gtk.h>
 #include <glib.h>
-#include <glib/gstdio.h>
-#include <gdk-pixbuf/gdk-pixbuf.h>
-#include <gcrypt.h>
-#include <glib/gi18n.h>
-#include <locale.h>
-#include <libintl.h>
 #include "gtkcrypto.h"
 
 
 gint
-check_pwd (	GtkWidget *first_pwd_entry,
-		GtkWidget *second_pwd_entry)
-{
+check_pwd (	GtkWidget *first_pwd_entry, GtkWidget *second_pwd_entry) {
 	const gchar *pw1 = gtk_entry_get_text (GTK_ENTRY (first_pwd_entry));
 	const gchar *pw2 = gtk_entry_get_text (GTK_ENTRY (second_pwd_entry));
 	

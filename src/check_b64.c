@@ -7,24 +7,22 @@ const gchar alphabet[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz01
 
 
 gint
-check_b64 (const gchar *input)
-{
-	gsize input_len = g_utf8_strlen (input, -1);
+check_b64 (const gchar *input) {
+	glong input_len = g_utf8_strlen (input, -1);
+	glong i;
 	
-	gsize i, j, z = 0, line_wrap = 0, useless_chars = 0;
+	gsize j, z = 0, line_wrap = 0, useless_chars = 0;
 	
 	i = input_len - 1;
 	
-	while (input[i] == '\n' || input[i] == '\t')
-	{
+	while (input[i] == '\n' || input[i] == '\t') {
 		useless_chars++;
 		i--;
 	}
 
 	input_len -= useless_chars;
 	
-	for (i = 0; i < input_len; i++)
-	{
+	for (i = 0; i < input_len; i++) {
 		if (i == input_len - 2)
 			if (input[i] == '=' && input[i+1] == '=')
 				goto end;
@@ -33,15 +31,12 @@ check_b64 (const gchar *input)
 			if (input[i] == '=')
 				goto end;
 				
-		for (j = 0; j < sizeof (alphabet); j++)
-		{
-			if (input[i] == '\n')
-			{
+		for (j = 0; j < sizeof (alphabet); j++) {
+			if (input[i] == '\n') {
 				line_wrap++;
 				break;
 			}
-			if (input[i] == alphabet[j])
-			{
+			if (input[i] == alphabet[j]) {
 				z++;
 				break;
 			}

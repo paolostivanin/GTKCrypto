@@ -2,9 +2,17 @@
 #define POLCRYPT_H_INCLUDED		
 		
 #define BUF_FILE 16777216 /* 16 MiB memory buffer (hash) */		
-#define BUFSIZE 2097152  /* 2 MiB memory buffer (delete_input_file) */		
-		
-#define VERSION "3.0-beta.4"		
+#define BUFSIZE 2097152  /* 2 MiB memory buffer (delete_input_file) */
+
+#define MD5_DIGEST_SIZE 16
+#define SHA1_DIGEST_SIZE 20
+#define SHA256_DIGEST_SIZE 32
+#define GOST94_DIGEST_SIZE 32
+#define SHA384_DIGEST_SIZE 48
+#define SHA512_DIGEST_SIZE 64
+#define WHIRLPOOL_DIGEST_SIZE 64
+
+#define VERSION "3.0-beta.5"
 		
 #define LOCALE_DIR "/usr/share/locale"		
 #define PACKAGE    "polcrypt"          /* mo file name in LOCALE_DIR */		
@@ -24,8 +32,7 @@ gboolean delete_entry_text (gpointer);
 gpointer launch_thread (gpointer, gpointer);
 		
 		
-struct data		
-{		
+struct data {
 	gint8 algo_type; //(NULL|0=aes),(1=serpent),(2=twofish),(3=camellia)		
 	gint8 block_cipher_mode; //1=CBC,2=CTR		
 	guint8 salt[32];		
@@ -34,11 +41,11 @@ struct data
 extern struct data metadata;		
 		
 		
-struct main_vars		
-{		
+struct main_vars {
 	gboolean encrypt; //TRUE := enc, FALSE := dec		
 	gboolean hmac_error;		
-	gchar *filename;		
+	gchar *filename;
+    GSList *filenames;
 	GtkWidget *main_window;		
 	GtkWidget *pwd_entry[2];		
 	GtkWidget *menu, *popover;		
@@ -49,8 +56,7 @@ struct main_vars
 extern struct main_vars main_var;		
 		
 		
-struct hash_vars		
-{		
+struct hash_vars {
 	gint n_bit; //number of hash bit (256, 384, 512)
 	gulong sig[10];
 	GtkWidget *mainwin;
@@ -65,8 +71,7 @@ struct hash_vars
 extern struct hash_vars hash_var;
 
 
-struct IdleData
-{
+struct IdleData {
     GtkWidget *dialog;
 	GtkWidget *entry;
 	GtkWidget *check;

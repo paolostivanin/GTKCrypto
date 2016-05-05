@@ -5,13 +5,8 @@
 #include "gtkcrypto.h"
 
 gint
-random_write (	gint file,
-		gint random_fd,
-		gsize file_size,
-		gint isBigger)
-{	
-	if (isBigger == 0)
-	{
+random_write (gint file, gint random_fd, gsize file_size, gint isBigger) {
+	if (isBigger == 0) {
 		guchar buf_rand[file_size];
 		if (read (random_fd, buf_rand, sizeof (buf_rand)) == -1)
 			g_printerr ("random_write read: %s\n", g_strerror (errno));
@@ -24,19 +19,16 @@ random_write (	gint file,
 
 		return 0;
 	}
-	else
-	{
+	else {
 		guchar random_bytes[BUFSIZE];
-		gsize done_size = 0, writeBytes = 0;
+		gssize done_size = 0, writeBytes = 0;
 		if (read (random_fd, random_bytes, sizeof (random_bytes)) == -1)
 			g_printerr ("random_write read: %s\n", g_strerror (errno));
 			
-		while (file_size > done_size)
-		{
+		while (file_size > done_size) {
 			writeBytes = write (file, random_bytes, sizeof (random_bytes));
 			done_size += writeBytes;
-			if ((file_size-done_size) > 0 && (file_size-done_size) < BUFSIZE)
-			{
+			if ((file_size-done_size) > 0 && (file_size-done_size) < BUFSIZE) {
 				if (read (random_fd, random_bytes, sizeof (random_bytes)) == -1)
 					g_printerr ("random_write read: %s\n", g_strerror (errno));
 				

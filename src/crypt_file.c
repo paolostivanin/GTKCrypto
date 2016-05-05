@@ -17,17 +17,14 @@ static void end_from_error (guint, struct main_vars *, const gchar *);
 
 
 static void
-add_text (	gpointer data,
-			const gchar *text)
-{
+add_text (gpointer data, const gchar *text) {
 	gtk_progress_bar_set_show_text (GTK_PROGRESS_BAR (data), TRUE);
 	gtk_progress_bar_set_text (GTK_PROGRESS_BAR (data), text);
 }
 
 
 static gboolean
-bar_full (gpointer data)
-{
+bar_full (gpointer data) {
 	
 	/*PangoFontDescription *new_font = pango_font_description_new ();
 	pango_font_description_set_weight (new_font, PANGO_WEIGHT_BOLD);
@@ -42,8 +39,7 @@ bar_full (gpointer data)
 
 
 static gboolean
-bar_pulse (gpointer data)
-{
+bar_pulse (gpointer data) {
 	gtk_progress_bar_pulse (GTK_PROGRESS_BAR (data));
 	
 	return TRUE;
@@ -51,8 +47,7 @@ bar_pulse (gpointer data)
 
 
 gpointer
-crypt_file (gpointer user_data)
-{
+crypt_file (gpointer user_data) {
 	struct data metadata;
 	struct main_vars *main_var = user_data;
 	
@@ -87,41 +82,34 @@ crypt_file (gpointer user_data)
 	file_size = get_file_size (input_fname);
 
 	crypto_buffer = gcry_malloc (16);
-	if (crypto_buffer == NULL)
-	{
+	if (crypto_buffer == NULL) {
 		end_from_error (id, main_var, _("error during memory allocation (crypto_buffer)"));
 		g_thread_exit (NULL);
 	}
 
-	if (main_var->encrypt)
-	{
-		if (gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (main_var->radio_button[0])))
-		{
+	if (main_var->encrypt) {
+		if (gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (main_var->radio_button[0]))) {
 			algo = gcry_cipher_map_name ("aes256");
 			metadata.algo_type = 0;
 		}
-		else if (gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (main_var->radio_button[1])))
-		{
+		else if (gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (main_var->radio_button[1]))) {
 			algo = gcry_cipher_map_name ("serpent256");
 			metadata.algo_type = 1;
 		}
-		else if (gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (main_var->radio_button[2])))
-		{
+		else if (gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (main_var->radio_button[2]))) {
 			algo = gcry_cipher_map_name ("twofish");
 			metadata.algo_type = 2;
 		}
-		else if (gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (main_var->radio_button[3])))
-		{
+		else if (gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (main_var->radio_button[3]))) {
 			algo = gcry_cipher_map_name ("camellia256");
 			metadata.algo_type = 3;
 		}
-		if (gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (main_var->radio_button[4])))
-		{
+
+		if (gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (main_var->radio_button[4]))) {
 			cipher_mode = GCRY_CIPHER_MODE_CBC;
 			metadata.block_cipher_mode = 1;
 		}
-		else if (gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (main_var->radio_button[5])))
-		{
+		else if (gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (main_var->radio_button[5]))) {
 			cipher_mode = GCRY_CIPHER_MODE_CTR;
 			metadata.block_cipher_mode = 2;
 		}
@@ -132,12 +120,10 @@ crypt_file (gpointer user_data)
 		memcpy (output_fname+filename_length, ".enc", 4);
 		output_fname[filename_length+4] = '\0';
 	}
-	else
-	{
+	else {
 		filename_length = g_utf8_strlen (input_fname, -1);
 		extBuf = malloc (5);
-		if (extBuf == NULL)
-		{
+		if (extBuf == NULL) {
 			g_free (crypto_buffer);
 			g_free (input_fname);
 			end_from_error (id, main_var, _("error during memory allocation (extBuf)"));
@@ -146,15 +132,13 @@ crypt_file (gpointer user_data)
 		
 		memcpy(extBuf, (input_fname)+filename_length-4, 4);
 		extBuf[4] = '\0';
-		if (g_strcmp0 (extBuf, ".enc") == 0)
-		{
-			output_fname = g_malloc (filename_length-3);
-			strncpy (output_fname, input_fname, filename_length-4);
+		if (g_strcmp0 (extBuf, ".enc") == 0) {
+			output_fname = g_malloc (filename_length - 3);
+			strncpy (output_fname, input_fname, filename_length - 4);
 			output_fname[filename_length-4] = '\0';
 			g_free (extBuf);
 		}
-		else
-		{
+		else {
 			output_fname = g_malloc (filename_length+5);
 			g_utf8_strncpy (output_fname, input_fname, filename_length);
 			memcpy (output_fname+filename_length, ".dec", 4);
@@ -164,8 +148,7 @@ crypt_file (gpointer user_data)
 	}
 	
 	const gchar *pwd = gtk_entry_get_text (GTK_ENTRY (main_var->pwd_entry[0]));
-	if (!g_utf8_validate (pwd, -1, NULL))
-	{
+	if (!g_utf8_validate (pwd, -1, NULL)) {
 		multiple_free (input_fname, output_fname, crypto_buffer, NULL, NULL, NULL);
 		end_from_error (id, main_var, _("Error: password is not a valid UTF-8 string"));
 		g_thread_exit (NULL);
@@ -175,8 +158,7 @@ crypt_file (gpointer user_data)
 	g_utf8_strncpy (inputKey, pwd, pwd_len);
 	inputKey[pwd_len] = '\0';
 	
-	if (main_var->encrypt)
-	{
+	if (main_var->encrypt) {
 		gcry_create_nonce (metadata.iv, 16);
 		gcry_create_nonce (metadata.salt, 32);
 		
@@ -199,8 +181,7 @@ crypt_file (gpointer user_data)
 	}
 	
 	fpout = g_fopen (output_fname, "a");
-	if (fpout == NULL)
-	{
+	if (fpout == NULL) {
 		g_printerr ("%s\n", strerror (errno));
 		gcry_free (inputKey);
 		multiple_free (input_fname, output_fname, crypto_buffer, NULL, NULL, NULL);
@@ -209,26 +190,22 @@ crypt_file (gpointer user_data)
 		g_thread_exit (NULL);
 	}
 	
-	if (!main_var->encrypt)
-	{
-		if (fseek (fp, 0, SEEK_SET) == -1)
-		{
+	if (!main_var->encrypt) {
+		if (fseek (fp, 0, SEEK_SET) == -1) {
 			multiple_free (input_fname, output_fname, crypto_buffer, NULL, NULL, NULL);
 			multiple_fclose (fp, fpout);
 			end_from_error (id, main_var, _("fseek error"));
 			g_thread_exit (NULL);
 		}
 		
-		if (fread (&metadata, sizeof (struct data), 1, fp) != 1)
-		{
+		if (fread (&metadata, sizeof (struct data), 1, fp) != 1) {
 			multiple_free (input_fname, output_fname, crypto_buffer, NULL, NULL, NULL);
 			multiple_fclose (fp, fpout);
 			end_from_error (id, main_var, _("fread error (metadata)"));
 			g_thread_exit (NULL);
 		}
 		
-		switch (metadata.algo_type)
-		{
+		switch (metadata.algo_type) {
 			case 0:
 				algo = gcry_cipher_map_name ("aes256");
 				break;
@@ -246,8 +223,7 @@ crypt_file (gpointer user_data)
 				break;
 		}
 
-		switch (metadata.block_cipher_mode)
-		{
+		switch (metadata.block_cipher_mode) {
 			case 1:
 				cipher_mode = GCRY_CIPHER_MODE_CBC;
 				break;
@@ -265,8 +241,7 @@ crypt_file (gpointer user_data)
 	blkLength = gcry_cipher_get_algo_blklen (algo);
 	keyLength = gcry_cipher_get_algo_keylen (algo);
 	
-	if ((derived_key = gcry_malloc_secure (64)) == NULL)
-	{
+	if ((derived_key = gcry_malloc_secure (64)) == NULL) {
 		gcry_free (inputKey);
 		multiple_free (input_fname, output_fname, crypto_buffer, NULL, NULL, NULL);
 		multiple_fclose (fp, fpout);
@@ -274,8 +249,7 @@ crypt_file (gpointer user_data)
 		g_thread_exit (NULL);
 	}
 	
-	if ((crypto_key = gcry_malloc_secure (32)) == NULL)
-	{
+	if ((crypto_key = gcry_malloc_secure (32)) == NULL) {
 		gcry_free (inputKey);
 		multiple_free (input_fname, output_fname, crypto_buffer, derived_key, NULL, NULL);
 		multiple_fclose (fp, fpout);		
@@ -283,8 +257,7 @@ crypt_file (gpointer user_data)
 		g_thread_exit (NULL);
 	}
 	
-	if ((mac_key = gcry_malloc_secure (32)) == NULL)
-	{
+	if ((mac_key = gcry_malloc_secure (32)) == NULL) {
 		gcry_free (inputKey);
 		multiple_free (input_fname, output_fname, crypto_buffer, derived_key, crypto_key, NULL);
 		multiple_fclose (fp, fpout);	
@@ -293,8 +266,7 @@ crypt_file (gpointer user_data)
 	}
 	
 	tryAgainDerive:
-	if (gcry_kdf_derive (inputKey, pwd_len+1, GCRY_KDF_PBKDF2, GCRY_MD_SHA512, metadata.salt, 32, 150000, 64, derived_key) != 0)
-	{
+	if (gcry_kdf_derive (inputKey, pwd_len+1, GCRY_KDF_PBKDF2, GCRY_MD_SHA512, metadata.salt, 32, 150000, 64, derived_key) != 0) {
 		if (counter == 3)
 		{
 			gcry_free (inputKey);
@@ -316,29 +288,25 @@ crypt_file (gpointer user_data)
 	else
 		gcry_cipher_setctr (hd, metadata.iv, blkLength);
 	
-	if (!main_var->encrypt)
-	{
+	if (!main_var->encrypt) {
 		number_of_block = file_size / 16;
 		bytes_before_MAC = file_size + sizeof (struct data);
 				
-		if ((current_file_offset = ftell (fp)) == -1)
-		{
+		if ((current_file_offset = ftell (fp)) == -1) {
 			multiple_free (input_fname, output_fname, crypto_buffer, derived_key, crypto_key, mac_key);
 			multiple_fclose (fp, fpout);
 			end_from_error (id, main_var, _("ftell error"));
 			g_thread_exit (NULL);
 		}
 		
-		if (fseek (fp, bytes_before_MAC, SEEK_SET) == -1)
-		{
+		if (fseek (fp, bytes_before_MAC, SEEK_SET) == -1) {
 			multiple_free (input_fname, output_fname, crypto_buffer, derived_key, crypto_key, mac_key);
 			multiple_fclose (fp, fpout);
 			end_from_error (id, main_var, _("fseek error"));
 			g_thread_exit (NULL);
 		}
 		
-		if (fread (MAC_of_file, 1, 64, fp) != 64)
-		{
+		if (fread (MAC_of_file, 1, 64, fp) != 64) {
 			multiple_free (input_fname, output_fname, crypto_buffer, derived_key, crypto_key, mac_key);
 			multiple_fclose (fp, fpout);
 			end_from_error (id, main_var, _("fread error (mac_of_file)"));
@@ -346,8 +314,7 @@ crypt_file (gpointer user_data)
 		}
 		
 		guchar *hmac = calculate_hmac (input_fname, mac_key, keyLength, file_size + sizeof (struct data));
-		if (hmac == (guchar *)1)
-		{
+		if (hmac == (guchar *)1) {
 			gcry_free (inputKey);
 			multiple_free (input_fname, output_fname, crypto_buffer, derived_key, crypto_key, mac_key);
 			multiple_fclose (fp, fpout);
@@ -355,8 +322,7 @@ crypt_file (gpointer user_data)
 			g_thread_exit (NULL);
 		}
 		
-		if (memcmp (MAC_of_file, hmac, 64) != 0)
-		{
+		if (memcmp (MAC_of_file, hmac, 64) != 0) {
 			main_var->hmac_error = TRUE;
 			multiple_free (input_fname, output_fname, crypto_buffer, derived_key, crypto_key, mac_key);
 			g_free (hmac);
@@ -366,8 +332,7 @@ crypt_file (gpointer user_data)
 		}
 		g_free (hmac);
 				
-		if (fseek (fp, current_file_offset, SEEK_SET) == -1)
-		{
+		if (fseek (fp, current_file_offset, SEEK_SET) == -1) {
 			multiple_free (input_fname, output_fname, crypto_buffer, derived_key, crypto_key, mac_key);
 			multiple_fclose (fp, fpout);
 			end_from_error (id, main_var, _("fseek error"));
@@ -375,20 +340,15 @@ crypt_file (gpointer user_data)
 		}		
 	}
 	
-	if (main_var->encrypt)
-	{
+	if (main_var->encrypt) {
 		fseek (fp, 0, SEEK_SET);
 		fwrite (&metadata, sizeof(struct data), 1, fpout);
-		if (cipher_mode == GCRY_CIPHER_MODE_CBC)
-		{
-			while (number_of_block > block_done)
-			{
+		if (cipher_mode == GCRY_CIPHER_MODE_CBC) {
+			while (number_of_block > block_done) {
 				memset (text, 0, sizeof (text));
 				ret_val = fread (text, 1, 16, fp);
-				if (ret_val < 16)
-				{
-					for(i = ret_val; i < 16; i++)
-					{
+				if (ret_val < 16) {
+					for(i = ret_val; i < 16; i++) {
 						if (ret_val == 1) text[i] = padding[14];
 						else if (ret_val == 2) text[i] = padding[13];
 						else if (ret_val == 3) text[i] = padding[12];
@@ -411,9 +371,8 @@ crypt_file (gpointer user_data)
 				block_done++;
 			}
 		}
-		else{
-			while (file_size > done_size)
-			{
+		else {
+			while (file_size > done_size) {
 				memset (text, 0, sizeof (text));
 				ret_val = fread (text, 1, 16, fp);
 				gcry_cipher_encrypt (hd, crypto_buffer, ret_val, text, ret_val);
@@ -427,8 +386,7 @@ crypt_file (gpointer user_data)
 		output_file_size = get_file_size (output_fname);
 
 		guchar *hmac = calculate_hmac (output_fname, mac_key, keyLength, output_file_size);
-		if (hmac == (guchar *)1)
-		{
+		if (hmac == (guchar *)1) {
 			multiple_free (input_fname, output_fname, crypto_buffer, derived_key, crypto_key, mac_key);
 			end_from_error (id, main_var, _("error during HMAC calculation (encrypt)"));
 			pthread_exit (NULL);
@@ -452,17 +410,13 @@ crypt_file (gpointer user_data)
 		bar_full (GTK_PROGRESS_BAR (main_var->pBar));
 		gtk_dialog_set_response_sensitive (GTK_DIALOG(main_var->bar_dialog), GTK_RESPONSE_REJECT, TRUE);
 	}
-	else
-	{
-		if (cipher_mode == GCRY_CIPHER_MODE_CBC)
-		{
-			while (number_of_block > block_done)
-			{
+	else {
+		if (cipher_mode == GCRY_CIPHER_MODE_CBC) {
+			while (number_of_block > block_done) {
 				memset (text, 0, sizeof (text));
 				ret_val = fread (text, 1, 16, fp);
 				gcry_cipher_decrypt (hd, crypto_buffer, ret_val, text, ret_val);
-				if (block_done == (number_of_block-1))
-				{
+				if (block_done == (number_of_block-1)) {
 					number_of_pkcs7_bytes = check_pkcs7 (crypto_buffer, padding);
 					fwrite (crypto_buffer, 1, number_of_pkcs7_bytes, fpout);	
 					break;
@@ -471,19 +425,16 @@ crypt_file (gpointer user_data)
 				block_done++;
 			}
 		}
-		else{
-			while (file_size > done_size)
-			{
+		else {
+			while (file_size > done_size) {
 				memset (text, 0, sizeof (text));
-				if (file_size-done_size < 16)
-				{
+				if (file_size-done_size < 16) {
 					ret_val = fread (text, 1, file_size-done_size, fp);
 					gcry_cipher_decrypt (hd, crypto_buffer, ret_val, text, ret_val);
 					fwrite (crypto_buffer, 1, ret_val, fpout);
 					break;
 				}
-				else
-				{
+				else {
 					ret_val = fread (text, 1, 16, fp);
 					gcry_cipher_decrypt (hd, crypto_buffer, ret_val, text, ret_val);
 					fwrite (crypto_buffer, 1, ret_val, fpout);
@@ -501,19 +452,12 @@ crypt_file (gpointer user_data)
 		bar_full (GTK_PROGRESS_BAR (main_var->pBar));
 		gtk_dialog_set_response_sensitive (GTK_DIALOG (main_var->bar_dialog), GTK_RESPONSE_REJECT, TRUE);
 	}
-	
 	g_thread_exit (NULL);
 }
 
 
 static void
-multiple_free (	gchar *inFl,
-				gchar *outFl,
-				guchar *buf,
-				guchar *dKey,
-				guchar *crKey,
-				guchar *mKey)
-{
+multiple_free (	gchar *inFl, gchar *outFl, guchar *buf, guchar *dKey, guchar *crKey, guchar *mKey) {
 	if (inFl)
 		g_free (inFl);
 	
@@ -535,9 +479,7 @@ multiple_free (	gchar *inFl,
 
 
 static void
-multiple_fclose (	FILE *fpIn,
-					FILE *fpOut)
-{
+multiple_fclose (FILE *fpIn, FILE *fpOut) {
 	if (fpIn)
 		fclose (fpIn);
 	
@@ -547,10 +489,7 @@ multiple_fclose (	FILE *fpIn,
 
 
 static void
-end_from_error (guint id,
-				struct main_vars *main_var,
-				const gchar *message)
-{
+end_from_error (guint id, struct main_vars *main_var, const gchar *message) {
 	g_source_remove (id);
 	add_text (GTK_PROGRESS_BAR (main_var->pBar), message);
 	bar_full (GTK_PROGRESS_BAR (main_var->pBar));
