@@ -105,19 +105,19 @@ compute_sha3 (gpointer user_data) {
     g_idle_add (stop_btn, (gpointer)hash_var);
 
 	if (bit == 256) {
-		const gchar *name = gcry_md_algo_name(GCRY_MD_SHA256);
+		const gchar *name = gcry_md_algo_name(GCRY_MD_SHA3_256);
 		algo = gcry_md_map_name(name);
 		hash = g_malloc (SHA256_DIGEST_SIZE * 2 + 1);
 	}
 
 	else if (bit == 384) {
-		const gchar *name = gcry_md_algo_name(GCRY_MD_SHA384);
+		const gchar *name = gcry_md_algo_name(GCRY_MD_SHA3_384);
 		algo = gcry_md_map_name(name);
 		hash = g_malloc (SHA384_DIGEST_SIZE * 2 + 1);
 	}
 
 	else {
-		const gchar *name = gcry_md_algo_name(GCRY_MD_SHA512);
+		const gchar *name = gcry_md_algo_name(GCRY_MD_SHA3_512);
 		algo = gcry_md_map_name(name);
 		hash = g_malloc (SHA512_DIGEST_SIZE * 2 + 1);
 	}
