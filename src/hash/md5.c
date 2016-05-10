@@ -8,6 +8,7 @@
 #include <locale.h>
 #include <libintl.h>
 #include <sys/mman.h>
+#include "hash.h"
 #include "../gtkcrypto.h"
 
 
@@ -41,8 +42,7 @@ compute_md5 (gpointer user_data) {
 	id = g_timeout_add (50, start_entry_progress, (gpointer)hash_var->hash_entry[0]);
 	g_idle_add (stop_btn, (gpointer)hash_var);
 
-    gint algo, i, fd, ret_val;
-    gchar hash[MD5_DIGEST_SIZE * 2 + 1];
+    gint algo, fd, ret_val;
     guint8 *addr;
     const gchar *name = gcry_md_algo_name(GCRY_MD_MD5);
     algo = gcry_md_map_name(name);
@@ -107,25 +107,11 @@ compute_md5 (gpointer user_data) {
 	}
 	
 	nowhile:
-    gcry_md_final (hd);
-    guchar *md5 = gcry_md_read (hd, algo);
- 	for (i = 0; i < MD5_DIGEST_SIZE; i++)
-		g_sprintf (hash+(i*2), "%02x", md5[i]);
-
- 	hash[MD5_DIGEST_SIZE * 2] = '\0';
+    g_close (fd, &err);
+    gchar *hash = finalize_hash (hd, algo, MD5_DIGEST_SIZE);
  	g_hash_table_insert (hash_var->hash_table, hash_var->key[0], g_strdup (hash));
- 	
-	g_close (fd, &err);
-		
+	g_free (hash);
+
 	fine:
-    g_idle_add (start_btn, (gpointer)hash_var);
-	if (id > 0) {
-		func_data = g_slice_new (struct IdleData);
-		func_data->entry = hash_var->hash_entry[0];
-		func_data->hash_table = hash_var->hash_table;
-		func_data->key = hash_var->key[0];
-		func_data->check = hash_var->hash_check[0];
-		g_idle_add (stop_entry_progress, (gpointer)func_data);
-		g_source_remove (id);
-	}
+    add_idle_and_check_id (id, hash_var, 0);
 }

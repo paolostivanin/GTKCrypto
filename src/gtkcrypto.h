@@ -1,16 +1,7 @@
 #ifndef POLCRYPT_H_INCLUDED		
 #define POLCRYPT_H_INCLUDED		
-		
-#define BUF_FILE 16777216 /* 16 MiB memory buffer (hash) */		
-#define BUFSIZE 2097152  /* 2 MiB memory buffer (delete_input_file) */
 
-#define MD5_DIGEST_SIZE 16
-#define SHA1_DIGEST_SIZE 20
-#define SHA256_DIGEST_SIZE 32
-#define GOST94_DIGEST_SIZE 32
-#define SHA384_DIGEST_SIZE 48
-#define SHA512_DIGEST_SIZE 64
-#define WHIRLPOOL_DIGEST_SIZE 64
+#define BUFSIZE 2097152  /* 2 MiB memory buffer (delete_input_file) */
 
 #define VERSION "3.0-beta.5"
 		

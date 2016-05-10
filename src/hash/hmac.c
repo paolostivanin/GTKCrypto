@@ -6,7 +6,8 @@
 #include <fcntl.h>
 #include <glib/gi18n.h>
 #include <sys/mman.h>
-#include "gtkcrypto.h"
+#include "hash.h"
+#include "../gtkcrypto.h"
 
 //mode = 0 encrypt, mode = 1 decrypt
 

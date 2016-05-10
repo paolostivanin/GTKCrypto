@@ -13,30 +13,32 @@ link_directories(${GTK3_LIBRARY_DIRS})
 add_definitions(${GTK3_CFLAGS_OTHER})
 
 set(SOURCE_FILES
-    src/check_b64.c
-    src/check_pkcs7.c
-    src/check_pwd.c
-    src/create_logo.c
-    src/create_popover.c
-    src/crypt_file.c
-    src/crypt_file.h
-    src/delete_input_file.c
-    src/get_file_size.c
-    src/gtkcrypto.h
-    src/hmac.c
-    src/main.c
-    src/main.h
-    src/message_dialog.c
-    src/random_write.c
-    src/hash/md5.c
-    src/hash/gost94.c
-    src/hash/sha1.c
-    src/hash/sha2.c
-    src/hash/sha3.c
-    src/hash/whirlpool.c
-    src/text.c
-    src/text.h
-    src/zero_write.c)
+        src/check_b64.c
+        src/check_pkcs7.c
+        src/check_pwd.c
+        src/create_logo.c
+        src/create_popover.c
+        src/crypt_file.c
+        src/crypt_file.h
+        src/delete_input_file.c
+        src/get_file_size.c
+        src/gtkcrypto.h
+        src/hash/hmac.c
+        src/main.c
+        src/main.h
+        src/message_dialog.c
+        src/random_write.c
+        src/hash/hash.h
+        src/hash/md5.c
+        src/hash/gost94.c
+        src/hash/sha1.c
+        src/hash/sha2.c
+        src/hash/sha3.c
+        src/hash/whirlpool.c
+        src/hash/hash-utils.c
+        src/text.c
+        src/text.h
+        src/zero_write.c)
 
 add_executable(GTKCrypto ${SOURCE_FILES})
 target_link_libraries(GTKCrypto ${GTK3_LIBRARIES} -lgcrypt)
