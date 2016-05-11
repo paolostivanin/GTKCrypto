@@ -18,7 +18,11 @@
 #define SHA512_DIGEST_SIZE 64
 #define WHIRLPOOL_DIGEST_SIZE 64
 
+#define MUNMAP_FAILED	((void *) -2)
+#define HASH_COMPUTED	((void *) 1)
+
 gchar *finalize_hash (gcry_md_hd_t, gint, gsize);
 void add_idle_and_check_id (guint, struct hash_vars *hash_var, gint);
+gpointer compute_hash (gcry_md_hd_t, gsize, int);
 
 #endif //GTKCRYPTO_HASH_H
