@@ -30,7 +30,7 @@ gpointer compute_sha3(gpointer user_data) {
             goto fine;
         }
 
-        else if (g_utf8_strlen(gtk_entry_get_text(GTK_ENTRY (hash_var->hash_entry[4])), -1) == 64)
+        else if (g_utf8_strlen(gtk_entry_get_text(GTK_ENTRY (hash_var->hash_entry[4])), -1) == SHA256_DIGEST_SIZE*2)
             goto fine;
 
         gpointer ptr = g_hash_table_lookup(hash_var->hash_table, hash_var->key[4]);
@@ -55,7 +55,7 @@ gpointer compute_sha3(gpointer user_data) {
             goto fine;
         }
 
-        else if (g_utf8_strlen(gtk_entry_get_text(GTK_ENTRY (hash_var->hash_entry[6])), -1) == 96)
+        else if (g_utf8_strlen(gtk_entry_get_text(GTK_ENTRY (hash_var->hash_entry[6])), -1) == SHA384_DIGEST_SIZE*2)
             goto fine;
 
         gpointer ptr = g_hash_table_lookup(hash_var->hash_table, hash_var->key[6]);
@@ -80,7 +80,7 @@ gpointer compute_sha3(gpointer user_data) {
             goto fine;
         }
 
-        else if (g_utf8_strlen(gtk_entry_get_text(GTK_ENTRY (hash_var->hash_entry[8])), -1) == 128)
+        else if (g_utf8_strlen(gtk_entry_get_text(GTK_ENTRY (hash_var->hash_entry[8])), -1) == SHA512_DIGEST_SIZE*2)
             goto fine;
 
         gpointer ptr = g_hash_table_lookup(hash_var->hash_table, hash_var->key[8]);

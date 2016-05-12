@@ -541,7 +541,7 @@ pwd_dialog(GtkWidget *file_dialog, struct main_vars *main_var) {
             if (main_var->encrypt) {
                 ret_val = check_pwd(main_var->pwd_entry[0], main_var->pwd_entry[1]);
                 if (ret_val < 0) {
-                    if (ret_val == -1)
+                    if (ret_val == PASSWORD_MISMATCH)
                         error_dialog(_("Passwords are different, try again.\n"), main_var->main_window);
                     else
                         error_dialog(_("Password is < 8 chars, try again\n"), main_var->main_window);

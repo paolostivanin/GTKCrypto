@@ -11,20 +11,28 @@
 #include <glib.h>
 #include <gtk/gtk.h>
 
-GdkPixbuf *create_logo (gboolean);
-GtkWidget *do_mainwin (GtkApplication *);
-GtkWidget *create_popover (GtkWidget *, GtkPositionType, struct main_vars *);
+GdkPixbuf *create_logo(gboolean);
 
-gpointer crypt_file (gpointer);
+GtkWidget *do_mainwin(GtkApplication *);
 
-void text_dialog (GtkWidget *, gpointer);
+GtkWidget *create_popover(GtkWidget *, GtkPositionType, struct main_vars *);
 
-gpointer compute_md5 (gpointer);
-gpointer compute_gost94 (gpointer);
-gpointer compute_sha1 (gpointer);
-gpointer compute_sha2 (gpointer);
-gpointer compute_sha3 (gpointer);
-gpointer compute_whirlpool (gpointer);
-gpointer create_thread (GtkWidget *, gpointer);
+gpointer crypt_file(gpointer);
+
+void text_dialog(GtkWidget *, gpointer);
+
+gpointer compute_md5(gpointer);
+
+gpointer compute_gost94(gpointer);
+
+gpointer compute_sha1(gpointer);
+
+gpointer compute_sha2(gpointer);
+
+gpointer compute_sha3(gpointer);
+
+gpointer compute_whirlpool(gpointer);
+
+gpointer create_thread(GtkWidget *, gpointer);
 
 #endif

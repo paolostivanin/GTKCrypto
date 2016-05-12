@@ -25,7 +25,7 @@ gpointer compute_gost94(gpointer user_data) {
         goto fine;
     }
 
-    else if (g_utf8_strlen(gtk_entry_get_text(GTK_ENTRY (hash_var->hash_entry[1])), -1) == 32)
+    else if (g_utf8_strlen(gtk_entry_get_text(GTK_ENTRY (hash_var->hash_entry[1])), -1) == GOST94_DIGEST_SIZE*2)
         goto fine;
 
     gpointer ptr = g_hash_table_lookup(hash_var->hash_table, hash_var->key[1]);

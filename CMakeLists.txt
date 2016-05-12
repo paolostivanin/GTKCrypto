@@ -35,7 +35,7 @@ set(SOURCE_FILES
         src/hash/sha2.c
         src/hash/sha3.c
         src/hash/whirlpool.c
-        src/hash/hash-utils.c
+        src/hash/hash-common.c
         src/text.c
         src/text.h
         src/zero_write.c)
