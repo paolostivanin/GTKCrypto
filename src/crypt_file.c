@@ -64,7 +64,7 @@ gpointer crypt_file(gpointer user_data) {
     guchar *derived_key = NULL, *crypto_key = NULL, *mac_key = NULL;
     guchar text[16], MAC_of_file[64], *crypto_buffer = NULL;
 
-    gint algo = -1, ret_val, i, cipher_mode = -1, number_of_block = -1, block_done = 0, number_of_pkcs7_bytes, counter = 0;
+    gint algo = -1, i, cipher_mode = -1, number_of_block = -1, block_done = 0, number_of_pkcs7_bytes, counter = 0;
 
     gchar *inputKey = NULL, *output_fname = NULL, *extBuf = NULL;
     gchar *input_fname = g_strdup(main_var->filename);
@@ -73,7 +73,7 @@ gpointer crypt_file(gpointer user_data) {
     glong current_file_offset, bytes_before_MAC;
 
     goffset file_size = 0, done_size = 0, output_file_size = 0;
-    gsize blkLength = 0, keyLength = 0, filename_length, pwd_len = 0;
+    gsize blkLength = 0, keyLength = 0, filename_length, pwd_len = 0, ret_val;
 
     FILE *fp, *fpout;
 
@@ -172,9 +172,8 @@ gpointer crypt_file(gpointer user_data) {
 
     fp = g_fopen(input_fname, "r");
     if (fp == NULL) {
-        gcry_free(inputKey);
         multiple_free(FALSE, 2, (gpointer *)&input_fname, (gpointer *)&output_fname);
-        gcry_free(crypto_buffer);
+        multiple_free(TRUE, 2, (gpointer *)&inputKey, (gpointer *)&crypto_buffer);
         end_from_error(id, main_var, _("g_fopen error (fp)"));
         g_thread_exit(NULL);
     }
@@ -251,18 +250,17 @@ gpointer crypt_file(gpointer user_data) {
     }
 
     if ((crypto_key = gcry_malloc_secure(32)) == NULL) {
-        gcry_free(inputKey);
         multiple_free(FALSE, 2, (gpointer *)&input_fname, (gpointer *)&output_fname);
-        multiple_free(TRUE, 2, (gpointer  *)&crypto_buffer, (gpointer  *)&derived_key);
+        multiple_free(TRUE, 2, (gpointer  *)&crypto_buffer, (gpointer  *)&derived_key, (gpointer  *)&inputKey);
         multiple_fclose(2, fp, fpout);
         end_from_error(id, main_var, _("error during memory allocation (crypto_key)"));
         g_thread_exit(NULL);
     }
 
     if ((mac_key = gcry_malloc_secure(32)) == NULL) {
-        gcry_free(inputKey);
         multiple_free(FALSE, 2, (gpointer *)&input_fname, (gpointer *)&output_fname);
-        multiple_free(TRUE, 3, (gpointer  *)&crypto_buffer, (gpointer  *)&derived_key, (gpointer *)&crypto_key);
+        multiple_free(TRUE, 4, (gpointer  *)&crypto_buffer, (gpointer  *)&derived_key, (gpointer *)&crypto_key,
+                      (gpointer *)&inputKey);
         multiple_fclose(2, fp, fpout);
         end_from_error(id, main_var, _("error during memory allocation (mac_key)"));
         g_thread_exit(NULL);
@@ -272,9 +270,9 @@ gpointer crypt_file(gpointer user_data) {
     if (gcry_kdf_derive(inputKey, pwd_len + 1, GCRY_KDF_PBKDF2, GCRY_MD_SHA512, metadata.salt, 32, 150000, 64,
                         derived_key) != 0) {
         if (counter == 3) {
-            gcry_free(inputKey);
             multiple_free(FALSE, 2, (gpointer *)&input_fname, (gpointer *)&output_fname);
-            multiple_free(TRUE, 4, (gpointer  *)&crypto_buffer, (gpointer  *)&derived_key, (gpointer *)&crypto_key, (gpointer *)&mac_key);
+            multiple_free(TRUE, 5, (gpointer  *)&crypto_buffer, (gpointer  *)&derived_key, (gpointer *)&crypto_key,
+                          (gpointer *)&mac_key, (gpointer *)&inputKey);
             multiple_fclose(2, fp, fpout);
             end_from_error(id, main_var, _("key derivation error"));
             g_thread_exit(NULL);
@@ -322,9 +320,9 @@ gpointer crypt_file(gpointer user_data) {
 
         guchar *hmac = calculate_hmac(input_fname, mac_key, keyLength, file_size + sizeof(struct data));
         if (hmac == (guchar *) 1) {
-            gcry_free(inputKey);
             multiple_free(FALSE, 2, (gpointer *)&input_fname, (gpointer *)&output_fname);
-            multiple_free(TRUE, 4, (gpointer  *)&crypto_buffer, (gpointer  *)&derived_key, (gpointer *)&crypto_key, (gpointer *)&mac_key);
+            multiple_free(TRUE, 5, (gpointer  *)&crypto_buffer, (gpointer  *)&derived_key, (gpointer *)&crypto_key,
+                          (gpointer *)&mac_key, (gpointer *)&inputKey);
             multiple_fclose(2, fp, fpout);
             end_from_error(id, main_var, _("error during hmac calculation"));
             g_thread_exit(NULL);
@@ -332,8 +330,7 @@ gpointer crypt_file(gpointer user_data) {
 
         if (memcmp(MAC_of_file, hmac, 64) != 0) {
             main_var->hmac_error = TRUE;
-            g_free(hmac);
-            multiple_free(FALSE, 2, (gpointer *)&input_fname, (gpointer *)&output_fname);
+            multiple_free(FALSE, 2, (gpointer *)&input_fname, (gpointer *)&output_fname, (gpointer *)&hmac);
             multiple_free(TRUE, 4, (gpointer  *)&crypto_buffer, (gpointer  *)&derived_key, (gpointer *)&crypto_key, (gpointer *)&mac_key);
             multiple_fclose(2, fp, fpout);
             end_from_error(id, main_var, _("ERROR: HMAC doesn't match (corrupted file or wrong password)"));
@@ -343,7 +340,8 @@ gpointer crypt_file(gpointer user_data) {
 
         if (fseek(fp, current_file_offset, SEEK_SET) == -1) {
             multiple_free(FALSE, 2, (gpointer *)&input_fname, (gpointer *)&output_fname);
-            multiple_free(TRUE, 4, (gpointer  *)&crypto_buffer, (gpointer  *)&derived_key, (gpointer *)&crypto_key, (gpointer *)&mac_key);
+            multiple_free(TRUE, 4, (gpointer  *)&crypto_buffer, (gpointer  *)&derived_key, (gpointer *)&crypto_key,
+                          (gpointer *)&mac_key);
             multiple_fclose(2, fp, fpout);
             end_from_error(id, main_var, _("fseek error"));
             g_thread_exit(NULL);
@@ -398,20 +396,21 @@ gpointer crypt_file(gpointer user_data) {
         guchar *hmac = calculate_hmac(output_fname, mac_key, keyLength, output_file_size);
         if (hmac == (guchar *) 1) {
             multiple_free(FALSE, 2, (gpointer *)&input_fname, (gpointer *)&output_fname);
-            multiple_free(TRUE, 4, (gpointer  *)&crypto_buffer, (gpointer  *)&derived_key, (gpointer *)&crypto_key, (gpointer *)&mac_key);
+            multiple_free(TRUE, 4, (gpointer  *)&crypto_buffer, (gpointer  *)&derived_key, (gpointer *)&crypto_key,
+                          (gpointer *)&mac_key);
             end_from_error(id, main_var, _("error during HMAC calculation (encrypt)"));
-            pthread_exit(NULL);
+            g_thread_exit(NULL);
         }
 
         fpout = g_fopen(output_fname, "a");
         fwrite(hmac, 1, 64, fpout);
-        free(hmac);
+        g_free(hmac);
 
-        ret_val = delete_input_file(input_fname, file_size);
-        if (ret_val == -1)
+        gint err_code = delete_input_file(input_fname, file_size);
+        if (err_code == -1)
             end_from_error(id, main_var, _("Warning: failed to overwrite file, do it manually"));
 
-        if (ret_val == -2)
+        if (err_code == -2)
             end_from_error(id, main_var, _("Warning: failed to remove file, do it manually"));
 
         fclose(fpout);
@@ -455,8 +454,8 @@ gpointer crypt_file(gpointer user_data) {
         }
 
         multiple_free(FALSE, 2, (gpointer *)&input_fname, (gpointer *)&output_fname);
-        gcry_free(inputKey);
-        multiple_free(TRUE, 4, (gpointer  *)&crypto_buffer, (gpointer  *)&derived_key, (gpointer *)&crypto_key, (gpointer *)&mac_key);
+        multiple_free(TRUE, 5, (gpointer  *)&crypto_buffer, (gpointer  *)&derived_key, (gpointer *)&crypto_key,
+                      (gpointer *)&mac_key, (gpointer *)&inputKey);
         multiple_fclose(2, fp, fpout);
 
         g_source_remove(id);

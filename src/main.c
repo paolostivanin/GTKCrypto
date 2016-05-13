@@ -29,8 +29,8 @@ gpointer (*hash_func[NUM_OF_HASH])(gpointer) = {compute_md5, compute_gost94, com
                                                 compute_whirlpool};
 
 
-static void
-quit(GSimpleAction __attribute__((__unused__)) *action, GVariant __attribute__((__unused__)) *parameter, gpointer app) {
+static void quit(GSimpleAction __attribute__((__unused__)) *action, GVariant __attribute__((__unused__)) *parameter,
+                 gpointer app) {
     g_application_quit(G_APPLICATION (app));
 }
 
@@ -40,8 +40,7 @@ enum {
     NUM_COLUMNS
 };
 
-static GtkTreeModel *
-create_model(struct main_vars *main_var) {
+static GtkTreeModel *create_model(struct main_vars *main_var) {
     GtkListStore *store;
     GtkTreeIter iter;
     GSList *list;
@@ -64,8 +63,7 @@ create_model(struct main_vars *main_var) {
 }
 
 
-static void
-add_columns(GtkTreeView *treeview) {
+static void add_columns(GtkTreeView *treeview) {
     GtkCellRenderer *renderer;
     GtkTreeViewColumn *column;
 
@@ -76,9 +74,8 @@ add_columns(GtkTreeView *treeview) {
 }
 
 
-static void
-about(GSimpleAction __attribute__((__unused__)) *action, GVariant __attribute__((__unused__)) *parameter,
-      gpointer __attribute__((__unused__)) data) {
+static void about(  GSimpleAction __attribute__((__unused__)) *action, GVariant __attribute__((__unused__)) *parameter,
+                    gpointer __attribute__((__unused__)) data) {
 
     const gchar *authors[] = {
             "Paolo Stivanin <info@paolostivanin.com>",
@@ -114,8 +111,7 @@ about(GSimpleAction __attribute__((__unused__)) *action, GVariant __attribute__(
 }
 
 
-static void
-startup(GtkApplication *application, gpointer __attribute__((__unused__)) data) {
+static void startup(GtkApplication *application, gpointer __attribute__((__unused__)) data) {
     static const GActionEntry actions[] = {
             {"about", about},
             {"quit",  quit}
@@ -146,8 +142,7 @@ startup(GtkApplication *application, gpointer __attribute__((__unused__)) data) 
 }
 
 
-static void
-activate(GtkApplication *app, struct main_vars *main_var) {
+static void activate(GtkApplication *app, struct main_vars *main_var) {
     GtkWidget *button[NUM_OF_BUTTONS];
     GtkWidget *frame[2];
     GtkWidget *box[2];
@@ -223,8 +218,7 @@ activate(GtkApplication *app, struct main_vars *main_var) {
 }
 
 
-gint
-main(int argc, char *argv[]) {
+gint main(gint argc, gchar *argv[]) {
     struct main_vars main_var;
 
     setlocale(LC_ALL, "");
@@ -248,8 +242,7 @@ main(int argc, char *argv[]) {
 }
 
 
-GtkWidget
-*do_mainwin(GtkApplication *app) {
+GtkWidget *do_mainwin(GtkApplication *app) {
     static GtkWidget *window = NULL;
     GtkWidget *header_bar;
     GtkWidget *box;
@@ -286,8 +279,7 @@ GtkWidget
 }
 
 
-static void
-choose_file_dialog(GtkWidget *button, struct main_vars *main_var) {
+static void choose_file_dialog(GtkWidget *button, struct main_vars *main_var) {
     const gchar *name = gtk_widget_get_name(GTK_WIDGET (button));
     GtkWidget *file_dialog;
 
@@ -333,8 +325,7 @@ choose_file_dialog(GtkWidget *button, struct main_vars *main_var) {
 }
 
 
-static void
-create_dialog_single_file(struct main_vars *main_var) {
+static void create_dialog_single_file(struct main_vars *main_var) {
     GtkWidget *content_area;
     gint result;
 
@@ -373,8 +364,7 @@ create_dialog_single_file(struct main_vars *main_var) {
 }
 
 
-static void
-create_dialog_multiple_files(struct main_vars *main_var) {
+static void create_dialog_multiple_files(struct main_vars *main_var) {
     /* TODO:
      * - check if all the filenames are valid UTF8
      * - create a treeview with filename(s) and their enc status IF g_slist_length(GSList is > 1). Otherwise copy the only filename in main_var->filename and free it after
@@ -425,8 +415,7 @@ create_dialog_multiple_files(struct main_vars *main_var) {
 }
 
 
-static void
-pwd_dialog(GtkWidget *file_dialog, struct main_vars *main_var) {
+static void pwd_dialog(GtkWidget *file_dialog, struct main_vars *main_var) {
     gtk_widget_hide(file_dialog);
 
     GtkWidget *dialog, *content_area, *grid, *info_area, *label[2];
@@ -581,21 +570,18 @@ pwd_dialog(GtkWidget *file_dialog, struct main_vars *main_var) {
 }
 
 
-static void
-hide_menu(struct main_vars *main_var) {
+static void hide_menu(struct main_vars *main_var) {
     if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON (main_var->menu)))
         gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON (main_var->menu), FALSE);
 }
 
 
-static void
-toggle_changed_cb(GtkToggleButton *button, GtkWidget *popover) {
+static void toggle_changed_cb(GtkToggleButton *button, GtkWidget *popover) {
     gtk_widget_set_visible(popover, gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON (button)));
 }
 
 
-static void
-compute_hash_dialog(GtkWidget *file_dialog, GtkWidget *main_window, const gchar *filename) {
+static void compute_hash_dialog(GtkWidget *file_dialog, GtkWidget *main_window, const gchar *filename) {
     gtk_widget_hide(GTK_WIDGET (file_dialog));
 
     struct hash_vars hash_var;
@@ -690,16 +676,14 @@ gpointer launch_thread(gpointer data, gpointer user_data) {
 }
 
 
-gboolean
-start_entry_progress(gpointer data) {
+gboolean start_entry_progress(gpointer data) {
     gtk_entry_set_progress_pulse_step(GTK_ENTRY (data), 0.1);
     gtk_entry_progress_pulse(GTK_ENTRY (data));
     return TRUE;
 }
 
 
-gboolean
-stop_entry_progress(gpointer data) {
+gboolean stop_entry_progress(gpointer data) {
     struct IdleData *func = data;
     gtk_entry_set_progress_fraction(GTK_ENTRY (func->entry), 0.0);
     gtk_entry_set_text(GTK_ENTRY (func->entry), (gchar *) g_hash_table_lookup(func->hash_table, func->key));
@@ -708,23 +692,23 @@ stop_entry_progress(gpointer data) {
     return FALSE;
 }
 
-gboolean
-stop_btn(gpointer data) {
+
+gboolean stop_btn(gpointer data) {
     struct hash_vars *func = data;
     gtk_dialog_set_response_sensitive(GTK_DIALOG (func->dialog), GTK_RESPONSE_CANCEL, FALSE);
     return FALSE;
 }
 
-gboolean
-start_btn(gpointer data) {
+
+gboolean start_btn(gpointer data) {
     struct hash_vars *func = data;
     if (g_thread_pool_get_num_threads(func->pool) == 1 && g_thread_pool_unprocessed(func->pool) == 0)
         gtk_dialog_set_response_sensitive(GTK_DIALOG (func->dialog), GTK_RESPONSE_CANCEL, TRUE);
     return FALSE;
 }
 
-gboolean
-delete_entry_text(gpointer data) {
+
+gboolean delete_entry_text(gpointer data) {
     struct IdleData *func = data;
     gtk_entry_set_text(GTK_ENTRY (func->entry), "");
     gtk_widget_set_sensitive(GTK_WIDGET (func->check), TRUE);
@@ -733,8 +717,7 @@ delete_entry_text(gpointer data) {
 }
 
 
-gpointer
-create_thread(GtkWidget *bt, gpointer user_data) {
+gpointer create_thread(GtkWidget *bt, gpointer user_data) {
     gint i;
     struct hash_vars *hash_var = user_data;
     const gchar *name = gtk_widget_get_name(bt);
