@@ -56,11 +56,3 @@
 	* IMPROVED: hashes computation now use threads
 	* FIXED: tons of bugs
 
-??/??/2015 - v3.0-beta.5
-	* NEW: configure script
-	* IMPROVED: GUI
-
-??/??/2015 - v3.1.0
-	* NEW: asymmetric encryption support (with RSA or with a ECC algo)
-	* NEW: multiple file selection for en/de/cryption
-	* NEW: compression using zlib

@@ -1,12 +1,11 @@
 GTKCrypto (under development)
 ========
 
-This software let you to:
 * Encrypt and decrypt files using AES, Twofish, Serpent or Camellia (256bit, CBC or CTR mode);
 * Encrypt and decrypt text using AES, Twofish, Serpent or Camellia (256bit, CTR mode)
-* Compute hashes of a given file (supported hashes are MD5, GOST94, SHA-1, SHA-256, SHA-384, SHA-512, SHA3-256, SHA3-384, SHA3-512 and Whirlpool);
+* Compute hashes of a chosen file (MD5, GOST94, SHA1, SHA-256, SHA-384, SHA-512, SHA3-256, SHA3-384, SHA3-512 and Whirlpool);
 
-This software is developed by Paolo "Polslinux" Stivanin (http://paolostivanin.com)
+This software is developed by Paolo "Polslinux" Stivanin (https://paolostivanin.com)
 
 
 Security
@@ -25,10 +24,10 @@ The latest can be found here: https://github.com/polslinux/GTKCrypto/releases
 
 Requirements
 ------------
-* GCC or Clang	: required version of Clang **>= 3.2**, of GCC **>= 4.4.0**;
-* Gcrypt	: required version **>=1.7.0**;
-* GTK+		: required version **>=3.12.0**;
-* Glib		: required version **>=2.40.0**;
+* GCC or Clang	: suggested version of Clang **>= 3.6**, of GCC **>= 4.9.0**;
+* Gcrypt	: required version **>=1.7**;
+* GTK+		: required version **>=3.14**, suggested version **3.20**;
+* Glib		: required version **>=2.42**, suggested version **2.48**;
 
 
 How to compile
