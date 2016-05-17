@@ -18,7 +18,7 @@ create_main_window (GtkApplication *app)
     gtk_widget_set_size_request(GTK_WIDGET (window), 350, 400);
 
     gchar *header_bar_text = g_malloc(strlen(APP_NAME ) + 1 + strlen(APP_VERSION) + 1);
-    g_snprintf(header_bar_text, strlen(APP_NAME) + 1 + strlen(APP_VERSION), "%s %s", APP_NAME, APP_VERSION);
+    g_snprintf(header_bar_text, strlen(APP_NAME) + 1 + strlen(APP_VERSION) + 1, "%s %s", APP_NAME, APP_VERSION);
     header_bar_text[strlen(header_bar_text)] = '\0';
 
     GtkWidget *header_bar = gtk_header_bar_new();

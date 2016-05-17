@@ -3,8 +3,4 @@
 
 void show_message_dialog (GtkWidget *, const gchar *, GtkMessageType);
 
-typedef struct _widgets {
-    GtkWidget *main_window;
-} AppWidgets;
-
-#endif //GTKCRYPTO_GTKCRYPTO_H
+#endif

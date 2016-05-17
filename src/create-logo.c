@@ -17,7 +17,7 @@ create_logo (gboolean is_about_dialog)
         logo = gdk_pixbuf_new_from_file_at_size (my_icon, 64, 64, &err);
 
     if (err != NULL)
-        show_message_dialog (NULL, err->message, GTK_MESSAGE_ERROR);
+        g_printerr ("%s\n", err->message);
 
     return logo;
 }
