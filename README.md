@@ -1,4 +1,4 @@
-GTKCrypto (under development)
+GTKCrypto (currently being rewritten)
 ========
 
 * Encrypt and decrypt files using AES, Twofish, Serpent or Camellia (256bit, CBC or CTR mode);
@@ -17,17 +17,12 @@ Security
 * The original file will be overwritten prior its removing (secure file deletion);
 
 
-Latest release
---------------
-The latest can be found here: https://github.com/polslinux/GTKCrypto/releases
-
-
 Requirements
 ------------
-* GCC or Clang	: suggested version of Clang **>= 3.6**, of GCC **>= 4.9.0**;
-* Gcrypt	: required version **>=1.7**;
-* GTK+		: required version **>=3.14**, suggested version **3.20**;
-* Glib		: required version **>=2.42**, suggested version **2.48**;
+* GCC or Clang: suggested version of Clang **>= 3.6**, of GCC **>= 4.9.0**;
+* Gcrypt: required version **>=1.7**;
+* GTK+: required version **>=3.14**, suggested version **3.20**;
+* Glib: required version **>=2.42**, suggested version **2.48**;
 
 
 How to compile

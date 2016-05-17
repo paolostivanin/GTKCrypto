@@ -13,7 +13,7 @@ link_directories(${GTK3_LIBRARY_DIRS})
 add_definitions(${GTK3_CFLAGS_OTHER})
 
 set(SOURCE_FILES
-        src/main.c)
+        src/main.c src/create-logo.c src/message-dialog.c src/app-startup.c src/app-activate.c src/create-mainwin.c)
 
 add_executable(GTKCrypto ${SOURCE_FILES})
 target_link_libraries(GTKCrypto ${GTK3_LIBRARIES} -lgcrypt)
