@@ -1,50 +1,55 @@
 #include <gtk/gtk.h>
 #include "main.h"
 
-#define NUM_OF_BUTTONS 5
-#define NUM_OF_FRAMES 2
-#define NUM_OF_BOXES 2
+#define NUM_OF_BUTTONS 8
+#define NUM_OF_WIDGETS 3
 
 void
-add_boxes_and_grid (AppWidgets *widgets) {
+add_boxes_and_grid (AppWidgets *widgets)
+{
     GtkWidget *button[NUM_OF_BUTTONS];
-    GtkWidget *frame[NUM_OF_FRAMES];
-    GtkWidget *box[NUM_OF_BOXES];
+    GtkWidget *frame[NUM_OF_WIDGETS];
+    GtkWidget *box[NUM_OF_WIDGETS];
 
     gint i, j = 0;
-    const gchar *button_label[] = {"File", "Text", "Compute Hash", "Quit"};
-    const gchar *frame_label[] = {"Encrypt", "Decrypt"};
-    const gchar *button_name[] = {"enc_btn", "dec_btn", "enc_txt_btn", "dec_txt_btn", "hash_btn", "quit_btn"};
+    const gchar *button_label[] = {"Encrypt", "Decrypt", "Sign", "Compute", "Compare"};
+    const gchar *frame_label[] = {"File", "Text", "Hash"};
+    const gchar *button_name[] = {"enc_btn", "dec_file_btn", "sign_file_btn", "enc_txt_btn", "dec_txt_btn", "sign_text_btn",
+                                  "compute_hash_btn", "compare_hash_btn"};
 
-    for (i = 0; i < NUM_OF_BUTTONS; i++) {
-        if (i == 5)
+
+    for (i = 0, j = 0; i < NUM_OF_BUTTONS; i++) {
+        if (i < 3) {
+            button[i] = gtk_button_new_with_label(button_label[i]);
+        }
+        else {
+            button[i] = gtk_button_new_with_label(button_label[j]);
             j++;
-
-        button[i] = gtk_button_new_with_label (button_label[j]);
-        gtk_widget_set_name (GTK_WIDGET (button[i]), button_name[i]);
-
-        if (i % 2 != 0)
-            j++;
+        }
+        gtk_widget_set_name(GTK_WIDGET (button[i]), button_name[i]);
     }
 
-    for (i = 0; i < NUM_OF_FRAMES; i++)
-        frame[i] = gtk_frame_new (frame_label[i]);
+    for (i = 0; i < NUM_OF_WIDGETS; i++) {
+        frame[i] = gtk_frame_new(frame_label[i]);
+        box[i] = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 2);
+        gtk_container_add (GTK_CONTAINER (frame[i]), box[i]);
+    }
 
-    for (i = 0; i < NUM_OF_BOXES; i++)
-        box[i] = gtk_box_new (GTK_ORIENTATION_HORIZONTAL, 2);
-
-    gtk_box_pack_start (GTK_BOX (box[0]), button[0], TRUE, TRUE, 2);
-    gtk_box_pack_start (GTK_BOX (box[0]), button[2], TRUE, TRUE, 2);
-    gtk_container_add (GTK_CONTAINER (frame[0]), box[0]);
-
-    gtk_box_pack_start (GTK_BOX (box[1]), button[1], TRUE, TRUE, 2);
-    gtk_box_pack_start (GTK_BOX (box[1]), button[3], TRUE, TRUE, 2);
-    gtk_container_add (GTK_CONTAINER (frame[1]), box[1]);
+    for (i = 0; i < NUM_OF_BUTTONS; i++) {
+        if (i < 3)
+            gtk_box_pack_start (GTK_BOX (box[0]), button[i], TRUE, TRUE, 2);
+        else if (i >= 3 && i < 6) {
+            gtk_box_pack_start (GTK_BOX (box[1]), button[i], TRUE, TRUE, 2);
+        }
+        else {
+            gtk_box_pack_start (GTK_BOX (box[2]), button[i], TRUE, TRUE, 2);
+        }
+    }
 
     GValue bottom_margin = G_VALUE_INIT;
     if (!G_IS_VALUE (&bottom_margin))
         g_value_init (&bottom_margin, G_TYPE_UINT);
-    g_value_set_uint (&bottom_margin, 2);
+    g_value_set_uint (&bottom_margin, 5);
 
     for (i = 0; i < NUM_OF_BUTTONS; i++)
         g_object_set_property (G_OBJECT (button[i]), "margin-bottom", &bottom_margin);
@@ -64,5 +69,5 @@ add_boxes_and_grid (AppWidgets *widgets) {
 
     gtk_grid_attach (GTK_GRID (grid), frame[0], 0, 0, 3, 2);
     gtk_grid_attach (GTK_GRID (grid), frame[1], 0, 2, 3, 2);
-    gtk_grid_attach (GTK_GRID (grid), button[4], 0, 5, 3, 1);
+    gtk_grid_attach (GTK_GRID (grid), frame[2], 0, 4, 3, 2);
 }
