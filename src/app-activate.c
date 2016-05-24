@@ -9,11 +9,12 @@ activate (GtkApplication *app,
 {
     AppWidgets *widgets = g_new0 (struct widgets_t, 1);
 
-    widgets->main_window = create_main_window(app);
+    widgets->main_window = create_main_window (app);
     gtk_application_add_window (GTK_APPLICATION (app), GTK_WINDOW (widgets->main_window));
 
-    if (!gcry_check_version(GCRYPT_MIN_VERSION)) {
-        show_message_dialog(widgets->main_window, "The required version of GCrypt is 1.7.0 or greater.", GTK_MESSAGE_ERROR);
+    if (!gcry_check_version (GCRYPT_MIN_VERSION)) {
+        show_message_dialog (widgets->main_window, "The required version of GCrypt is 1.7.0 or greater.",
+                             GTK_MESSAGE_ERROR);
         return;
     }
 

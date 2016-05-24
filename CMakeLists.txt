@@ -21,7 +21,8 @@ set(SOURCE_FILES
         src/create-mainwin.c
         src/add-boxes-grid.c
         src/app-quit.c
-        src/app-about.c)
+        src/app-about.c
+        src/compare-file-hash-cb.c src/compute-hash-cb.c)
 
 add_executable(GTKCrypto ${SOURCE_FILES})
 target_link_libraries(GTKCrypto ${GTK3_LIBRARIES} -lgcrypt)

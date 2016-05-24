@@ -27,8 +27,8 @@ Requirements
 
 How to compile
 --------------
-* `git clone https://github.com/polslinux/GTKCrypto.git`
-* `cd /path/to/GTKCrypto`
+* `git clone https://github.com/paolostivanin/GTKCrypto.git`
+* `cd GTKCrypto`
 * `make`
 * `make install`
 After you have successfully compiled the software, you will find the `gtkcrypto` binary inside the project's root directory.

@@ -1,5 +1,6 @@
 #include <gtk/gtk.h>
 #include "main.h"
+#include "callbacks.h"
 
 #define NUM_OF_BUTTONS 8
 #define NUM_OF_WIDGETS 3
@@ -14,24 +15,24 @@ add_boxes_and_grid (AppWidgets *widgets)
     gint i, j = 0;
     const gchar *button_label[] = {"Encrypt", "Decrypt", "Sign", "Compute", "Compare"};
     const gchar *frame_label[] = {"File", "Text", "Hash"};
-    const gchar *button_name[] = {"enc_btn", "dec_file_btn", "sign_file_btn", "enc_txt_btn", "dec_txt_btn", "sign_text_btn",
-                                  "compute_hash_btn", "compare_hash_btn"};
+    const gchar *button_name[] = {"enc_btn", "dec_file_btn", "sign_file_btn", "enc_txt_btn", "dec_txt_btn",
+                                  "sign_text_btn", "compute_hash_btn", "compare_hash_btn"};
 
 
     for (i = 0, j = 0; i < NUM_OF_BUTTONS; i++) {
         if (i < 3) {
-            button[i] = gtk_button_new_with_label(button_label[i]);
+            button[i] = gtk_button_new_with_label (button_label[i]);
         }
         else {
-            button[i] = gtk_button_new_with_label(button_label[j]);
+            button[i] = gtk_button_new_with_label (button_label[j]);
             j++;
         }
-        gtk_widget_set_name(GTK_WIDGET (button[i]), button_name[i]);
+        gtk_widget_set_name (GTK_WIDGET (button[i]), button_name[i]);
     }
 
     for (i = 0; i < NUM_OF_WIDGETS; i++) {
-        frame[i] = gtk_frame_new(frame_label[i]);
-        box[i] = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 2);
+        frame[i] = gtk_frame_new (frame_label[i]);
+        box[i] = gtk_box_new (GTK_ORIENTATION_HORIZONTAL, 2);
         gtk_container_add (GTK_CONTAINER (frame[i]), box[i]);
     }
 
@@ -54,11 +55,8 @@ add_boxes_and_grid (AppWidgets *widgets)
     for (i = 0; i < NUM_OF_BUTTONS; i++)
         g_object_set_property (G_OBJECT (button[i]), "margin-bottom", &bottom_margin);
 
-    //g_signal_connect(button[0], "clicked", G_CALLBACK(choose_file_dialog), widgets);
-    //g_signal_connect(button[1], "clicked", G_CALLBACK(choose_file_dialog), widgets);
-    //g_signal_connect(button[2], "clicked", G_CALLBACK(text_dialog), widgets->main_window);
-    //g_signal_connect(button[3], "clicked", G_CALLBACK(text_dialog), widgets->main_window);
-    //g_signal_connect(button[4], "clicked", G_CALLBACK(choose_file_dialog), widgets);
+    g_signal_connect(button[6], "clicked", G_CALLBACK (compute_hash_cb), widgets);
+    g_signal_connect(button[7], "clicked", G_CALLBACK (compare_files_hash_cb), widgets);
 
     GtkWidget *grid = gtk_grid_new ();
     gtk_container_add (GTK_CONTAINER (widgets->main_window), grid);
