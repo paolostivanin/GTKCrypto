@@ -3,8 +3,8 @@
 
 #include <gtk/gtk.h>
 
-void compare_files_hash_cb (gpointer);
+void compare_files_hash_cb (GtkWidget *, gpointer);
 
-void compute_hash_cb (gpointer);
+void compute_hash_cb (GtkWidget *, gpointer);
 
 #endif
