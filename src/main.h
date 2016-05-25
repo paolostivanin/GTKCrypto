@@ -7,8 +7,12 @@
 #define APP_VERSION "1.0.0"
 #define GCRYPT_MIN_VERSION "1.7.0"
 
+#define RADIO_BTN 6
+
 typedef struct widgets_t {
     GtkWidget *main_window;
+    GtkWidget *header_bar_menu;
+    GtkWidget *radio_button[RADIO_BTN];
 } AppWidgets;
 
 void startup (GtkApplication *, gpointer);
