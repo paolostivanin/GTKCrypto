@@ -3,4 +3,6 @@
 
 void show_message_dialog (GtkWidget *, const gchar *, GtkMessageType);
 
+gchar *choose_file (GtkWidget *);
+
 #endif
