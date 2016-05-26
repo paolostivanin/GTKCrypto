@@ -7,7 +7,7 @@ void
 activate (GtkApplication *app,
           gpointer __attribute__((__unused__)) data)
 {
-    AppWidgets *widgets = g_new0 (struct widgets_t, 1);
+    AppWidgets *widgets = g_new0 (AppWidgets, 1);
 
     widgets->main_window = create_main_window (app);
     gtk_application_add_window (GTK_APPLICATION (app), GTK_WINDOW (widgets->main_window));

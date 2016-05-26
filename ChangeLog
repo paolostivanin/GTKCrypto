@@ -1,5 +1,6 @@
 Jul 2016 - 1.0.0
 	- code base has been completely rewritten
+	- add sign text/file feature
 
 Oct 2016 - 1.1.0
-	- add support for asymmetric encryption
+	- add asymmetric encryption

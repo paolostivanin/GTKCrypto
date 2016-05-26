@@ -5,4 +5,6 @@ void show_message_dialog (GtkWidget *, const gchar *, GtkMessageType);
 
 gchar *choose_file (GtkWidget *);
 
+void multiple_free (gint, gpointer *, ...);
+
 #endif
