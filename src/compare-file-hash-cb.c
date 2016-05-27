@@ -52,19 +52,7 @@ void compare_files_hash_cb (GtkWidget __attribute__((__unused__)) *button, gpoin
     gtk_widget_set_hexpand (hash_widgets->file1_hash_entry, TRUE);
     gtk_widget_set_hexpand (hash_widgets->file2_hash_entry, TRUE);
 
-    GError *err = NULL;
-    GtkCssProvider *css = gtk_css_provider_new ();
-    gtk_css_provider_load_from_path (css, "./css/entry.css", &err);
-    if (err != NULL) {
-        g_printerr ("%s\n", err->message);
-    }
-    else {
-        gtk_style_context_add_provider(gtk_widget_get_style_context(hash_widgets->file1_hash_entry),
-                                       GTK_STYLE_PROVIDER (css), GTK_STYLE_PROVIDER_PRIORITY_USER);
-        gtk_style_context_add_provider(gtk_widget_get_style_context(hash_widgets->file2_hash_entry),
-                                       GTK_STYLE_PROVIDER (css), GTK_STYLE_PROVIDER_PRIORITY_USER);
-        g_object_unref(css);
-    }
+    set_css ("./css/entry.css", 2, &(hash_widgets->file1_hash_entry), &(hash_widgets->file2_hash_entry));
 
     GtkWidget *select_file1_btn = gtk_button_new_from_icon_name ("document-open", GTK_ICON_SIZE_MENU);
     gtk_widget_set_name (select_file1_btn, "file1_btn");
@@ -204,8 +192,6 @@ create_popover (GtkWidget *parent, GtkPositionType pos, HashWidgets *widgets)
 static void
 entry_changed_cb (GtkWidget *btn, gpointer user_data)
 {
-    GError *err = NULL;
-    GtkCssProvider *css;
     HashWidgets *data = user_data;
 
     if (g_strcmp0 (gtk_widget_get_name (btn), "file1_he_name") == 0) {
@@ -219,23 +205,11 @@ entry_changed_cb (GtkWidget *btn, gpointer user_data)
         const gchar *hash1 = gtk_entry_get_text (GTK_ENTRY (data->file1_hash_entry));
         const gchar *hash2 = gtk_entry_get_text (GTK_ENTRY (data->file2_hash_entry));
 
-        css = gtk_css_provider_new();
-
         if (g_strcmp0 (hash1, hash2) != 0) {
-            gtk_css_provider_load_from_path(css, "./css/hash-err.css", &err);
+            set_css ("./css/hash-err.css", 2, &(data->file1_hash_entry), &(data->file2_hash_entry));
         }
         else {
-            gtk_css_provider_load_from_path(css, "./css/hash-ok.css", &err);
-        }
-        if (err != NULL) {
-            g_printerr ("%s\n", err->message);
-        }
-        else {
-            gtk_style_context_add_provider(gtk_widget_get_style_context(data->file1_hash_entry),
-                                           GTK_STYLE_PROVIDER (css), GTK_STYLE_PROVIDER_PRIORITY_USER);
-            gtk_style_context_add_provider(gtk_widget_get_style_context(data->file2_hash_entry),
-                                           GTK_STYLE_PROVIDER (css), GTK_STYLE_PROVIDER_PRIORITY_USER);
-            g_object_unref(css);
+            set_css ("./css/hash-ok.css", 2, &(data->file1_hash_entry), &(data->file2_hash_entry));
         }
     }
 }

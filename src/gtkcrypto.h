@@ -7,4 +7,6 @@ gchar *choose_file (GtkWidget *);
 
 void multiple_free (gint, gpointer *, ...);
 
+void set_css (const gchar *, gint, GtkWidget **, ...);
+
 #endif
