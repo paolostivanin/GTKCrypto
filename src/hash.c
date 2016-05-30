@@ -27,8 +27,7 @@ get_file_hash (const gchar *filename, gint hash_algo, gint digest_size)
         return NULL;
     }
 
-    gchar *hash = finalize_hash (hd, algo, digest_size);
-    g_free (hash);
+    return finalize_hash (hd, algo, digest_size);
 }
 
 
