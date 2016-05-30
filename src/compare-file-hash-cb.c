@@ -1,7 +1,10 @@
 #include <gtk/gtk.h>
+#include <gcrypt.h>
 #include "main.h"
 #include "gtkcrypto.h"
 #include "common-callbacks.h"
+#include "hash.h"
+
 
 typedef struct hash_widgets_t {
     GtkWidget *main_window;
@@ -93,8 +96,38 @@ select_file_cb (GtkWidget  *button, gpointer user_data)
     HashWidgets *hash_widgets = user_data;
     gchar *filename = choose_file (hash_widgets->main_window);
 
+    gint i, hash_algo = -1, digest_size = -1;
+    for (i = 0; i < 6; i++) {
+        if (gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (hash_widgets->radio_button[i]))) {
+            if (g_strcmp0 (gtk_widget_get_name (hash_widgets->radio_button[i]), "md5_radio_btn") == 0) {
+                hash_algo = GCRY_MD_MD5;
+                digest_size = MD5_DIGEST_SIZE;
+            }
+            else if (g_strcmp0 (gtk_widget_get_name (hash_widgets->radio_button[i]), "sha1_radio_btn") == 0) {
+                hash_algo = GCRY_MD_SHA1;
+                digest_size = SHA1_DIGEST_SIZE;
+            }
+            else if (g_strcmp0 (gtk_widget_get_name (hash_widgets->radio_button[i]), "sha256_radio_btn") == 0) {
+                hash_algo = GCRY_MD_SHA256;
+                digest_size = SHA256_DIGEST_SIZE;
+            }
+            else if (g_strcmp0 (gtk_widget_get_name (hash_widgets->radio_button[i]), "sha512_radio_btn") == 0) {
+                hash_algo = GCRY_MD_SHA512;
+                digest_size = SHA512_DIGEST_SIZE;
+            }
+            else if (g_strcmp0 (gtk_widget_get_name (hash_widgets->radio_button[i]), "sha3_256_radio_btn") == 0) {
+                hash_algo = GCRY_MD_SHA3_256;
+                digest_size = SHA3_256_DIGEST_SIZE;
+            }
+            else if (g_strcmp0 (gtk_widget_get_name (hash_widgets->radio_button[i]), "sha3_512_radio_btn") == 0) {
+                hash_algo = GCRY_MD_SHA3_512;
+                digest_size = SHA3_512_DIGEST_SIZE;
+            }
+        }
+    }
+
     // TODO threaded computation
-    gchar *hash = get_file_hash (user_data);
+    gchar *hash = get_file_hash (filename, hash_algo, digest_size);
 
     if (g_strcmp0 (gtk_widget_get_name (button), "file1_btn") == 0) {
         gtk_entry_set_text (GTK_ENTRY (hash_widgets->file1_hash_entry), hash);
@@ -153,9 +186,17 @@ create_popover (GtkWidget *parent, GtkPositionType pos, HashWidgets *widgets)
     gint i, j;
 
     widgets->radio_button[0] = gtk_radio_button_new_with_label_from_widget (NULL, algo[0]);
-    for (i = 1, j = 1; i < 6; i++, j++)
-        widgets->radio_button[i] = gtk_radio_button_new_with_label_from_widget (
+    for (i = 1, j = 1; i < 6; i++, j++) {
+        widgets->radio_button[i] = gtk_radio_button_new_with_label_from_widget(
                 GTK_RADIO_BUTTON (widgets->radio_button[0]), algo[j]);
+    }
+
+    gtk_widget_set_name (widgets->radio_button[0], "md5_radio_btn");
+    gtk_widget_set_name (widgets->radio_button[1], "sha1_radio_btn");
+    gtk_widget_set_name (widgets->radio_button[2], "sha256_radio_btn");
+    gtk_widget_set_name (widgets->radio_button[3], "sha512_radio_btn");
+    gtk_widget_set_name (widgets->radio_button[4], "sha3_256_radio_btn");
+    gtk_widget_set_name (widgets->radio_button[5], "sha3_512_radio_btn");
 
     for (i = 0; i < 2; i++)
         gtk_box_pack_start (GTK_BOX (box[0]), widgets->radio_button[i], TRUE, TRUE, 0);

@@ -9,4 +9,8 @@ void multiple_free (gint, gpointer *, ...);
 
 void set_css (const gchar *, gint, GtkWidget **, ...);
 
+gchar *get_file_hash (const gchar *, gint, gint);
+
+goffset get_file_size (const gchar *);
+
 #endif

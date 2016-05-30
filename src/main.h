@@ -25,6 +25,4 @@ GtkWidget *create_main_window (GtkApplication *);
 
 void add_boxes_and_grid (AppWidgets *);
 
-gchar *get_file_hash (gpointer);
-
 #endif
