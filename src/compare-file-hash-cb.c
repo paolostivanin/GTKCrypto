@@ -128,15 +128,20 @@ select_file_cb (GtkWidget  *button, gpointer user_data)
 
     // TODO threaded computation
     gchar *hash = get_file_hash (filename, hash_algo, digest_size);
-
-    if (g_strcmp0 (gtk_widget_get_name (button), "file1_btn") == 0) {
-        gtk_entry_set_text (GTK_ENTRY (hash_widgets->file1_hash_entry), hash);
+    if (hash == NULL) {
+        show_message_dialog (hash_widgets->main_window, "Error during hash computation", GTK_MESSAGE_ERROR);
+        g_free (filename);
     }
     else {
-        gtk_entry_set_text (GTK_ENTRY (hash_widgets->file2_hash_entry), hash);
-    }
+        if (g_strcmp0(gtk_widget_get_name(button), "file1_btn") == 0) {
+            gtk_entry_set_text(GTK_ENTRY (hash_widgets->file1_hash_entry), hash);
+        }
+        else {
+            gtk_entry_set_text(GTK_ENTRY (hash_widgets->file2_hash_entry), hash);
+        }
 
-    multiple_free (2, (gpointer *)&filename, (gpointer *)&hash);
+        multiple_free(2, (gpointer *) &filename, (gpointer *) &hash);
+    }
 }
 
 

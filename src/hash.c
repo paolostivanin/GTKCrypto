@@ -26,8 +26,12 @@ get_file_hash (const gchar *filename, gint hash_algo, gint digest_size)
         g_printerr ("munmap error\n");
         return NULL;
     }
-
-    return finalize_hash (hd, algo, digest_size);
+    else if (status == HASH_ERROR) {
+        return NULL;
+    }
+    else {
+        return finalize_hash(hd, algo, digest_size);
+    }
 }
 
 
