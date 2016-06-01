@@ -8,6 +8,7 @@
 
 typedef struct hash_widgets_t {
     GtkWidget *main_window;
+    GtkWidget *cancel_btn;
     GtkWidget *radio_button[6];
     GtkWidget *header_bar_menu;
     GtkWidget *file1_hash_entry;
@@ -46,8 +47,8 @@ void compare_files_hash_cb (GtkWidget __attribute__((__unused__)) *button, gpoin
     gtk_widget_set_name (dialog, "dialog");
     gtk_window_set_transient_for (GTK_WINDOW (dialog), GTK_WINDOW (hash_widgets->main_window));
     gtk_window_set_destroy_with_parent (GTK_WINDOW (dialog), TRUE);
-    GtkWidget *cancel_btn = gtk_dialog_add_button (GTK_DIALOG (dialog), "Cancel", GTK_RESPONSE_CANCEL);
-    gtk_widget_set_margin_top (cancel_btn, 10);
+    hash_widgets->cancel_btn = gtk_dialog_add_button (GTK_DIALOG (dialog), "Cancel", GTK_RESPONSE_CANCEL);
+    gtk_widget_set_margin_top (hash_widgets->cancel_btn, 10);
     gtk_widget_set_size_request (dialog, 600, -1);
 
     create_header_bar (dialog, hash_widgets);
@@ -91,7 +92,6 @@ void compare_files_hash_cb (GtkWidget __attribute__((__unused__)) *button, gpoin
     gint result = gtk_dialog_run (GTK_DIALOG (dialog));
     switch (result) {
         case GTK_RESPONSE_CANCEL:
-            //TODO check here if the dialog can be destroy? Or set the button to non sensitive?
             gtk_widget_destroy (dialog);
             g_free (hash_widgets);
             break;
@@ -104,7 +104,11 @@ void compare_files_hash_cb (GtkWidget __attribute__((__unused__)) *button, gpoin
 static gpointer
 exec_thread (gpointer user_data)
 {
+    //TODO spinner/bar/something that shows there's something going on :)
     ThreadData *data = user_data;
+    if (gtk_widget_get_sensitive (data->widgets_data->cancel_btn)) {
+        gtk_widget_set_sensitive (data->widgets_data->cancel_btn, FALSE);
+    }
     gchar *hash = get_file_hash (data->filename, data->hash_algo, data->digest_size);
     if (hash == NULL) {
         show_message_dialog (data->widgets_data->main_window, "Error during hash computation", GTK_MESSAGE_ERROR);
@@ -117,6 +121,14 @@ exec_thread (gpointer user_data)
     }
     else {
         gtk_entry_set_text (GTK_ENTRY (data->widgets_data->file2_hash_entry), hash);
+    }
+
+    if (!gtk_widget_get_sensitive (data->widgets_data->cancel_btn)) {
+        // if cancel_btn is non-sensitive AND both the gtk_entry have have text inside them, THEN cancel_btn becomes
+        // sensitive again.
+        if ((data->widgets_data->entry1_changed) && (data->widgets_data->entry2_changed)) {
+            gtk_widget_set_sensitive (data->widgets_data->cancel_btn, TRUE);
+        }
     }
 
     multiple_free (3, (gpointer *) &(data->filename), (gpointer *) &hash, (gpointer) &data);
@@ -168,7 +180,6 @@ select_file_cb (GtkWidget  *button, gpointer user_data)
     thread_data->hash_algo = hash_algo;
     thread_data->filename = filename;
 
-    // TODO must set the "cancel" button to non-sensitive
     g_thread_new (NULL, exec_thread, thread_data);
 }
 
