@@ -16,6 +16,14 @@ typedef struct hash_widgets_t {
     gboolean entry2_changed;
 } HashWidgets;
 
+typedef struct thread_data_t {
+    GtkWidget *button;
+    gchar *filename;
+    gint hash_algo;
+    gint digest_size;
+    HashWidgets *widgets_data;
+} ThreadData;
+
 static void  select_file_cb (GtkWidget *, gpointer);
 
 static void create_header_bar (GtkWidget *, HashWidgets *);
@@ -23,6 +31,8 @@ static void create_header_bar (GtkWidget *, HashWidgets *);
 static GtkWidget *create_popover (GtkWidget *, GtkPositionType, HashWidgets *);
 
 static void entry_changed_cb (GtkWidget *, gpointer);
+
+static gpointer exec_thread (gpointer);
 
 
 void compare_files_hash_cb (GtkWidget __attribute__((__unused__)) *button, gpointer user_data)
@@ -81,6 +91,7 @@ void compare_files_hash_cb (GtkWidget __attribute__((__unused__)) *button, gpoin
     gint result = gtk_dialog_run (GTK_DIALOG (dialog));
     switch (result) {
         case GTK_RESPONSE_CANCEL:
+            //TODO check here if the dialog can be destroy? Or set the button to non sensitive?
             gtk_widget_destroy (dialog);
             g_free (hash_widgets);
             break;
@@ -90,10 +101,36 @@ void compare_files_hash_cb (GtkWidget __attribute__((__unused__)) *button, gpoin
 }
 
 
+static gpointer
+exec_thread (gpointer user_data)
+{
+    ThreadData *data = user_data;
+    gchar *hash = get_file_hash (data->filename, data->hash_algo, data->digest_size);
+    if (hash == NULL) {
+        show_message_dialog (data->widgets_data->main_window, "Error during hash computation", GTK_MESSAGE_ERROR);
+        multiple_free (3, (gpointer *) &(data->filename), (gpointer *) &hash, (gpointer) &data);
+        g_thread_exit (NULL);
+    }
+
+    if (g_strcmp0 (gtk_widget_get_name (data->button), "file1_btn") == 0) {
+        gtk_entry_set_text (GTK_ENTRY (data->widgets_data->file1_hash_entry), hash);
+    }
+    else {
+        gtk_entry_set_text (GTK_ENTRY (data->widgets_data->file2_hash_entry), hash);
+    }
+
+    multiple_free (3, (gpointer *) &(data->filename), (gpointer *) &hash, (gpointer) &data);
+    g_thread_exit ((gpointer) 0);
+}
+
+
 static void
 select_file_cb (GtkWidget  *button, gpointer user_data)
 {
+    ThreadData *thread_data = g_new0 (ThreadData, 1);
     HashWidgets *hash_widgets = user_data;
+    thread_data->widgets_data = hash_widgets;
+
     gchar *filename = choose_file (hash_widgets->main_window);
 
     gint i, hash_algo = -1, digest_size = -1;
@@ -126,22 +163,13 @@ select_file_cb (GtkWidget  *button, gpointer user_data)
         }
     }
 
-    // TODO threaded computation
-    gchar *hash = get_file_hash (filename, hash_algo, digest_size);
-    if (hash == NULL) {
-        show_message_dialog (hash_widgets->main_window, "Error during hash computation", GTK_MESSAGE_ERROR);
-        g_free (filename);
-    }
-    else {
-        if (g_strcmp0(gtk_widget_get_name(button), "file1_btn") == 0) {
-            gtk_entry_set_text(GTK_ENTRY (hash_widgets->file1_hash_entry), hash);
-        }
-        else {
-            gtk_entry_set_text(GTK_ENTRY (hash_widgets->file2_hash_entry), hash);
-        }
+    thread_data->button = button;
+    thread_data->digest_size = digest_size;
+    thread_data->hash_algo = hash_algo;
+    thread_data->filename = filename;
 
-        multiple_free(2, (gpointer *) &filename, (gpointer *) &hash);
-    }
+    // TODO must set the "cancel" button to non-sensitive
+    g_thread_new (NULL, exec_thread, thread_data);
 }
 
 
