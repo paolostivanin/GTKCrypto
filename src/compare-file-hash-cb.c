@@ -13,19 +13,21 @@ typedef struct hash_widgets_t {
     GtkWidget *header_bar_menu;
     GtkWidget *file1_hash_entry;
     GtkWidget *file2_hash_entry;
+    GtkWidget *spinner_entry1;
+    GtkWidget *spinner_entry2;
     gboolean entry1_changed;
     gboolean entry2_changed;
 } HashWidgets;
 
 typedef struct thread_data_t {
-    GtkWidget *button;
+    GtkEntry *entry;
     gchar *filename;
     gint hash_algo;
     gint digest_size;
     HashWidgets *widgets_data;
 } ThreadData;
 
-static void  select_file_cb (GtkWidget *, gpointer);
+static void select_file_cb (GtkEntry *, GtkEntryIconPosition, GdkEvent *, gpointer);
 
 static void create_header_bar (GtkWidget *, HashWidgets *);
 
@@ -36,7 +38,8 @@ static void entry_changed_cb (GtkWidget *, gpointer);
 static gpointer exec_thread (gpointer);
 
 
-void compare_files_hash_cb (GtkWidget __attribute__((__unused__)) *button, gpointer user_data)
+void
+compare_files_hash_cb (GtkWidget *button  __attribute__((__unused__)), gpointer user_data)
 {
     HashWidgets *hash_widgets = g_new0 (HashWidgets, 1);
     hash_widgets->main_window = (GtkWidget *) user_data;
@@ -68,20 +71,21 @@ void compare_files_hash_cb (GtkWidget __attribute__((__unused__)) *button, gpoin
 
     set_css ("./css/entry.css", 2, &(hash_widgets->file1_hash_entry), &(hash_widgets->file2_hash_entry));
 
-    GtkWidget *select_file1_btn = gtk_button_new_from_icon_name ("document-open", GTK_ICON_SIZE_MENU);
-    gtk_widget_set_name (select_file1_btn, "file1_btn");
-    GtkWidget *select_file2_btn = gtk_button_new_from_icon_name ("document-open", GTK_ICON_SIZE_MENU);
-    gtk_widget_set_name (select_file2_btn, "file2_btn");
+    gtk_entry_set_icon_from_icon_name (GTK_ENTRY (hash_widgets->file1_hash_entry), GTK_ENTRY_ICON_SECONDARY, "document-open-symbolic");
+    gtk_entry_set_icon_from_icon_name (GTK_ENTRY (hash_widgets->file2_hash_entry), GTK_ENTRY_ICON_SECONDARY, "document-open-symbolic");
+
+    hash_widgets->spinner_entry1 = create_spinner();
+    hash_widgets->spinner_entry2 = create_spinner();
 
     gtk_grid_set_row_spacing (GTK_GRID (grid), 10);
     gtk_grid_set_column_spacing (GTK_GRID (grid), 5);
-    gtk_grid_attach (GTK_GRID (grid), hash_widgets->file1_hash_entry, 0, 0, 4, 1);
-    gtk_grid_attach (GTK_GRID (grid), hash_widgets->file2_hash_entry, 0, 1, 4, 1);
-    gtk_grid_attach_next_to (GTK_GRID (grid), select_file1_btn, hash_widgets->file1_hash_entry, GTK_POS_RIGHT, 1, 1);
-    gtk_grid_attach_next_to (GTK_GRID (grid), select_file2_btn, hash_widgets->file2_hash_entry, GTK_POS_RIGHT, 1, 1);
+    gtk_grid_attach (GTK_GRID (grid), hash_widgets->file1_hash_entry, 0, 1, 4, 1);
+    gtk_grid_attach (GTK_GRID (grid), hash_widgets->file2_hash_entry, 0, 2, 4, 1);
+    gtk_grid_attach_next_to (GTK_GRID (grid), hash_widgets->spinner_entry1, hash_widgets->file1_hash_entry, GTK_POS_RIGHT, 1, 1);
+    gtk_grid_attach_next_to (GTK_GRID (grid), hash_widgets->spinner_entry2, hash_widgets->file2_hash_entry, GTK_POS_RIGHT, 1, 1);
 
-    g_signal_connect (select_file1_btn, "clicked", G_CALLBACK (select_file_cb), hash_widgets);
-    g_signal_connect (select_file2_btn, "clicked", G_CALLBACK (select_file_cb), hash_widgets);
+    g_signal_connect (hash_widgets->file1_hash_entry, "icon-press", G_CALLBACK (select_file_cb), hash_widgets);
+    g_signal_connect (hash_widgets->file2_hash_entry, "icon-press", G_CALLBACK (select_file_cb), hash_widgets);
     g_signal_connect_swapped (dialog, "button-press-event", G_CALLBACK (toggle_active_cb),
                               hash_widgets->header_bar_menu);
     g_signal_connect (hash_widgets->file1_hash_entry, "changed", G_CALLBACK (entry_changed_cb), hash_widgets);
@@ -104,8 +108,8 @@ void compare_files_hash_cb (GtkWidget __attribute__((__unused__)) *button, gpoin
 static gpointer
 exec_thread (gpointer user_data)
 {
-    //TODO spinner/bar/something that shows there's something going on :)
     ThreadData *data = user_data;
+
     if (gtk_widget_get_sensitive (data->widgets_data->cancel_btn)) {
         gtk_widget_set_sensitive (data->widgets_data->cancel_btn, FALSE);
     }
@@ -116,11 +120,13 @@ exec_thread (gpointer user_data)
         g_thread_exit (NULL);
     }
 
-    if (g_strcmp0 (gtk_widget_get_name (data->button), "file1_btn") == 0) {
+    if (g_strcmp0 (gtk_widget_get_name (GTK_WIDGET (data->entry)), "file1_he_name") == 0) {
         gtk_entry_set_text (GTK_ENTRY (data->widgets_data->file1_hash_entry), hash);
+        stop_spinner (data->widgets_data->spinner_entry1);
     }
     else {
         gtk_entry_set_text (GTK_ENTRY (data->widgets_data->file2_hash_entry), hash);
+        stop_spinner (data->widgets_data->spinner_entry2);
     }
 
     if (!gtk_widget_get_sensitive (data->widgets_data->cancel_btn)) {
@@ -130,14 +136,16 @@ exec_thread (gpointer user_data)
             gtk_widget_set_sensitive (data->widgets_data->cancel_btn, TRUE);
         }
     }
-
     multiple_free (3, (gpointer *) &(data->filename), (gpointer *) &hash, (gpointer) &data);
     g_thread_exit ((gpointer) 0);
 }
 
 
 static void
-select_file_cb (GtkWidget  *button, gpointer user_data)
+select_file_cb (GtkEntry *entry,
+                GtkEntryIconPosition icon_pos  __attribute__((__unused__)),
+                GdkEvent *event __attribute__((__unused__)),
+                gpointer user_data)
 {
     ThreadData *thread_data = g_new0 (ThreadData, 1);
     HashWidgets *hash_widgets = user_data;
@@ -175,10 +183,17 @@ select_file_cb (GtkWidget  *button, gpointer user_data)
         }
     }
 
-    thread_data->button = button;
+    thread_data->entry = entry;
     thread_data->digest_size = digest_size;
     thread_data->hash_algo = hash_algo;
     thread_data->filename = filename;
+
+    if (g_strcmp0 (gtk_widget_get_name (GTK_WIDGET (entry)), "file1_he_name") == 0) {
+        start_spinner (hash_widgets->spinner_entry1);
+    }
+    else {
+        start_spinner (hash_widgets->spinner_entry2);
+    }
 
     g_thread_new (NULL, exec_thread, thread_data);
 }
