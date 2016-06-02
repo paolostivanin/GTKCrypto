@@ -5,7 +5,7 @@
 GtkWidget *
 create_spinner ()
 {
-    return gtk_spinner_new();
+    return gtk_spinner_new ();
 }
 
 

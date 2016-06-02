@@ -47,7 +47,7 @@ add_boxes_and_grid (AppWidgets *widgets)
         }
     }
 
-    g_signal_connect(button[6], "clicked", G_CALLBACK (compute_hash_cb), widgets);
+    g_signal_connect(button[6], "clicked", G_CALLBACK (compute_hash_cb), widgets->main_window);
     g_signal_connect(button[7], "clicked", G_CALLBACK (compare_files_hash_cb), widgets->main_window);
 
     GtkWidget *grid = gtk_grid_new ();

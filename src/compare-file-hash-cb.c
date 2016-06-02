@@ -1,12 +1,11 @@
 #include <gtk/gtk.h>
 #include <gcrypt.h>
-#include "main.h"
 #include "gtkcrypto.h"
 #include "common-callbacks.h"
 #include "hash.h"
 
 
-typedef struct hash_widgets_t {
+typedef struct compare_hash_widgets_t {
     GtkWidget *main_window;
     GtkWidget *cancel_btn;
     GtkWidget *radio_button[6];

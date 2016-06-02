@@ -4,7 +4,10 @@
 #define MUNMAP_FAILED ((gpointer) -2)
 #define HASH_ERROR ((gpointer) -3)
 #define HASH_COMPUTED ((gpointer) 0)
+
 #define FILE_BUFFER 134217728  //128 MiB
+
+#define AVAILABLE_HASH_TYPE 10
 
 #define MD5_DIGEST_SIZE 16
 #define SHA1_DIGEST_SIZE 20
