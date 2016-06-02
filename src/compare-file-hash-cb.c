@@ -18,7 +18,7 @@ typedef struct compare_hash_widgets_t {
     gboolean entry2_changed;
 } HashWidgets;
 
-typedef struct thread_data_t {
+typedef struct compare_hash_thread_data_t {
     GtkEntry *entry;
     gchar *filename;
     gint hash_algo;
@@ -112,6 +112,7 @@ exec_thread (gpointer user_data)
     if (gtk_widget_get_sensitive (data->widgets_data->cancel_btn)) {
         gtk_widget_set_sensitive (data->widgets_data->cancel_btn, FALSE);
     }
+
     gchar *hash = get_file_hash (data->filename, data->hash_algo, data->digest_size);
     if (hash == NULL) {
         show_message_dialog (data->widgets_data->main_window, "Error during hash computation", GTK_MESSAGE_ERROR);

@@ -12,11 +12,21 @@ typedef struct compute_hash_widgets_t {
     GtkWidget *check_button[AVAILABLE_HASH_TYPE];
     GtkWidget *hash_entry[AVAILABLE_HASH_TYPE];
     GtkWidget *spinner[AVAILABLE_HASH_TYPE];
+    gchar *filename;
 } HashWidgets;
 
-static void copy_to_clipboard (GtkEntry *, GtkEntryIconPosition icon_pos, GdkEvent *, gpointer);
+typedef struct compute_hash_thread_data_t {
+    GtkWidget *ck_btn;
+    gint hash_algo;
+    gint digest_size;
+    HashWidgets *widgets;
+} ThreadData;
 
-static void prepare_hash_computation (GtkWidget *, gpointer);
+static void copy_to_clipboard_cb (GtkEntry *, GtkEntryIconPosition icon_pos, GdkEvent *, gpointer);
+
+static void prepare_hash_computation_cb (GtkWidget *, gpointer);
+
+static gpointer exec_thread (gpointer);
 
 
 void
@@ -27,6 +37,8 @@ compute_hash_cb (GtkWidget __attribute((__unused__)) *button, gpointer user_data
 
     HashWidgets *hash_widgets = g_new0 (HashWidgets, 1);
     hash_widgets->main_window = (GtkWidget *) user_data;
+
+    hash_widgets->filename = choose_file (hash_widgets->main_window);
 
     GtkWidget *dialog = gtk_dialog_new ();
     gtk_widget_set_name (dialog, "dialog");
@@ -44,17 +56,19 @@ compute_hash_cb (GtkWidget __attribute((__unused__)) *button, gpointer user_data
         gtk_widget_set_name (hash_widgets->check_button[i], ck_btn_labels[i]);
 
         hash_widgets->spinner[i] = create_spinner ();
+        gtk_widget_set_name (hash_widgets->spinner[i], ck_btn_labels[i]);
 
         hash_widgets->hash_entry[i] = gtk_entry_new ();
+        gtk_widget_set_name (hash_widgets->hash_entry[i], ck_btn_labels[i]);
         gtk_editable_set_editable (GTK_EDITABLE (hash_widgets->hash_entry[i]), FALSE);
         gtk_widget_set_hexpand (hash_widgets->hash_entry[i], TRUE);
 
         gtk_entry_set_icon_from_icon_name (GTK_ENTRY (hash_widgets->hash_entry[i]), GTK_ENTRY_ICON_SECONDARY, "edit-copy-symbolic");
-        // the tooltip doesn't work...why?!?!
+        //TODO the tooltip doesn't work...why?!?!
         gtk_entry_set_icon_tooltip_text (GTK_ENTRY (hash_widgets->hash_entry[i]), GTK_ENTRY_ICON_SECONDARY, "Copy to clipboard");
 
-        g_signal_connect (hash_widgets->hash_entry[i], "icon-press", G_CALLBACK (copy_to_clipboard), NULL);
-        g_signal_connect (hash_widgets->check_button[i], "toggled", G_CALLBACK (prepare_hash_computation), NULL);
+        g_signal_connect (hash_widgets->hash_entry[i], "icon-press", G_CALLBACK (copy_to_clipboard_cb), NULL);
+        g_signal_connect (hash_widgets->check_button[i], "toggled", G_CALLBACK (prepare_hash_computation_cb), hash_widgets);
     }
 
     GtkWidget *content_area = gtk_dialog_get_content_area (GTK_DIALOG (dialog));
@@ -76,7 +90,7 @@ compute_hash_cb (GtkWidget __attribute((__unused__)) *button, gpointer user_data
     switch (result) {
         case GTK_RESPONSE_CANCEL:
             gtk_widget_destroy (dialog);
-            g_free (hash_widgets);
+            multiple_free (2, (gpointer *) &(hash_widgets->filename), (gpointer *) &hash_widgets);
             break;
         default:
             break;
@@ -85,10 +99,10 @@ compute_hash_cb (GtkWidget __attribute((__unused__)) *button, gpointer user_data
 
 
 static void
-copy_to_clipboard (GtkEntry *entry,
-                   GtkEntryIconPosition icon_pos  __attribute__((__unused__)),
-                   GdkEvent *event __attribute__((__unused__)),
-                   gpointer user_data __attribute__((__unused__)))
+copy_to_clipboard_cb (GtkEntry *entry,
+                      GtkEntryIconPosition icon_pos  __attribute__((__unused__)),
+                      GdkEvent *event __attribute__((__unused__)),
+                      gpointer user_data __attribute__((__unused__)))
 {
     gtk_editable_select_region (GTK_EDITABLE (entry), 0, -1);
     gtk_editable_copy_clipboard (GTK_EDITABLE (entry));
@@ -97,7 +111,99 @@ copy_to_clipboard (GtkEntry *entry,
 
 
 static void
-prepare_hash_computation (GtkWidget *ck_btn, gpointer user_data)
+prepare_hash_computation_cb (GtkWidget *ck_btn, gpointer user_data)
 {
-    return;
+    HashWidgets *data  = user_data;
+    ThreadData *thread_data = g_new0 (ThreadData, 1);
+
+    gint hash_algo = -1, digest_size = -1;
+
+    //TODO se il toggle è stato tolto allora non fare niente e deletare l'entry
+    if (g_strcmp0 (gtk_widget_get_name (ck_btn), "MD5") == 0) {
+        hash_algo = GCRY_MD_MD5;
+        digest_size = MD5_DIGEST_SIZE;
+    }
+    else if (g_strcmp0 (gtk_widget_get_name (ck_btn), "SHA-1") == 0) {
+        hash_algo = GCRY_MD_SHA1;
+        digest_size = SHA1_DIGEST_SIZE;
+    }
+    else if (g_strcmp0 (gtk_widget_get_name (ck_btn), "GOST94") == 0) {
+        hash_algo = GCRY_MD_GOSTR3411_94;
+        digest_size = GOST94_DIGEST_SIZE;
+    }
+    else if (g_strcmp0 (gtk_widget_get_name (ck_btn), "SHA-256") == 0) {
+        hash_algo = GCRY_MD_SHA256;
+        digest_size = SHA256_DIGEST_SIZE;
+    }
+    else if (g_strcmp0 (gtk_widget_get_name (ck_btn), "SHA3-256") == 0) {
+        hash_algo = GCRY_MD_SHA3_256;
+        digest_size = SHA3_256_DIGEST_SIZE;
+    }
+    else if (g_strcmp0 (gtk_widget_get_name (ck_btn), "SHA-384") == 0) {
+        hash_algo = GCRY_MD_SHA384;
+        digest_size = SHA384_DIGEST_SIZE;
+    }
+    else if (g_strcmp0 (gtk_widget_get_name (ck_btn), "SHA3-384") == 0) {
+        hash_algo = GCRY_MD_SHA3_384;
+        digest_size = SHA3_384_DIGEST_SIZE;
+    }
+    else if (g_strcmp0 (gtk_widget_get_name (ck_btn), "SHA-512") == 0) {
+        hash_algo = GCRY_MD_SHA512;
+        digest_size = SHA512_DIGEST_SIZE;
+    }
+    else if (g_strcmp0 (gtk_widget_get_name (ck_btn), "SHA3-512") == 0) {
+        hash_algo = GCRY_MD_SHA3_512;
+        digest_size = SHA3_512_DIGEST_SIZE;
+    }
+    else if (g_strcmp0 (gtk_widget_get_name (ck_btn), "WHIRLPOOL") == 0) {
+        hash_algo = GCRY_MD_WHIRLPOOL;
+        digest_size = WHIRLPOOL_DIGEST_SIZE;
+    }
+
+    gint i;
+    for (i = 0; i < AVAILABLE_HASH_TYPE; i++) {
+        if (g_strcmp0 (gtk_widget_get_name (ck_btn), gtk_widget_get_name (data->spinner[i])) == 0) {
+            start_spinner (data->spinner[i]);
+            break;
+        }
+    }
+
+    thread_data->ck_btn = ck_btn;
+    thread_data->digest_size = digest_size;
+    thread_data->hash_algo = hash_algo;
+    thread_data->widgets = data;
+
+    g_thread_new (NULL, exec_thread, thread_data);
+}
+
+
+static gpointer
+exec_thread (gpointer user_data)
+{
+    ThreadData *data = user_data;
+
+    /*if (gtk_widget_get_sensitive (data->widgets->cancel_btn)) {
+        gtk_widget_set_sensitive (data->widgets->cancel_btn, FALSE);
+    }*/
+
+    gchar *hash = get_file_hash (data->widgets->filename, data->hash_algo, data->digest_size);
+    if (hash == NULL) {
+        show_message_dialog (data->widgets->main_window, "Error during hash computation", GTK_MESSAGE_ERROR);
+        multiple_free (2, (gpointer *) &hash, (gpointer) &data);
+        g_thread_exit (NULL);
+    }
+
+    gint i;
+    for (i = 0; i < AVAILABLE_HASH_TYPE; i ++) {
+        if (g_strcmp0 (gtk_widget_get_name (data->ck_btn), gtk_widget_get_name (data->widgets->hash_entry[i])) == 0) {
+            gtk_entry_set_text (GTK_ENTRY (data->widgets->hash_entry[i]), hash);
+            stop_spinner (data->widgets->spinner[i]);
+            break;
+        }
+    }
+
+    //TODO how to deal with the cancel btn?!?!
+
+    multiple_free (2, (gpointer *) &hash, (gpointer *) &data);
+    g_thread_exit ((gpointer) 0);
 }
