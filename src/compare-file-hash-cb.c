@@ -38,7 +38,8 @@ static gpointer exec_thread (gpointer);
 
 
 void
-compare_files_hash_cb (GtkWidget *button  __attribute__((__unused__)), gpointer user_data)
+compare_files_hash_cb (GtkWidget *button  __attribute__((__unused__)),
+                       gpointer user_data)
 {
     HashWidgets *hash_widgets = g_new0 (HashWidgets, 1);
     hash_widgets->main_window = (GtkWidget *) user_data;
@@ -70,8 +71,10 @@ compare_files_hash_cb (GtkWidget *button  __attribute__((__unused__)), gpointer 
 
     set_css ("./css/entry.css", 2, &(hash_widgets->file1_hash_entry), &(hash_widgets->file2_hash_entry));
 
-    gtk_entry_set_icon_from_icon_name (GTK_ENTRY (hash_widgets->file1_hash_entry), GTK_ENTRY_ICON_SECONDARY, "document-open-symbolic");
-    gtk_entry_set_icon_from_icon_name (GTK_ENTRY (hash_widgets->file2_hash_entry), GTK_ENTRY_ICON_SECONDARY, "document-open-symbolic");
+    gtk_entry_set_icon_from_icon_name (GTK_ENTRY (hash_widgets->file1_hash_entry), GTK_ENTRY_ICON_SECONDARY,
+                                       "document-open-symbolic");
+    gtk_entry_set_icon_from_icon_name (GTK_ENTRY (hash_widgets->file2_hash_entry), GTK_ENTRY_ICON_SECONDARY,
+                                       "document-open-symbolic");
 
     hash_widgets->spinner_entry1 = create_spinner();
     hash_widgets->spinner_entry2 = create_spinner();
@@ -80,8 +83,10 @@ compare_files_hash_cb (GtkWidget *button  __attribute__((__unused__)), gpointer 
     gtk_grid_set_column_spacing (GTK_GRID (grid), 5);
     gtk_grid_attach (GTK_GRID (grid), hash_widgets->file1_hash_entry, 0, 1, 4, 1);
     gtk_grid_attach (GTK_GRID (grid), hash_widgets->file2_hash_entry, 0, 2, 4, 1);
-    gtk_grid_attach_next_to (GTK_GRID (grid), hash_widgets->spinner_entry1, hash_widgets->file1_hash_entry, GTK_POS_RIGHT, 1, 1);
-    gtk_grid_attach_next_to (GTK_GRID (grid), hash_widgets->spinner_entry2, hash_widgets->file2_hash_entry, GTK_POS_RIGHT, 1, 1);
+    gtk_grid_attach_next_to (GTK_GRID (grid), hash_widgets->spinner_entry1, hash_widgets->file1_hash_entry,
+                             GTK_POS_RIGHT, 1, 1);
+    gtk_grid_attach_next_to (GTK_GRID (grid), hash_widgets->spinner_entry2, hash_widgets->file2_hash_entry,
+                             GTK_POS_RIGHT, 1, 1);
 
     g_signal_connect (hash_widgets->file1_hash_entry, "icon-press", G_CALLBACK (select_file_cb), hash_widgets);
     g_signal_connect (hash_widgets->file2_hash_entry, "icon-press", G_CALLBACK (select_file_cb), hash_widgets);

@@ -1,5 +1,4 @@
 #include <gtk/gtk.h>
-#include <gtk/gtk.h>
 #include <gcrypt.h>
 #include "gtkcrypto.h"
 #include "common-callbacks.h"
@@ -13,6 +12,7 @@ typedef struct compute_hash_widgets_t {
     GtkWidget *hash_entry[AVAILABLE_HASH_TYPE];
     GtkWidget *spinner[AVAILABLE_HASH_TYPE];
     gchar *filename;
+    GThreadPool *thread_pool;
 } HashWidgets;
 
 typedef struct compute_hash_thread_data_t {
@@ -22,15 +22,16 @@ typedef struct compute_hash_thread_data_t {
     HashWidgets *widgets;
 } ThreadData;
 
-static void copy_to_clipboard_cb (GtkEntry *, GtkEntryIconPosition icon_pos, GdkEvent *, gpointer);
-
 static void prepare_hash_computation_cb (GtkWidget *, gpointer);
 
-static gpointer exec_thread (gpointer);
+static gpointer exec_thread (gpointer, gpointer);
+
+static gboolean is_last_thread (GThreadPool *);
 
 
 void
-compute_hash_cb (GtkWidget __attribute((__unused__)) *button, gpointer user_data)
+compute_hash_cb (GtkWidget *button __attribute((__unused__)),
+                 gpointer user_data)
 {
     const gchar *ck_btn_labels[] = {"MD5", "SHA-1", "GOST94", "SHA-256", "SHA3-256", "SHA-384", "SHA3-384",
                                     "SHA-512", "SHA3-512", "WHIRLPOOL"};
@@ -64,7 +65,6 @@ compute_hash_cb (GtkWidget __attribute((__unused__)) *button, gpointer user_data
         gtk_widget_set_hexpand (hash_widgets->hash_entry[i], TRUE);
 
         gtk_entry_set_icon_from_icon_name (GTK_ENTRY (hash_widgets->hash_entry[i]), GTK_ENTRY_ICON_SECONDARY, "edit-copy-symbolic");
-        //TODO the tooltip doesn't work...why?!?!
         gtk_entry_set_icon_tooltip_text (GTK_ENTRY (hash_widgets->hash_entry[i]), GTK_ENTRY_ICON_SECONDARY, "Copy to clipboard");
 
         g_signal_connect (hash_widgets->hash_entry[i], "icon-press", G_CALLBACK (copy_to_clipboard_cb), NULL);
@@ -84,29 +84,20 @@ compute_hash_cb (GtkWidget __attribute((__unused__)) *button, gpointer user_data
         gtk_grid_attach_next_to (GTK_GRID (grid), hash_widgets->spinner[i], hash_widgets->hash_entry[i], GTK_POS_RIGHT, 1, 1);
     }
 
+    hash_widgets->thread_pool = g_thread_pool_new ((GFunc) exec_thread, NULL, g_get_num_processors (), FALSE, NULL);
+
     gtk_widget_show_all (dialog);
 
     gint result = gtk_dialog_run (GTK_DIALOG (dialog));
     switch (result) {
         case GTK_RESPONSE_CANCEL:
             gtk_widget_destroy (dialog);
+            g_thread_pool_free (hash_widgets->thread_pool, FALSE, FALSE);
             multiple_free (2, (gpointer *) &(hash_widgets->filename), (gpointer *) &hash_widgets);
             break;
         default:
             break;
     }
-}
-
-
-static void
-copy_to_clipboard_cb (GtkEntry *entry,
-                      GtkEntryIconPosition icon_pos  __attribute__((__unused__)),
-                      GdkEvent *event __attribute__((__unused__)),
-                      gpointer user_data __attribute__((__unused__)))
-{
-    gtk_editable_select_region (GTK_EDITABLE (entry), 0, -1);
-    gtk_editable_copy_clipboard (GTK_EDITABLE (entry));
-    gtk_editable_set_position (GTK_EDITABLE (entry), 0);
 }
 
 
@@ -118,7 +109,6 @@ prepare_hash_computation_cb (GtkWidget *ck_btn, gpointer user_data)
 
     gint hash_algo = -1, digest_size = -1;
 
-    //TODO se il toggle è stato tolto allora non fare niente e deletare l'entry
     if (g_strcmp0 (gtk_widget_get_name (ck_btn), "MD5") == 0) {
         hash_algo = GCRY_MD_MD5;
         digest_size = MD5_DIGEST_SIZE;
@@ -173,37 +163,54 @@ prepare_hash_computation_cb (GtkWidget *ck_btn, gpointer user_data)
     thread_data->hash_algo = hash_algo;
     thread_data->widgets = data;
 
-    g_thread_new (NULL, exec_thread, thread_data);
+    g_thread_pool_push (data->thread_pool, thread_data, NULL);
 }
 
 
 static gpointer
-exec_thread (gpointer user_data)
+exec_thread (gpointer pushed_data,
+             gpointer user_data __attribute__((__unused__)))
 {
-    ThreadData *data = user_data;
+    ThreadData *data = pushed_data;
 
-    /*if (gtk_widget_get_sensitive (data->widgets->cancel_btn)) {
+    if (gtk_widget_get_sensitive (data->widgets->cancel_btn)) {
         gtk_widget_set_sensitive (data->widgets->cancel_btn, FALSE);
-    }*/
+    }
 
     gchar *hash = get_file_hash (data->widgets->filename, data->hash_algo, data->digest_size);
     if (hash == NULL) {
         show_message_dialog (data->widgets->main_window, "Error during hash computation", GTK_MESSAGE_ERROR);
-        multiple_free (2, (gpointer *) &hash, (gpointer) &data);
-        g_thread_exit (NULL);
     }
-
-    gint i;
-    for (i = 0; i < AVAILABLE_HASH_TYPE; i ++) {
-        if (g_strcmp0 (gtk_widget_get_name (data->ck_btn), gtk_widget_get_name (data->widgets->hash_entry[i])) == 0) {
-            gtk_entry_set_text (GTK_ENTRY (data->widgets->hash_entry[i]), hash);
-            stop_spinner (data->widgets->spinner[i]);
-            break;
+    else {
+        gint i;
+        for (i = 0; i < AVAILABLE_HASH_TYPE; i++) {
+            if (g_strcmp0 (gtk_widget_get_name (data->ck_btn), gtk_widget_get_name (data->widgets->hash_entry[i])) == 0) {
+                gtk_entry_set_text (GTK_ENTRY (data->widgets->hash_entry[i]), hash);
+                stop_spinner (data->widgets->spinner[i]);
+                break;
+            }
         }
     }
 
-    //TODO how to deal with the cancel btn?!?!
-
+    if (!gtk_widget_get_sensitive (data->widgets->cancel_btn) && is_last_thread (data->widgets->thread_pool)) {
+        gtk_widget_set_sensitive (data->widgets->cancel_btn, TRUE);
+    }
     multiple_free (2, (gpointer *) &hash, (gpointer *) &data);
-    g_thread_exit ((gpointer) 0);
 }
+
+
+static gboolean
+is_last_thread (GThreadPool *tp)
+{
+    if (g_thread_pool_get_num_threads (tp) == 1) {
+        return TRUE;
+    }
+    else {
+        return FALSE;
+    }
+}
+
+/* TODO:
+ * - deal with already toggled buttons (if already toggled then delete entry)
+ * - add list of computed hashes like old gtkcrypto?
+ */

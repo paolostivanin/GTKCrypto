@@ -17,3 +17,15 @@ toggle_active_cb (gpointer user_data)
             gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (menu), FALSE);
     }
 }
+
+
+void
+copy_to_clipboard_cb (GtkEntry *entry,
+                      GtkEntryIconPosition icon_pos  __attribute__((__unused__)),
+                      GdkEvent *event __attribute__((__unused__)),
+                      gpointer user_data __attribute__((__unused__)))
+{
+    gtk_editable_select_region (GTK_EDITABLE (entry), 0, -1);
+    gtk_editable_copy_clipboard (GTK_EDITABLE (entry));
+    gtk_editable_set_position (GTK_EDITABLE (entry), 0);
+}

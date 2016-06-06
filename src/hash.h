@@ -1,9 +1,9 @@
 #ifndef HASH_H
 #define HASH_H
 
-#define MUNMAP_FAILED ((gpointer) -2)
-#define HASH_ERROR ((gpointer) -3)
 #define HASH_COMPUTED ((gpointer) 0)
+#define HASH_ERROR ((gpointer) -2)
+#define MUNMAP_FAILED ((gpointer) -3)
 
 #define FILE_BUFFER 134217728  //128 MiB
 
