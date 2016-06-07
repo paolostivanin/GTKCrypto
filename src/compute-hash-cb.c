@@ -105,10 +105,20 @@ static void
 prepare_hash_computation_cb (GtkWidget *ck_btn, gpointer user_data)
 {
     HashWidgets *data  = user_data;
+
+    gint i;
+    if (!gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (ck_btn))) {
+        for (i = 0; i < AVAILABLE_HASH_TYPE; i++) {
+            if (g_strcmp0 (gtk_widget_get_name(ck_btn), gtk_widget_get_name (data->hash_entry[i])) == 0) {
+                gtk_entry_set_text (GTK_ENTRY (data->hash_entry[i]), "");
+                return;
+            }
+        }
+    }
+
     ThreadData *thread_data = g_new0 (ThreadData, 1);
 
     gint hash_algo = -1, digest_size = -1;
-
     if (g_strcmp0 (gtk_widget_get_name (ck_btn), "MD5") == 0) {
         hash_algo = GCRY_MD_MD5;
         digest_size = MD5_DIGEST_SIZE;
@@ -150,7 +160,6 @@ prepare_hash_computation_cb (GtkWidget *ck_btn, gpointer user_data)
         digest_size = WHIRLPOOL_DIGEST_SIZE;
     }
 
-    gint i;
     for (i = 0; i < AVAILABLE_HASH_TYPE; i++) {
         if (g_strcmp0 (gtk_widget_get_name (ck_btn), gtk_widget_get_name (data->spinner[i])) == 0) {
             start_spinner (data->spinner[i]);
@@ -211,6 +220,5 @@ is_last_thread (GThreadPool *tp)
 }
 
 /* TODO:
- * - deal with already toggled buttons (if already toggled then delete entry)
  * - add list of computed hashes like old gtkcrypto?
  */
