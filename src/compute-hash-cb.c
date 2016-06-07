@@ -13,13 +13,14 @@ typedef struct compute_hash_widgets_t {
     GtkWidget *spinner[AVAILABLE_HASH_TYPE];
     gchar *filename;
     GThreadPool *thread_pool;
-} HashWidgets;
+    GHashTable *hash_table;
+} ComputeHashData;
 
 typedef struct compute_hash_thread_data_t {
     GtkWidget *ck_btn;
     gint hash_algo;
     gint digest_size;
-    HashWidgets *widgets;
+    ComputeHashData *widgets;
 } ThreadData;
 
 static void prepare_hash_computation_cb (GtkWidget *, gpointer);
@@ -27,6 +28,8 @@ static void prepare_hash_computation_cb (GtkWidget *, gpointer);
 static gpointer exec_thread (gpointer, gpointer);
 
 static gboolean is_last_thread (GThreadPool *);
+
+static GtkWidget *get_entry_from_check_btn (GtkWidget *, ComputeHashData *);
 
 
 void
@@ -36,7 +39,7 @@ compute_hash_cb (GtkWidget *button __attribute((__unused__)),
     const gchar *ck_btn_labels[] = {"MD5", "SHA-1", "GOST94", "SHA-256", "SHA3-256", "SHA-384", "SHA3-384",
                                     "SHA-512", "SHA3-512", "WHIRLPOOL"};
 
-    HashWidgets *hash_widgets = g_new0 (HashWidgets, 1);
+    ComputeHashData *hash_widgets = g_new0 (ComputeHashData, 1);
     hash_widgets->main_window = (GtkWidget *) user_data;
 
     hash_widgets->filename = choose_file (hash_widgets->main_window);
@@ -85,6 +88,7 @@ compute_hash_cb (GtkWidget *button __attribute((__unused__)),
     }
 
     hash_widgets->thread_pool = g_thread_pool_new ((GFunc) exec_thread, NULL, g_get_num_processors (), FALSE, NULL);
+    hash_widgets->hash_table = g_hash_table_new_full (g_str_hash, g_str_equal, g_free, g_free);
 
     gtk_widget_show_all (dialog);
 
@@ -93,6 +97,8 @@ compute_hash_cb (GtkWidget *button __attribute((__unused__)),
         case GTK_RESPONSE_CANCEL:
             gtk_widget_destroy (dialog);
             g_thread_pool_free (hash_widgets->thread_pool, FALSE, FALSE);
+            g_hash_table_remove_all (hash_widgets->hash_table);
+            g_hash_table_unref (hash_widgets->hash_table);
             multiple_free (2, (gpointer *) &(hash_widgets->filename), (gpointer *) &hash_widgets);
             break;
         default:
@@ -104,16 +110,18 @@ compute_hash_cb (GtkWidget *button __attribute((__unused__)),
 static void
 prepare_hash_computation_cb (GtkWidget *ck_btn, gpointer user_data)
 {
-    HashWidgets *data  = user_data;
+    ComputeHashData *data  = user_data;
 
     gint i;
     if (!gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (ck_btn))) {
-        for (i = 0; i < AVAILABLE_HASH_TYPE; i++) {
-            if (g_strcmp0 (gtk_widget_get_name(ck_btn), gtk_widget_get_name (data->hash_entry[i])) == 0) {
-                gtk_entry_set_text (GTK_ENTRY (data->hash_entry[i]), "");
-                return;
-            }
-        }
+        gtk_entry_set_text (GTK_ENTRY (get_entry_from_check_btn (ck_btn, data)), "");
+        return;
+    }
+
+    gpointer value = g_hash_table_lookup (data->hash_table, gtk_widget_get_name (ck_btn));
+    if (value != NULL) {
+        gtk_entry_set_text (GTK_ENTRY (get_entry_from_check_btn (ck_btn, data)), (gchar *) value);
+        return;
     }
 
     ThreadData *thread_data = g_new0 (ThreadData, 1);
@@ -195,6 +203,9 @@ exec_thread (gpointer pushed_data,
         for (i = 0; i < AVAILABLE_HASH_TYPE; i++) {
             if (g_strcmp0 (gtk_widget_get_name (data->ck_btn), gtk_widget_get_name (data->widgets->hash_entry[i])) == 0) {
                 gtk_entry_set_text (GTK_ENTRY (data->widgets->hash_entry[i]), hash);
+                g_hash_table_insert (data->widgets->hash_table,
+                                     g_strdup ((gchar *) gtk_widget_get_name (data->ck_btn)),
+                                     g_strdup (hash));
                 stop_spinner (data->widgets->spinner[i]);
                 break;
             }
@@ -219,6 +230,14 @@ is_last_thread (GThreadPool *tp)
     }
 }
 
-/* TODO:
- * - add list of computed hashes like old gtkcrypto?
- */
+
+static GtkWidget *
+get_entry_from_check_btn (GtkWidget *ck_btn, ComputeHashData *data)
+{
+    gint i;
+    for (i = 0; i < AVAILABLE_HASH_TYPE; i++) {
+        if (g_strcmp0 (gtk_widget_get_name (ck_btn), gtk_widget_get_name (data->hash_entry[i])) == 0) {
+            return data->hash_entry[i];
+        }
+    }
+}
