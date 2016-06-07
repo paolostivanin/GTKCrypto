@@ -25,4 +25,10 @@ GtkWidget *create_main_window (GtkApplication *);
 
 void add_boxes_and_grid (AppWidgets *);
 
+void compare_files_hash_cb (GtkWidget *, gpointer);
+
+void compute_hash_cb (GtkWidget *, gpointer);
+
+void encrypt_file_cb (GtkWidget *, gpointer);
+
 #endif

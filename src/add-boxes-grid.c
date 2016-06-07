@@ -1,6 +1,5 @@
 #include <gtk/gtk.h>
 #include "main.h"
-#include "common-callbacks.h"
 
 #define NUM_OF_BUTTONS 8
 #define NUM_OF_WIDGETS 3
@@ -47,8 +46,14 @@ add_boxes_and_grid (AppWidgets *widgets)
         }
     }
 
-    g_signal_connect(button[6], "clicked", G_CALLBACK (compute_hash_cb), widgets->main_window);
-    g_signal_connect(button[7], "clicked", G_CALLBACK (compare_files_hash_cb), widgets->main_window);
+    g_signal_connect (button[0], "clicked", G_CALLBACK (encrypt_file_cb), widgets->main_window);
+    gtk_widget_set_sensitive (button[1], FALSE);
+    gtk_widget_set_sensitive (button[2], FALSE);
+    gtk_widget_set_sensitive (button[3], FALSE);
+    gtk_widget_set_sensitive (button[4], FALSE);
+    gtk_widget_set_sensitive (button[5], FALSE);
+    g_signal_connect (button[6], "clicked", G_CALLBACK (compute_hash_cb), widgets->main_window);
+    g_signal_connect (button[7], "clicked", G_CALLBACK (compare_files_hash_cb), widgets->main_window);
 
     GtkWidget *grid = gtk_grid_new ();
     gtk_container_add (GTK_CONTAINER (widgets->main_window), grid);
