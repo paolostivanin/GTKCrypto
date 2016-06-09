@@ -2,6 +2,7 @@
 #include <gcrypt.h>
 #include "gtkcrypto.h"
 #include "common-callbacks.h"
+#include "common-widgets.h"
 #include "hash.h"
 
 
@@ -44,11 +45,7 @@ compute_hash_cb (GtkWidget *button __attribute((__unused__)),
 
     hash_widgets->filename = choose_file (hash_widgets->main_window);
 
-    GtkWidget *dialog = gtk_dialog_new ();
-    gtk_widget_set_name (dialog, "dialog");
-    gtk_window_set_transient_for (GTK_WINDOW (dialog), GTK_WINDOW (hash_widgets->main_window));
-    gtk_window_set_destroy_with_parent (GTK_WINDOW (dialog), TRUE);
-    gtk_window_set_title (GTK_WINDOW (dialog), "Compute File Hashes");
+    GtkWidget *dialog = create_dialog (hash_widgets->main_window, "dialog", "Compute Hash");
 
     hash_widgets->cancel_btn = gtk_dialog_add_button (GTK_DIALOG (dialog), "Cancel", GTK_RESPONSE_CANCEL);
     gtk_widget_set_margin_top (hash_widgets->cancel_btn, 10);
