@@ -15,7 +15,7 @@ create_main_window (GtkApplication *app)
 
     gtk_container_set_border_width (GTK_CONTAINER (window), 10);
 
-    gtk_widget_set_size_request (GTK_WIDGET (window), 350, 400);
+    gtk_widget_set_size_request (GTK_WIDGET (window), 475, 360);
 
     gchar *header_bar_text = g_malloc (strlen (APP_NAME ) + 1 + strlen (APP_VERSION) + 1);
     g_snprintf (header_bar_text, strlen (APP_NAME) + 1 + strlen (APP_VERSION) + 1,

@@ -59,7 +59,7 @@ add_boxes_and_grid (AppWidgets *widgets)
     gtk_container_add (GTK_CONTAINER (widgets->main_window), grid);
     gtk_grid_set_row_homogeneous (GTK_GRID (grid), TRUE);
     gtk_grid_set_column_homogeneous (GTK_GRID (grid), TRUE);
-    gtk_grid_set_row_spacing (GTK_GRID (grid), 5);
+    gtk_grid_set_row_spacing (GTK_GRID (grid), 10);
     gtk_grid_set_column_spacing (GTK_GRID (grid), 5);
 
     gtk_grid_attach (GTK_GRID (grid), frame[0], 0, 0, 3, 2);
