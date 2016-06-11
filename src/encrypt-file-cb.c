@@ -4,9 +4,6 @@
 #include "common-callbacks.h"
 #include "encrypt-file-cb.h"
 
-#define AVAILABLE_ALGO 6        // AES256, BLOWFISH, CAMELLIA256, CAST5, SERPENT256, TWOFISH
-#define AVAILABLE_ALGO_MODE 2   // CBC, CTR
-
 typedef struct encrypt_file_widgets_t {
     GtkWidget *main_window;
     GtkWidget *dialog;
@@ -24,9 +21,10 @@ typedef struct encrypt_file_widgets_t {
 typedef struct thread_data_t {
     GtkWidget *dialog;
     GtkWidget *spinner;
-    GtkWidget *dialog_ok_btn;
     const gchar *algo_btn_name;
     const gchar *algo_mode_btn_name;
+    const gchar *filename;
+    const gchar *pwd;
 } ThreadData;
 
 static void do_header_bar (GtkWidget *, gpointer);
@@ -37,7 +35,7 @@ static GtkWidget *get_final_box_layout (EncryptWidgets *);
 
 static gboolean check_pwd (GtkWidget *, GtkWidget *, GtkWidget *);
 
-static void prepare_encryption (const gchar *, const gchar *, EncryptWidgets *);
+static void prepare_encryption (const gchar *, const gchar *, const gchar *, EncryptWidgets *);
 
 static gpointer exec_thread (gpointer);
 
@@ -107,7 +105,8 @@ encrypt_file_cb (GtkWidget *btn __attribute__((__unused__)),
                         break;
                     }
                 }
-                prepare_encryption (gtk_widget_get_name (encrypt_widgets->radio_button_algo[i]),
+                prepare_encryption (filename,
+                                    gtk_widget_get_name (encrypt_widgets->radio_button_algo[i]),
                                     gtk_widget_get_name (encrypt_widgets->radio_button_algo_mode[j]),
                                     encrypt_widgets);
                 goto try_again;
@@ -308,15 +307,16 @@ check_pwd (GtkWidget *main_window, GtkWidget *entry, GtkWidget *retype_entry)
 
 
 static void
-prepare_encryption (const gchar *algo, const gchar *algo_mode, EncryptWidgets *data)
+prepare_encryption (const gchar *filename, const gchar *algo, const gchar *algo_mode, EncryptWidgets *data)
 {
     ThreadData *thread_data = g_new0 (ThreadData, 1);
 
     thread_data->dialog = data->dialog;
-    thread_data->dialog_ok_btn = data->ok_btn;
     thread_data->spinner = data->spinner;
     thread_data->algo_btn_name = algo;
     thread_data->algo_mode_btn_name = algo_mode;
+    thread_data->filename = filename;
+    thread_data->pwd = gtk_entry_get_text (GTK_ENTRY (data->entry_pwd));
 
     start_spinner (thread_data->spinner);
 
@@ -331,7 +331,7 @@ exec_thread (gpointer user_data)
 {
     ThreadData *data = user_data;
 
-    encrypt_file (data->algo_btn_name, data->algo_mode_btn_name);
+    encrypt_file (data->filename, data->pwd, data->algo_btn_name, data->algo_mode_btn_name);
 
     stop_spinner (data->spinner);
 
