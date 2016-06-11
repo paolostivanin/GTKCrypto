@@ -9,6 +9,8 @@ gchar *choose_file (GtkWidget *);
 
 void multiple_free (gint, gpointer *, ...);
 
+void multiple_gcry_free (gint, gpointer *, ...);
+
 void set_css (const gchar *, gint, GtkWidget **, ...);
 
 gchar *get_file_hash (const gchar *, gint, gint);

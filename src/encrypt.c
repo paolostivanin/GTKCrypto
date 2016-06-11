@@ -16,44 +16,34 @@ typedef struct header_metadata_t {
     gint algo_mode;
 } Metadata;
 
+typedef struct key_t {
+    guchar *derived_key;
+    guchar *crypto_key;
+    guchar *hmac_key;
+} EncryptionKeys;
+
 static void set_algo_and_mode (Metadata *, const gchar *, const gchar *);
+
+static gboolean setup_keys (const gchar *, gsize, Metadata *, EncryptionKeys *);
 
 
 void
 encrypt_file (const gchar *filename, const gchar *pwd, const gchar *algo, const gchar *algo_mode)
 {
     Metadata *header_metadata = g_new0 (Metadata, 1);
+    EncryptionKeys *encryption_keys = g_new0 (EncryptionKeys, 1);
 
     set_algo_and_mode (header_metadata, algo, algo_mode);
-    gsize key_len = gcry_cipher_get_algo_keylen (header_metadata->algo);
+    gsize algo_key_len = gcry_cipher_get_algo_keylen (header_metadata->algo);
+    gsize algo_blk_len = gcry_cipher_get_algo_blklen (header_metadata->algo);
 
-    guchar *derived_key = gcry_malloc_secure (64);
-    if (derived_key == NULL) {
-        // TODO
-        return;
-    }
-
+    gcry_create_nonce (header_metadata->iv, IV_SIZE);
     gcry_create_nonce (header_metadata->salt, SALT_SIZE);
 
-    if (gcry_kdf_derive (pwd, strlen (pwd) + 1, GCRY_KDF_PBKDF2, GCRY_MD_SHA512,
-                         header_metadata->salt, SALT_SIZE, ROUNDS, 64, derived_key) != 0) {
+    if (!setup_keys (pwd, algo_key_len, header_metadata, encryption_keys)) {
         // TODO
         return;
     }
-
-    guchar *crypto_key = gcry_malloc_secure (key_len);
-    if (crypto_key == NULL) {
-        //TODO
-        return;
-    }
-    memcpy (crypto_key, derived_key, key_len);
-
-    guchar *hmac_key = gcry_malloc_secure (HMAC_KEY_SIZE);
-    if (hmac_key == NULL) {
-        //TODO
-        return;
-    }
-    memcpy (hmac_key, derived_key + key_len, HMAC_KEY_SIZE);
 
     goffset filesize = get_file_size (filename);
 
@@ -73,16 +63,17 @@ encrypt_file (const gchar *filename, const gchar *pwd, const gchar *algo, const 
     gcry_cipher_hd_t hd;
     gcry_cipher_open (&hd, header_metadata->algo, header_metadata->algo_mode, 0);
 
-    /* if CBC number of blocks...
-     * if CTR no problems
+    /* if CBC number of blocks (blowfish and cast5 have 8 bytes blocks, all the others 16 bytes...
+     * if CTR no problem
      */
 
-    gcry_free (derived_key);
-    gcry_free (crypto_key);
-    gcry_free (hmac_key);
+    gcry_cipher_close (hd);
 
-    g_free (out_filename);
-    g_free (header_metadata);
+    multiple_gcry_free (3, (gpointer *) &encryption_keys->derived_key,
+                        (gpointer *) &encryption_keys->crypto_key,
+                        (gpointer *) &encryption_keys->hmac_key);
+
+    multiple_free (3, (gpointer *) &out_filename, (gpointer *) &encryption_keys, (gpointer *) &header_metadata);
 }
 
 
@@ -114,4 +105,33 @@ set_algo_and_mode (Metadata *header_metadata, const gchar *algo, const gchar *al
     else {
         header_metadata->algo_mode = GCRY_CIPHER_MODE_CTR;
     }
+}
+
+
+static gboolean
+setup_keys (const gchar *pwd, gsize algo_key_len, Metadata *header_metadata, EncryptionKeys *encryption_keys)
+{
+    encryption_keys->derived_key = gcry_malloc_secure (64);
+    if (encryption_keys->derived_key == NULL) {
+        return FALSE;
+    }
+
+    if (gcry_kdf_derive (pwd, (gsize) g_utf8_strlen (pwd, -1) + 1, GCRY_KDF_PBKDF2, GCRY_MD_SHA512,
+                         header_metadata->salt, SALT_SIZE, ROUNDS, 64, encryption_keys->derived_key) != 0) {
+        return FALSE;
+    }
+
+    encryption_keys->crypto_key = gcry_malloc_secure (algo_key_len);
+    if (encryption_keys->crypto_key == NULL) {
+        return FALSE;
+    }
+    memcpy (encryption_keys->crypto_key, encryption_keys->derived_key, algo_key_len);
+
+    encryption_keys->hmac_key = gcry_malloc_secure (HMAC_KEY_SIZE);
+    if (encryption_keys->hmac_key == NULL) {
+        return FALSE;
+    }
+    memcpy (encryption_keys->hmac_key, encryption_keys->derived_key + algo_key_len, HMAC_KEY_SIZE);
+
+    return TRUE;
 }
