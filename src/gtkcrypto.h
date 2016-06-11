@@ -21,4 +21,6 @@ void start_spinner (GtkWidget *);
 
 void stop_spinner (GtkWidget *);
 
+void change_widgets_sensitivity (gint, gboolean, GtkWidget **, ...);
+
 #endif

@@ -107,43 +107,6 @@ compare_files_hash_cb (GtkWidget *button  __attribute__((__unused__)),
 }
 
 
-static gpointer
-exec_thread (gpointer user_data)
-{
-    ThreadData *data = user_data;
-
-    if (gtk_widget_get_sensitive (data->widgets_data->cancel_btn)) {
-        gtk_widget_set_sensitive (data->widgets_data->cancel_btn, FALSE);
-    }
-
-    gchar *hash = get_file_hash (data->filename, data->hash_algo, data->digest_size);
-    if (hash == NULL) {
-        show_message_dialog (data->widgets_data->main_window, "Error during hash computation", GTK_MESSAGE_ERROR);
-        multiple_free (3, (gpointer *) &(data->filename), (gpointer *) &hash, (gpointer) &data);
-        g_thread_exit (NULL);
-    }
-
-    if (g_strcmp0 (gtk_widget_get_name (GTK_WIDGET (data->entry)), "file1_he_name") == 0) {
-        gtk_entry_set_text (GTK_ENTRY (data->widgets_data->file1_hash_entry), hash);
-        stop_spinner (data->widgets_data->spinner_entry1);
-    }
-    else {
-        gtk_entry_set_text (GTK_ENTRY (data->widgets_data->file2_hash_entry), hash);
-        stop_spinner (data->widgets_data->spinner_entry2);
-    }
-
-    if (!gtk_widget_get_sensitive (data->widgets_data->cancel_btn)) {
-        // if cancel_btn is non-sensitive AND both the gtk_entry have have text inside them, THEN cancel_btn becomes
-        // sensitive again.
-        if ((data->widgets_data->entry1_changed) && (data->widgets_data->entry2_changed)) {
-            gtk_widget_set_sensitive (data->widgets_data->cancel_btn, TRUE);
-        }
-    }
-    multiple_free (3, (gpointer *) &(data->filename), (gpointer *) &hash, (gpointer) &data);
-    g_thread_exit ((gpointer) 0);
-}
-
-
 static void
 select_file_cb (GtkEntry *entry,
                 GtkEntryIconPosition icon_pos  __attribute__((__unused__)),
@@ -199,6 +162,43 @@ select_file_cb (GtkEntry *entry,
     }
 
     g_thread_new (NULL, exec_thread, thread_data);
+}
+
+
+static gpointer
+exec_thread (gpointer user_data)
+{
+    ThreadData *data = user_data;
+
+    if (gtk_widget_get_sensitive (data->widgets_data->cancel_btn)) {
+        gtk_widget_set_sensitive (data->widgets_data->cancel_btn, FALSE);
+    }
+
+    gchar *hash = get_file_hash (data->filename, data->hash_algo, data->digest_size);
+    if (hash == NULL) {
+        show_message_dialog (data->widgets_data->main_window, "Error during hash computation", GTK_MESSAGE_ERROR);
+        multiple_free (3, (gpointer *) &(data->filename), (gpointer *) &hash, (gpointer) &data);
+        g_thread_exit (NULL);
+    }
+
+    if (g_strcmp0 (gtk_widget_get_name (GTK_WIDGET (data->entry)), "file1_he_name") == 0) {
+        gtk_entry_set_text (GTK_ENTRY (data->widgets_data->file1_hash_entry), hash);
+        stop_spinner (data->widgets_data->spinner_entry1);
+    }
+    else {
+        gtk_entry_set_text (GTK_ENTRY (data->widgets_data->file2_hash_entry), hash);
+        stop_spinner (data->widgets_data->spinner_entry2);
+    }
+
+    if (!gtk_widget_get_sensitive (data->widgets_data->cancel_btn)) {
+        // if cancel_btn is non-sensitive AND both the gtk_entry have have text inside them, THEN cancel_btn becomes
+        // sensitive again.
+        if ((data->widgets_data->entry1_changed) && (data->widgets_data->entry2_changed)) {
+            gtk_widget_set_sensitive (data->widgets_data->cancel_btn, TRUE);
+        }
+    }
+    multiple_free (3, (gpointer *) &(data->filename), (gpointer *) &hash, (gpointer) &data);
+    g_thread_exit ((gpointer) 0);
 }
 
 

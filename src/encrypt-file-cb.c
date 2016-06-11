@@ -1,30 +1,33 @@
 #include <gtk/gtk.h>
-#include <gcrypt.h>
 #include "gtkcrypto.h"
 #include "common-widgets.h"
 #include "common-callbacks.h"
+#include "encrypt-file-cb.h"
 
 #define AVAILABLE_ALGO 6        // AES256, BLOWFISH, CAMELLIA256, CAST5, SERPENT256, TWOFISH
 #define AVAILABLE_ALGO_MODE 2   // CBC, CTR
-#define PASSWORD_OK 0
-#define PASSWORD_MISMATCH -1
-#define PASSWORD_TOO_SHORT -2
 
 typedef struct encrypt_file_widgets_t {
     GtkWidget *main_window;
+    GtkWidget *dialog;
+    GtkWidget *entry_pwd;
+    GtkWidget *entry_pwd_retype;
     GtkWidget *cancel_btn;
     GtkWidget *ok_btn;
     GtkWidget *radio_button_algo[AVAILABLE_ALGO];
     GtkWidget *radio_button_algo_mode[AVAILABLE_ALGO_MODE];
     GtkWidget *header_bar_menu;
+    GtkWidget *spinner;
+    GThread *enc_thread;
 } EncryptWidgets;
 
-typedef struct metadata_header_t {
-    guint8 *iv;
-    guint8 *salt;
-    guint8 algo;        // from 0x00 to 0x05, the order is written above, near to #define AVAILABLE_ALGO
-    guint8 algo_mode;   // 0x00 or 0x01, the order is written above, near to #define AVAILABLE_ALGO_MODE
-} Metadata;
+typedef struct thread_data_t {
+    GtkWidget *dialog;
+    GtkWidget *spinner;
+    GtkWidget *dialog_ok_btn;
+    const gchar *algo_btn_name;
+    const gchar *algo_mode_btn_name;
+} ThreadData;
 
 static void do_header_bar (GtkWidget *, gpointer);
 
@@ -32,7 +35,11 @@ static GtkWidget *create_popover (GtkWidget *, GtkPositionType, gpointer);
 
 static GtkWidget *get_final_box_layout (EncryptWidgets *);
 
-static gint check_pwd (GtkWidget *, GtkWidget *);
+static gboolean check_pwd (GtkWidget *, GtkWidget *, GtkWidget *);
+
+static void prepare_encryption (const gchar *, const gchar *, EncryptWidgets *);
+
+static gpointer exec_thread (gpointer);
 
 
 void
@@ -44,62 +51,76 @@ encrypt_file_cb (GtkWidget *btn __attribute__((__unused__)),
 
     gchar *filename = choose_file (encrypt_widgets->main_window);
 
-    GtkWidget *dialog = create_dialog (encrypt_widgets->main_window, "enc_dialog", NULL);
-    encrypt_widgets->cancel_btn = gtk_dialog_add_button (GTK_DIALOG (dialog), "Cancel", GTK_RESPONSE_CANCEL);
-    encrypt_widgets->ok_btn = gtk_dialog_add_button (GTK_DIALOG (dialog), "Ok", GTK_RESPONSE_OK);
+    encrypt_widgets->dialog = create_dialog (encrypt_widgets->main_window, "enc_dialog", NULL);
+    encrypt_widgets->cancel_btn = gtk_dialog_add_button (GTK_DIALOG (encrypt_widgets->dialog), "Cancel", GTK_RESPONSE_CANCEL);
+    encrypt_widgets->ok_btn = gtk_dialog_add_button (GTK_DIALOG (encrypt_widgets->dialog), "Ok", GTK_RESPONSE_OK);
     gtk_widget_set_margin_top (encrypt_widgets->cancel_btn, 10);
     gtk_widget_set_margin_top (encrypt_widgets->ok_btn, 10);
-    gtk_widget_set_size_request (dialog, 600, -1);
+    gtk_widget_set_size_request (encrypt_widgets->dialog, 600, -1);
 
-    do_header_bar (dialog, encrypt_widgets);
+    do_header_bar (encrypt_widgets->dialog, encrypt_widgets);
 
-    GtkWidget *content_area = gtk_dialog_get_content_area (GTK_DIALOG (dialog));
+    GtkWidget *content_area = gtk_dialog_get_content_area (GTK_DIALOG (encrypt_widgets->dialog));
 
-    GtkWidget *entry_pwd = gtk_entry_new ();
-    GtkWidget *entry_pwd_retype = gtk_entry_new ();
-    gtk_entry_set_placeholder_text (GTK_ENTRY (entry_pwd), "Type password...");
-    gtk_entry_set_placeholder_text (GTK_ENTRY (entry_pwd_retype), "Retype password...");
-    gtk_entry_set_visibility (GTK_ENTRY (entry_pwd), FALSE);
-    gtk_entry_set_visibility (GTK_ENTRY (entry_pwd_retype), FALSE);
-    gtk_widget_set_hexpand (entry_pwd, TRUE);
-    gtk_widget_set_hexpand (entry_pwd_retype, TRUE);
+    encrypt_widgets->entry_pwd = gtk_entry_new ();
+    encrypt_widgets->entry_pwd_retype = gtk_entry_new ();
+    gtk_entry_set_placeholder_text (GTK_ENTRY (encrypt_widgets->entry_pwd), "Type password...");
+    gtk_entry_set_placeholder_text (GTK_ENTRY (encrypt_widgets->entry_pwd_retype), "Retype password...");
+    gtk_entry_set_visibility (GTK_ENTRY (encrypt_widgets->entry_pwd), FALSE);
+    gtk_entry_set_visibility (GTK_ENTRY (encrypt_widgets->entry_pwd_retype), FALSE);
+    gtk_widget_set_hexpand (encrypt_widgets->entry_pwd, TRUE);
+    gtk_widget_set_hexpand (encrypt_widgets->entry_pwd_retype, TRUE);
 
-    /* TODO:
-     * - encrypt and show a spinner
-     * - notification/dialog with error/ok info?
-     */
+    encrypt_widgets->spinner = create_spinner ();
 
+    // TODO add check button "remove original"
     GtkWidget *grid = gtk_grid_new ();
-    gtk_grid_attach (GTK_GRID (grid), entry_pwd, 0, 0, 2, 1);
-    gtk_grid_attach (GTK_GRID (grid), entry_pwd_retype, 0, 1, 2, 1);
+    gtk_grid_attach (GTK_GRID (grid), encrypt_widgets->entry_pwd, 0, 0, 2, 1);
+    gtk_grid_attach_next_to (GTK_GRID (grid), encrypt_widgets->spinner, encrypt_widgets->entry_pwd, GTK_POS_RIGHT, 1, 1);
+    gtk_grid_attach (GTK_GRID (grid), encrypt_widgets->entry_pwd_retype, 0, 1, 2, 1);
 
     gtk_grid_set_row_spacing (GTK_GRID (grid), 10);
 
     gtk_container_add (GTK_CONTAINER (content_area), grid);
 
-    gtk_widget_show_all (dialog);
+    gtk_widget_show_all (encrypt_widgets->dialog);
 
-    gint pwd_status;
-    gint result = gtk_dialog_run (GTK_DIALOG (dialog));
+    gint i, j, result;
+
+    try_again:
+    result = gtk_dialog_run (GTK_DIALOG (encrypt_widgets->dialog));
     switch (result) {
         case GTK_RESPONSE_CANCEL:
-            gtk_widget_destroy (dialog);
-            multiple_free (2, (gpointer *) &encrypt_widgets, (gpointer *) &filename);
             break;
         case GTK_RESPONSE_OK:
-            pwd_status = check_pwd (entry_pwd, entry_pwd_retype);
-            if (pwd_status == PASSWORD_MISMATCH) {
-                // pwd different, what now?
-            }
-            else if (pwd_status == PASSWORD_TOO_SHORT){
-                // choose a better pwd
+            if (!check_pwd (encrypt_widgets->main_window, encrypt_widgets->entry_pwd, encrypt_widgets->entry_pwd_retype)) {
+                goto try_again;
             }
             else {
-                // ok, let's encrypt
+                for (i = 0; i < AVAILABLE_ALGO; i++) {
+                    if (gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (encrypt_widgets->radio_button_algo[i]))) {
+                        break;
+                    }
+                }
+                for (j = 0; j < AVAILABLE_ALGO_MODE; j++) {
+                    if (gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (encrypt_widgets->radio_button_algo_mode[j]))) {
+                        break;
+                    }
+                }
+                prepare_encryption (gtk_widget_get_name (encrypt_widgets->radio_button_algo[i]),
+                                    gtk_widget_get_name (encrypt_widgets->radio_button_algo_mode[j]),
+                                    encrypt_widgets);
+                goto try_again;
             }
+        case GTK_RESPONSE_DELETE_EVENT:
+            g_thread_join (encrypt_widgets->enc_thread);
+            break;
         default:
             break;
     }
+
+    gtk_widget_destroy (encrypt_widgets->dialog);
+    multiple_free (2, (gpointer *) &encrypt_widgets, (gpointer *) &filename);
 }
 
 
@@ -260,8 +281,8 @@ get_final_box_layout (EncryptWidgets *encrypt_widgets)
 }
 
 
-static gint
-check_pwd (GtkWidget *entry, GtkWidget *retype_entry)
+static gboolean
+check_pwd (GtkWidget *main_window, GtkWidget *entry, GtkWidget *retype_entry)
 {
     const gchar *text_entry = gtk_entry_get_text (GTK_ENTRY (entry));
     const gchar *text_retype_entry = gtk_entry_get_text (GTK_ENTRY (retype_entry));
@@ -269,12 +290,54 @@ check_pwd (GtkWidget *entry, GtkWidget *retype_entry)
     gint cmp_retval = g_strcmp0 (text_entry, text_retype_entry);
 
     if (cmp_retval != 0) {
-        return PASSWORD_MISMATCH;
+        show_message_dialog (main_window,
+                             "The passwords are different, try again...",
+                             GTK_MESSAGE_ERROR);
+        return FALSE;
     }
     else if (cmp_retval == 0 && g_utf8_strlen (text_entry, -1) < 8) {
-        return PASSWORD_TOO_SHORT;
+        show_message_dialog (main_window,
+                             "Password is too short (< 8 chars). Please choose a stronger password.",
+                             GTK_MESSAGE_ERROR);
+        return FALSE;
     }
     else {
-        return PASSWORD_OK;
+        return TRUE;
     }
+}
+
+
+static void
+prepare_encryption (const gchar *algo, const gchar *algo_mode, EncryptWidgets *data)
+{
+    ThreadData *thread_data = g_new0 (ThreadData, 1);
+
+    thread_data->dialog = data->dialog;
+    thread_data->dialog_ok_btn = data->ok_btn;
+    thread_data->spinner = data->spinner;
+    thread_data->algo_btn_name = algo;
+    thread_data->algo_mode_btn_name = algo_mode;
+
+    start_spinner (thread_data->spinner);
+
+    change_widgets_sensitivity (4, FALSE, &data->ok_btn, &data->cancel_btn, &data->entry_pwd, &data->entry_pwd_retype);
+
+    data->enc_thread = g_thread_new (NULL, exec_thread, thread_data);
+}
+
+
+static gpointer
+exec_thread (gpointer user_data)
+{
+    ThreadData *data = user_data;
+
+    encrypt_file (data->algo_btn_name, data->algo_mode_btn_name);
+
+    stop_spinner (data->spinner);
+
+    gtk_dialog_response (GTK_DIALOG (data->dialog), GTK_RESPONSE_DELETE_EVENT);
+
+    g_free (data);
+
+    g_thread_exit ((gpointer) 0);
 }
