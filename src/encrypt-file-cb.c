@@ -27,6 +27,7 @@ typedef struct thread_data_t {
     const gchar *pwd;
 } ThreadData;
 
+
 static void do_header_bar (GtkWidget *, gpointer);
 
 static GtkWidget *create_popover (GtkWidget *, GtkPositionType, gpointer);
@@ -51,7 +52,7 @@ encrypt_file_cb (GtkWidget *btn __attribute__((__unused__)),
 
     encrypt_widgets->dialog = create_dialog (encrypt_widgets->main_window, "enc_dialog", NULL);
     encrypt_widgets->cancel_btn = gtk_dialog_add_button (GTK_DIALOG (encrypt_widgets->dialog), "Cancel", GTK_RESPONSE_CANCEL);
-    encrypt_widgets->ok_btn = gtk_dialog_add_button (GTK_DIALOG (encrypt_widgets->dialog), "Ok", GTK_RESPONSE_OK);
+    encrypt_widgets->ok_btn = gtk_dialog_add_button (GTK_DIALOG (encrypt_widgets->dialog), "OK", GTK_RESPONSE_OK);
     gtk_widget_set_margin_top (encrypt_widgets->cancel_btn, 10);
     gtk_widget_set_margin_top (encrypt_widgets->ok_btn, 10);
     gtk_widget_set_size_request (encrypt_widgets->dialog, 600, -1);
@@ -72,6 +73,7 @@ encrypt_file_cb (GtkWidget *btn __attribute__((__unused__)),
     encrypt_widgets->spinner = create_spinner ();
 
     // TODO add check button "remove original"
+    // TODO add gtk_info_bar with spinner?
     GtkWidget *grid = gtk_grid_new ();
     gtk_grid_attach (GTK_GRID (grid), encrypt_widgets->entry_pwd, 0, 0, 2, 1);
     gtk_grid_attach_next_to (GTK_GRID (grid), encrypt_widgets->spinner, encrypt_widgets->entry_pwd, GTK_POS_RIGHT, 1, 1);

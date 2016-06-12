@@ -69,6 +69,9 @@ encrypt_file (const gchar *filename, const gchar *pwd, const gchar *algo, const 
 
     gcry_cipher_close (hd);
 
+    fclose (fp_in);
+    fclose (fp_out);
+
     multiple_gcry_free (3, (gpointer *) &encryption_keys->derived_key,
                         (gpointer *) &encryption_keys->crypto_key,
                         (gpointer *) &encryption_keys->hmac_key);
