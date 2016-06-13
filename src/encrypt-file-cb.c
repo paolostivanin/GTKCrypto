@@ -15,12 +15,14 @@ typedef struct encrypt_file_widgets_t {
     GtkWidget *radio_button_algo_mode[AVAILABLE_ALGO_MODE];
     GtkWidget *header_bar_menu;
     GtkWidget *spinner;
+    GtkWidget *message_label;
     GThread *enc_thread;
 } EncryptWidgets;
 
 typedef struct thread_data_t {
     GtkWidget *dialog;
     GtkWidget *spinner;
+    GtkWidget *message_label;
     const gchar *algo_btn_name;
     const gchar *algo_mode_btn_name;
     const gchar *filename;
@@ -39,6 +41,8 @@ static gboolean check_pwd (GtkWidget *, GtkWidget *, GtkWidget *);
 static void prepare_encryption (const gchar *, const gchar *, const gchar *, EncryptWidgets *);
 
 static gpointer exec_thread (gpointer);
+
+static void set_label_message (GtkWidget *, const gchar *);
 
 
 void
@@ -73,17 +77,22 @@ encrypt_file_cb (GtkWidget *btn __attribute__((__unused__)),
     encrypt_widgets->spinner = create_spinner ();
 
     // TODO add check button "remove original"
-    // TODO add gtk_info_bar with spinner?
+    // TODO check what happens if the .enc file already exists
+    encrypt_widgets->message_label = gtk_label_new ("");
+
     GtkWidget *grid = gtk_grid_new ();
     gtk_grid_attach (GTK_GRID (grid), encrypt_widgets->entry_pwd, 0, 0, 2, 1);
-    gtk_grid_attach_next_to (GTK_GRID (grid), encrypt_widgets->spinner, encrypt_widgets->entry_pwd, GTK_POS_RIGHT, 1, 1);
     gtk_grid_attach (GTK_GRID (grid), encrypt_widgets->entry_pwd_retype, 0, 1, 2, 1);
+    gtk_grid_attach (GTK_GRID (grid), encrypt_widgets->message_label, 0, 2, 2, 1);
+    gtk_grid_attach_next_to (GTK_GRID (grid), encrypt_widgets->spinner, encrypt_widgets->message_label, GTK_POS_RIGHT, 1, 1);
 
     gtk_grid_set_row_spacing (GTK_GRID (grid), 10);
 
     gtk_container_add (GTK_CONTAINER (content_area), grid);
 
     gtk_widget_show_all (encrypt_widgets->dialog);
+
+    gtk_widget_hide (encrypt_widgets->spinner);
 
     gint i, j, result;
 
@@ -225,17 +234,12 @@ get_final_box_layout (EncryptWidgets *encrypt_widgets)
         h_box[i] = gtk_box_new (GTK_ORIENTATION_HORIZONTAL, 4);
     }
 
-    GtkWidget *label[2];
-    label[0] = gtk_label_new (label_data[0]);
-    label[1] = gtk_label_new (label_data[1]);
-
-    GtkWidget *v_line[2];
-    v_line[0] = gtk_separator_new (GTK_ORIENTATION_VERTICAL);
-    v_line[1] = gtk_separator_new (GTK_ORIENTATION_VERTICAL);
-
-    GtkWidget *h_line[3];
-    h_line[0] = gtk_separator_new (GTK_ORIENTATION_HORIZONTAL);
-    h_line[1] = gtk_separator_new (GTK_ORIENTATION_HORIZONTAL);
+    GtkWidget *label[2], *v_line[2], *h_line[2];
+    for (i = 0; i < 2; i++) {
+        label[i] = gtk_label_new (label_data[i]);
+        v_line[i] = gtk_separator_new (GTK_ORIENTATION_VERTICAL);
+        h_line[i] = gtk_separator_new (GTK_ORIENTATION_HORIZONTAL);
+    }
 
     // Cipher
     // ------
@@ -243,14 +247,15 @@ get_final_box_layout (EncryptWidgets *encrypt_widgets)
     gtk_box_pack_start (GTK_BOX (v_box[0]), h_line[0], FALSE, TRUE, 0);
 
     // Algo
-    gtk_box_pack_start (GTK_BOX (v_box[1]), encrypt_widgets->radio_button_algo[0], FALSE, TRUE, 0);
-    gtk_box_pack_start (GTK_BOX (v_box[1]), encrypt_widgets->radio_button_algo[1], FALSE, TRUE, 0);
-    gtk_box_pack_start (GTK_BOX (v_box[1]), encrypt_widgets->radio_button_algo[2], FALSE, TRUE, 0);
+    gint j;
+    for (i = 1, j = 0; j < AVAILABLE_ALGO / 2; j++) {
+        gtk_box_pack_start (GTK_BOX (v_box[i]), encrypt_widgets->radio_button_algo[j], FALSE, TRUE, 0);
+    }
 
     // Algo
-    gtk_box_pack_start (GTK_BOX (v_box[2]), encrypt_widgets->radio_button_algo[3], FALSE, TRUE, 0);
-    gtk_box_pack_start (GTK_BOX (v_box[2]), encrypt_widgets->radio_button_algo[4], FALSE, TRUE, 0);
-    gtk_box_pack_start (GTK_BOX (v_box[2]), encrypt_widgets->radio_button_algo[5], FALSE, TRUE, 0);
+    for (i = 2, j = AVAILABLE_ALGO / 2; j < AVAILABLE_ALGO; j++) {
+        gtk_box_pack_start (GTK_BOX (v_box[i]), encrypt_widgets->radio_button_algo[j], FALSE, TRUE, 0);
+    }
 
     // Algo | Algo
     gtk_box_pack_start (GTK_BOX (h_box[0]), v_box[1], FALSE, TRUE, 0);
@@ -315,11 +320,13 @@ prepare_encryption (const gchar *filename, const gchar *algo, const gchar *algo_
 
     thread_data->dialog = data->dialog;
     thread_data->spinner = data->spinner;
+    thread_data->message_label = data->message_label;
     thread_data->algo_btn_name = algo;
     thread_data->algo_mode_btn_name = algo_mode;
     thread_data->filename = filename;
     thread_data->pwd = gtk_entry_get_text (GTK_ENTRY (data->entry_pwd));
 
+    gtk_widget_show (thread_data->spinner);
     start_spinner (thread_data->spinner);
 
     change_widgets_sensitivity (4, FALSE, &data->ok_btn, &data->cancel_btn, &data->entry_pwd, &data->entry_pwd_retype);
@@ -333,13 +340,30 @@ exec_thread (gpointer user_data)
 {
     ThreadData *data = user_data;
 
+    gchar *basename = g_path_get_basename(data->filename);
+
+    gchar *message = g_strconcat ("Encrypting <b>", basename, "</b>...", NULL);
+    set_label_message (data->message_label, message);
     encrypt_file (data->filename, data->pwd, data->algo_btn_name, data->algo_mode_btn_name);
+    g_free (message);
+
+    message = g_strconcat ("Deleting <b>", basename, "</b>...", NULL);
+    set_label_message (data->message_label, "Deleting...");
+    //delete_file if delete is set;
 
     stop_spinner (data->spinner);
+    set_label_message (data->message_label, "");
 
     gtk_dialog_response (GTK_DIALOG (data->dialog), GTK_RESPONSE_DELETE_EVENT);
 
-    g_free (data);
+    multiple_free (3, (gpointer *) &data, (gpointer *) &basename, (gpointer *) &message);
 
     g_thread_exit ((gpointer) 0);
+}
+
+
+static void
+set_label_message (GtkWidget *message_label, const gchar *message)
+{
+    gtk_label_set_markup (GTK_LABEL (message_label), message);
 }
