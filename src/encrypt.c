@@ -26,6 +26,8 @@ static void set_algo_and_mode (Metadata *, const gchar *, const gchar *);
 
 static gboolean setup_keys (const gchar *, gsize, Metadata *, EncryptionKeys *);
 
+static void set_number_of_blocks_and_padding_bytes (goffset, gsize, gint64 *, gint *);
+
 
 void
 encrypt_file (const gchar *filename, const gchar *pwd, const gchar *algo, const gchar *algo_mode)
@@ -67,6 +69,12 @@ encrypt_file (const gchar *filename, const gchar *pwd, const gchar *algo, const 
     /* if CBC number of blocks (blowfish and cast5 have 8 bytes blocks, all the others 16 bytes...
      * if CTR no problem
      */
+    gint64 number_of_blocks;
+    gint number_of_padding_bytes;
+    if (header_metadata->algo_mode == GCRY_CIPHER_MODE_CBC) {
+        set_number_of_blocks_and_padding_bytes (filesize, algo_blk_len, &number_of_blocks, &number_of_padding_bytes);
+    }
+
 
     gcry_cipher_close (hd);
 
@@ -138,4 +146,22 @@ setup_keys (const gchar *pwd, gsize algo_key_len, Metadata *header_metadata, Enc
     memcpy (encryption_keys->hmac_key, encryption_keys->derived_key + algo_key_len, HMAC_KEY_SIZE);
 
     return TRUE;
+}
+
+
+static void
+set_number_of_blocks_and_padding_bytes (goffset file_size, gsize block_length, gint64 *num_of_blocks, gint *num_of_padding_bytes)
+{
+    gint64 file_blocks = file_size / block_length;
+
+    gint spare_bytes = (gint) (file_size % block_length);  // number of bytes left which don't fill-up a block
+
+    if (spare_bytes > 0) {
+        *num_of_blocks = file_blocks + 1;
+        *num_of_padding_bytes = (gint) (block_length - spare_bytes);
+    }
+    else {
+        *num_of_blocks = file_blocks;
+        *num_of_padding_bytes = spare_bytes;
+    }
 }
