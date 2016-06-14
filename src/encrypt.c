@@ -30,6 +30,7 @@ static gboolean setup_keys (const gchar *, gsize, Metadata *, EncryptionKeys *);
 void
 encrypt_file (const gchar *filename, const gchar *pwd, const gchar *algo, const gchar *algo_mode)
 {
+    // TODO check what happens if the .enc file already exists
     Metadata *header_metadata = g_new0 (Metadata, 1);
     EncryptionKeys *encryption_keys = g_new0 (EncryptionKeys, 1);
 

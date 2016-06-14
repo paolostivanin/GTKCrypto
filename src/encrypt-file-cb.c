@@ -9,6 +9,7 @@ typedef struct encrypt_file_widgets_t {
     GtkWidget *dialog;
     GtkWidget *entry_pwd;
     GtkWidget *entry_pwd_retype;
+    GtkWidget *ck_btn_delete;
     GtkWidget *cancel_btn;
     GtkWidget *ok_btn;
     GtkWidget *radio_button_algo[AVAILABLE_ALGO];
@@ -27,6 +28,7 @@ typedef struct thread_data_t {
     const gchar *algo_mode_btn_name;
     const gchar *filename;
     const gchar *pwd;
+    gboolean delete_file;
 } ThreadData;
 
 
@@ -57,8 +59,8 @@ encrypt_file_cb (GtkWidget *btn __attribute__((__unused__)),
     encrypt_widgets->dialog = create_dialog (encrypt_widgets->main_window, "enc_dialog", NULL);
     encrypt_widgets->cancel_btn = gtk_dialog_add_button (GTK_DIALOG (encrypt_widgets->dialog), "Cancel", GTK_RESPONSE_CANCEL);
     encrypt_widgets->ok_btn = gtk_dialog_add_button (GTK_DIALOG (encrypt_widgets->dialog), "OK", GTK_RESPONSE_OK);
-    gtk_widget_set_margin_top (encrypt_widgets->cancel_btn, 10);
-    gtk_widget_set_margin_top (encrypt_widgets->ok_btn, 10);
+    gtk_widget_set_margin_top (encrypt_widgets->cancel_btn, 5);
+    gtk_widget_set_margin_top (encrypt_widgets->ok_btn, 5);
     gtk_widget_set_size_request (encrypt_widgets->dialog, 600, -1);
 
     do_header_bar (encrypt_widgets->dialog, encrypt_widgets);
@@ -74,19 +76,19 @@ encrypt_file_cb (GtkWidget *btn __attribute__((__unused__)),
     gtk_widget_set_hexpand (encrypt_widgets->entry_pwd, TRUE);
     gtk_widget_set_hexpand (encrypt_widgets->entry_pwd_retype, TRUE);
 
-    encrypt_widgets->spinner = create_spinner ();
+    encrypt_widgets->ck_btn_delete = gtk_check_button_new_with_label ("Securely delete original file");
 
-    // TODO add check button "remove original"
-    // TODO check what happens if the .enc file already exists
     encrypt_widgets->message_label = gtk_label_new ("");
 
+    encrypt_widgets->spinner = create_spinner ();
+
     GtkWidget *grid = gtk_grid_new ();
+    gtk_grid_set_row_spacing (GTK_GRID (grid), 10);
     gtk_grid_attach (GTK_GRID (grid), encrypt_widgets->entry_pwd, 0, 0, 2, 1);
     gtk_grid_attach (GTK_GRID (grid), encrypt_widgets->entry_pwd_retype, 0, 1, 2, 1);
-    gtk_grid_attach (GTK_GRID (grid), encrypt_widgets->message_label, 0, 2, 2, 1);
+    gtk_grid_attach (GTK_GRID (grid), encrypt_widgets->ck_btn_delete, 0, 2, 2, 1);
+    gtk_grid_attach (GTK_GRID (grid), encrypt_widgets->message_label, 0, 3, 2, 1);
     gtk_grid_attach_next_to (GTK_GRID (grid), encrypt_widgets->spinner, encrypt_widgets->message_label, GTK_POS_RIGHT, 1, 1);
-
-    gtk_grid_set_row_spacing (GTK_GRID (grid), 10);
 
     gtk_container_add (GTK_CONTAINER (content_area), grid);
 
@@ -326,6 +328,13 @@ prepare_encryption (const gchar *filename, const gchar *algo, const gchar *algo_
     thread_data->filename = filename;
     thread_data->pwd = gtk_entry_get_text (GTK_ENTRY (data->entry_pwd));
 
+    if (gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (data->ck_btn_delete))) {
+        thread_data->delete_file = TRUE;
+    }
+    else {
+        thread_data->delete_file = FALSE;
+    }
+
     gtk_widget_show (thread_data->spinner);
     start_spinner (thread_data->spinner);
 
@@ -340,16 +349,18 @@ exec_thread (gpointer user_data)
 {
     ThreadData *data = user_data;
 
-    gchar *basename = g_path_get_basename(data->filename);
+    gchar *basename = g_path_get_basename (data->filename);
 
     gchar *message = g_strconcat ("Encrypting <b>", basename, "</b>...", NULL);
     set_label_message (data->message_label, message);
     encrypt_file (data->filename, data->pwd, data->algo_btn_name, data->algo_mode_btn_name);
     g_free (message);
 
-    message = g_strconcat ("Deleting <b>", basename, "</b>...", NULL);
-    set_label_message (data->message_label, "Deleting...");
-    //delete_file if delete is set;
+    if (data->delete_file) {
+        message = g_strconcat ("Overwriting and deleting <b>", basename, "</b>...", NULL);
+        set_label_message (data->message_label, "Deleting...");
+        secure_file_delete (data->filename);
+    }
 
     stop_spinner (data->spinner);
     set_label_message (data->message_label, "");

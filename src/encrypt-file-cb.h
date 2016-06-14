@@ -6,4 +6,6 @@
 
 void encrypt_file (const gchar *, const gchar *, const gchar *, const gchar *);
 
+void secure_file_delete (const gchar *);
+
 #endif
