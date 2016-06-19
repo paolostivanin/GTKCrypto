@@ -11,12 +11,12 @@ typedef struct encrypt_file_widgets_t {
     GtkWidget *entry_pwd_retype;
     GtkWidget *ck_btn_delete;
     GtkWidget *cancel_btn;
-    GtkWidget *ok_btn;
     GtkWidget *radio_button_algo[AVAILABLE_ALGO];
     GtkWidget *radio_button_algo_mode[AVAILABLE_ALGO_MODE];
     GtkWidget *header_bar_menu;
     GtkWidget *spinner;
     GtkWidget *message_label;
+    gchar *filename;
     GThread *enc_thread;
 } EncryptWidgets;
 
@@ -31,6 +31,7 @@ typedef struct thread_data_t {
     gboolean delete_file;
 } ThreadData;
 
+static void entry_activated_cb (GtkWidget *, gpointer);
 
 static void do_header_bar (GtkWidget *, gpointer);
 
@@ -40,7 +41,7 @@ static GtkWidget *get_final_box_layout (EncryptWidgets *);
 
 static gboolean check_pwd (GtkWidget *, GtkWidget *, GtkWidget *);
 
-static void prepare_encryption (const gchar *, const gchar *, const gchar *, EncryptWidgets *);
+static void prepare_encryption (const gchar *, const gchar *, EncryptWidgets *);
 
 static gpointer exec_thread (gpointer);
 
@@ -54,13 +55,11 @@ encrypt_file_cb (GtkWidget *btn __attribute__((__unused__)),
     EncryptWidgets *encrypt_widgets = g_new0 (EncryptWidgets, 1);
     encrypt_widgets->main_window = (GtkWidget *) user_data;
 
-    gchar *filename = choose_file (encrypt_widgets->main_window);
+    encrypt_widgets->filename = choose_file (encrypt_widgets->main_window);
 
     encrypt_widgets->dialog = create_dialog (encrypt_widgets->main_window, "enc_dialog", NULL);
     encrypt_widgets->cancel_btn = gtk_dialog_add_button (GTK_DIALOG (encrypt_widgets->dialog), "Cancel", GTK_RESPONSE_CANCEL);
-    encrypt_widgets->ok_btn = gtk_dialog_add_button (GTK_DIALOG (encrypt_widgets->dialog), "OK", GTK_RESPONSE_OK);
     gtk_widget_set_margin_top (encrypt_widgets->cancel_btn, 5);
-    gtk_widget_set_margin_top (encrypt_widgets->ok_btn, 5);
     gtk_widget_set_size_request (encrypt_widgets->dialog, 600, -1);
 
     do_header_bar (encrypt_widgets->dialog, encrypt_widgets);
@@ -96,34 +95,12 @@ encrypt_file_cb (GtkWidget *btn __attribute__((__unused__)),
 
     gtk_widget_hide (encrypt_widgets->spinner);
 
-    gint i, j, result;
+    g_signal_connect (encrypt_widgets->entry_pwd_retype, "activate", G_CALLBACK (entry_activated_cb), encrypt_widgets);
 
-    try_again:
-    result = gtk_dialog_run (GTK_DIALOG (encrypt_widgets->dialog));
+    gint result = gtk_dialog_run (GTK_DIALOG (encrypt_widgets->dialog));
     switch (result) {
         case GTK_RESPONSE_CANCEL:
             break;
-        case GTK_RESPONSE_OK:
-            if (!check_pwd (encrypt_widgets->main_window, encrypt_widgets->entry_pwd, encrypt_widgets->entry_pwd_retype)) {
-                goto try_again;
-            }
-            else {
-                for (i = 0; i < AVAILABLE_ALGO; i++) {
-                    if (gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (encrypt_widgets->radio_button_algo[i]))) {
-                        break;
-                    }
-                }
-                for (j = 0; j < AVAILABLE_ALGO_MODE; j++) {
-                    if (gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (encrypt_widgets->radio_button_algo_mode[j]))) {
-                        break;
-                    }
-                }
-                prepare_encryption (filename,
-                                    gtk_widget_get_name (encrypt_widgets->radio_button_algo[i]),
-                                    gtk_widget_get_name (encrypt_widgets->radio_button_algo_mode[j]),
-                                    encrypt_widgets);
-                goto try_again;
-            }
         case GTK_RESPONSE_DELETE_EVENT:
             g_thread_join (encrypt_widgets->enc_thread);
             break;
@@ -132,7 +109,7 @@ encrypt_file_cb (GtkWidget *btn __attribute__((__unused__)),
     }
 
     gtk_widget_destroy (encrypt_widgets->dialog);
-    multiple_free (2, (gpointer *) &encrypt_widgets, (gpointer *) &filename);
+    multiple_free (2, (gpointer *) &encrypt_widgets->filename, (gpointer *) &encrypt_widgets);
 }
 
 
@@ -289,6 +266,34 @@ get_final_box_layout (EncryptWidgets *encrypt_widgets)
 }
 
 
+static void
+entry_activated_cb (GtkWidget *entry __attribute__((__unused__)),
+                    gpointer user_data)
+{
+    gint i, j;
+    EncryptWidgets *encrypt_widgets = user_data;
+
+    if (!check_pwd (encrypt_widgets->main_window, encrypt_widgets->entry_pwd, encrypt_widgets->entry_pwd_retype)) {
+        return;
+    }
+    else {
+        for (i = 0; i < AVAILABLE_ALGO; i++) {
+            if (gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (encrypt_widgets->radio_button_algo[i]))) {
+                break;
+            }
+        }
+        for (j = 0; j < AVAILABLE_ALGO_MODE; j++) {
+            if (gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (encrypt_widgets->radio_button_algo_mode[j]))) {
+                break;
+            }
+        }
+        prepare_encryption (gtk_widget_get_name (encrypt_widgets->radio_button_algo[i]),
+                            gtk_widget_get_name (encrypt_widgets->radio_button_algo_mode[j]),
+                            encrypt_widgets);
+    }
+}
+
+
 static gboolean
 check_pwd (GtkWidget *main_window, GtkWidget *entry, GtkWidget *retype_entry)
 {
@@ -316,7 +321,7 @@ check_pwd (GtkWidget *main_window, GtkWidget *entry, GtkWidget *retype_entry)
 
 
 static void
-prepare_encryption (const gchar *filename, const gchar *algo, const gchar *algo_mode, EncryptWidgets *data)
+prepare_encryption (const gchar *algo, const gchar *algo_mode, EncryptWidgets *data)
 {
     ThreadData *thread_data = g_new0 (ThreadData, 1);
 
@@ -325,7 +330,7 @@ prepare_encryption (const gchar *filename, const gchar *algo, const gchar *algo_
     thread_data->message_label = data->message_label;
     thread_data->algo_btn_name = algo;
     thread_data->algo_mode_btn_name = algo_mode;
-    thread_data->filename = filename;
+    thread_data->filename = data->filename;
     thread_data->pwd = gtk_entry_get_text (GTK_ENTRY (data->entry_pwd));
 
     if (gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (data->ck_btn_delete))) {
@@ -338,7 +343,7 @@ prepare_encryption (const gchar *filename, const gchar *algo, const gchar *algo_
     gtk_widget_show (thread_data->spinner);
     start_spinner (thread_data->spinner);
 
-    change_widgets_sensitivity (4, FALSE, &data->ok_btn, &data->cancel_btn, &data->entry_pwd, &data->entry_pwd_retype);
+    change_widgets_sensitivity (3, FALSE, &data->cancel_btn, &data->entry_pwd, &data->entry_pwd_retype);
 
     data->enc_thread = g_thread_new (NULL, exec_thread, thread_data);
 }
@@ -354,16 +359,12 @@ exec_thread (gpointer user_data)
     gchar *message = g_strconcat ("Encrypting <b>", basename, "</b>...", NULL);
     set_label_message (data->message_label, message);
     encrypt_file (data->filename, data->pwd, data->algo_btn_name, data->algo_mode_btn_name);
-    g_free (message);
 
     if (data->delete_file) {
         message = g_strconcat ("Overwriting and deleting <b>", basename, "</b>...", NULL);
         set_label_message (data->message_label, "Deleting...");
         secure_file_delete (data->filename);
     }
-
-    stop_spinner (data->spinner);
-    set_label_message (data->message_label, "");
 
     gtk_dialog_response (GTK_DIALOG (data->dialog), GTK_RESPONSE_DELETE_EVENT);
 

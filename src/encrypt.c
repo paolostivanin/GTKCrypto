@@ -5,15 +5,15 @@
 
 #define FILE_BUFFER 67108864 // 64 MiB
 #define ROUNDS 50000
-#define IV_SIZE 16
 #define SALT_SIZE 32
 #define HMAC_KEY_SIZE 32
 
 typedef struct header_metadata_t {
-    guint8 iv[IV_SIZE];
+    guint8 *iv;
     guint8 salt[SALT_SIZE];
     gint algo;
     gint algo_mode;
+    guint8 padding_value;
 } Metadata;
 
 typedef struct key_t {
@@ -28,9 +28,11 @@ static gboolean setup_keys (const gchar *, gsize, Metadata *, EncryptionKeys *);
 
 static void set_number_of_blocks_and_padding_bytes (goffset, gsize, gint64 *, gint *);
 
+static void encrypt_using_cbc_mode (gcry_cipher_hd_t, gint64, gint, gsize, GFileInputStream *, GFileOutputStream *);
+
 
 void
-encrypt_file (const gchar *filename, const gchar *pwd, const gchar *algo, const gchar *algo_mode)
+encrypt_file (const gchar *input_file_path, const gchar *pwd, const gchar *algo, const gchar *algo_mode)
 {
     // TODO check what happens if the .enc file already exists
     Metadata *header_metadata = g_new0 (Metadata, 1);
@@ -40,7 +42,10 @@ encrypt_file (const gchar *filename, const gchar *pwd, const gchar *algo, const 
     gsize algo_key_len = gcry_cipher_get_algo_keylen (header_metadata->algo);
     gsize algo_blk_len = gcry_cipher_get_algo_blklen (header_metadata->algo);
 
-    gcry_create_nonce (header_metadata->iv, IV_SIZE);
+    gsize iv_size = algo_blk_len;  // iv must be the same size as the block size
+    header_metadata->iv = (guint8 *) gcry_malloc (iv_size);
+
+    gcry_create_nonce (header_metadata->iv, iv_size);
     gcry_create_nonce (header_metadata->salt, SALT_SIZE);
 
     if (!setup_keys (pwd, algo_key_len, header_metadata, encryption_keys)) {
@@ -48,44 +53,58 @@ encrypt_file (const gchar *filename, const gchar *pwd, const gchar *algo, const 
         return;
     }
 
-    goffset filesize = get_file_size (filename);
+    goffset filesize = get_file_size (input_file_path);
 
-    FILE *fp_in = g_fopen (filename, "r");
-    if (fp_in == NULL) {
-        //TODO
+    GError *err = NULL;
+
+    GFile *in_file = g_file_new_for_path (input_file_path);
+    GFileInputStream *in_stream = g_file_read (in_file, NULL, &err);
+    if (err != NULL) {
+        g_printerr ("%s\n", err->message);
+        // TODO
         return;
     }
 
-    gchar *out_filename = g_strconcat (filename, ".enc", NULL);
-    FILE *fp_out = g_fopen (out_filename, "w");
-    if (fp_out == NULL) {
+    gchar *output_file_path = g_strconcat (input_file_path, ".enc", NULL);
+    GFile *out_file = g_file_new_for_path (output_file_path);
+    GFileOutputStream *out_stream = g_file_append_to (out_file, G_FILE_CREATE_NONE, NULL, &err);
+    if (err != NULL) {
+        g_printerr ("%s\n", err->message);
         // TODO
         return;
     }
 
     gcry_cipher_hd_t hd;
     gcry_cipher_open (&hd, header_metadata->algo, header_metadata->algo_mode, 0);
+    gcry_cipher_setkey (hd, encryption_keys->crypto_key, algo_key_len);
 
-    /* if CBC number of blocks (blowfish and cast5 have 8 bytes blocks, all the others 16 bytes...
-     * if CTR no problem
-     */
     gint64 number_of_blocks;
     gint number_of_padding_bytes;
     if (header_metadata->algo_mode == GCRY_CIPHER_MODE_CBC) {
         set_number_of_blocks_and_padding_bytes (filesize, algo_blk_len, &number_of_blocks, &number_of_padding_bytes);
+        gcry_cipher_setiv (hd, header_metadata->iv, iv_size);
+        encrypt_using_cbc_mode (hd, number_of_blocks, number_of_padding_bytes, algo_blk_len, in_stream, out_stream);
     }
-
+    else {
+        gcry_cipher_setctr (hd, header_metadata->iv, iv_size);
+        //encrypt_using_ctr_mode ();
+    }
 
     gcry_cipher_close (hd);
 
-    fclose (fp_in);
-    fclose (fp_out);
-
-    multiple_gcry_free (3, (gpointer *) &encryption_keys->derived_key,
+    multiple_gcry_free (4, (gpointer *) &encryption_keys->derived_key,
                         (gpointer *) &encryption_keys->crypto_key,
-                        (gpointer *) &encryption_keys->hmac_key);
+                        (gpointer *) &encryption_keys->hmac_key,
+                        (gpointer *) &header_metadata->iv);
 
-    multiple_free (3, (gpointer *) &out_filename, (gpointer *) &encryption_keys, (gpointer *) &header_metadata);
+    multiple_free (3, (gpointer *) &output_file_path,
+                   (gpointer *) &encryption_keys,
+                   (gpointer *) &header_metadata);
+
+    g_object_unref (in_file);
+    g_object_unref (out_file);
+    g_object_unref (in_stream);
+    g_object_unref (out_stream);
 }
 
 
@@ -154,7 +173,7 @@ set_number_of_blocks_and_padding_bytes (goffset file_size, gsize block_length, g
 {
     gint64 file_blocks = file_size / block_length;
 
-    gint spare_bytes = (gint) (file_size % block_length);  // number of bytes left which don't fill-up a block
+    gint spare_bytes = (gint) (file_size % block_length);  // number of bytes left which didn't filled up a block
 
     if (spare_bytes > 0) {
         *num_of_blocks = file_blocks + 1;
@@ -164,4 +183,49 @@ set_number_of_blocks_and_padding_bytes (goffset file_size, gsize block_length, g
         *num_of_blocks = file_blocks;
         *num_of_padding_bytes = spare_bytes;
     }
+}
+
+
+static void
+encrypt_using_cbc_mode (gcry_cipher_hd_t hd, gint64 num_of_blocks, gint num_of_padding_bytes, gsize block_length,
+                        GFileInputStream *in_stream, GFileOutputStream *out_stream)
+{
+    // TODO missing metadata header and HMAC
+    // TODO test speed by increasing encrypt size from block_size to ...
+    GError *err = NULL;
+    guchar *buffer = g_malloc0 (block_length);
+    guchar *enc_buffer = g_malloc0 (block_length);
+    guchar padding[16] = {0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F};
+
+    gssize rw_len;
+
+    gsize i;
+    gint64 done_blocks = 0;
+    while (done_blocks < num_of_blocks) {
+        rw_len = g_input_stream_read (G_INPUT_STREAM (in_stream), buffer, block_length, NULL, &err);
+        if (rw_len == -1) {
+            g_printerr ("%s\n", err->message);
+            // TODO do something
+            return;
+        }
+        if (rw_len < block_length) {
+            for (i = (block_length - num_of_padding_bytes); i < block_length; i++) {
+                buffer[i] = padding[num_of_padding_bytes];
+            }
+        }
+        gcry_cipher_encrypt (hd, enc_buffer, block_length, buffer, block_length);
+        rw_len = g_output_stream_write (G_OUTPUT_STREAM (out_stream), enc_buffer, block_length, NULL, &err);
+        if (rw_len != block_length) {
+            g_printerr ("%s\n", err->message);
+            // TODO do something
+            return;
+        }
+        memset (buffer, 0, block_length);
+        memset (enc_buffer, 0, block_length);
+
+        done_blocks++;
+    }
+
+    g_output_stream_close (G_OUTPUT_STREAM (out_stream), NULL, NULL);
+    g_input_stream_close (G_INPUT_STREAM (in_stream), NULL, NULL);
 }
