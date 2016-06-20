@@ -44,6 +44,7 @@ compute_hash (gcry_md_hd_t hd, const gchar *filename)
 
     goffset file_size = get_file_size (filename);
     if (file_size == -1) {
+        g_printerr ("Error while getting file size\n");
         return HASH_ERROR;
     }
 

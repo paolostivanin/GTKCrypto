@@ -11,6 +11,7 @@ typedef struct encrypt_file_widgets_t {
     GtkWidget *entry_pwd_retype;
     GtkWidget *ck_btn_delete;
     GtkWidget *cancel_btn;
+    GtkWidget *ok_btn;
     GtkWidget *radio_button_algo[AVAILABLE_ALGO];
     GtkWidget *radio_button_algo_mode[AVAILABLE_ALGO_MODE];
     GtkWidget *header_bar_menu;
@@ -47,6 +48,8 @@ static gpointer exec_thread (gpointer);
 
 static void set_label_message (GtkWidget *, const gchar *);
 
+static void cancel_clicked_cb (GtkWidget *, gpointer);
+
 
 void
 encrypt_file_cb (GtkWidget *btn __attribute__((__unused__)),
@@ -58,8 +61,10 @@ encrypt_file_cb (GtkWidget *btn __attribute__((__unused__)),
     encrypt_widgets->filename = choose_file (encrypt_widgets->main_window);
 
     encrypt_widgets->dialog = create_dialog (encrypt_widgets->main_window, "enc_dialog", NULL);
-    encrypt_widgets->cancel_btn = gtk_dialog_add_button (GTK_DIALOG (encrypt_widgets->dialog), "Cancel", GTK_RESPONSE_CANCEL);
-    gtk_widget_set_margin_top (encrypt_widgets->cancel_btn, 5);
+    encrypt_widgets->cancel_btn = gtk_button_new_with_label ("Cancel");
+    encrypt_widgets->ok_btn = gtk_button_new_with_label ("OK");
+    //gtk_widget_set_margin_top (encrypt_widgets->cancel_btn, 5);
+    //gtk_widget_set_margin_top (encrypt_widgets->ok_btn, 5);
     gtk_widget_set_size_request (encrypt_widgets->dialog, 600, -1);
 
     do_header_bar (encrypt_widgets->dialog, encrypt_widgets);
@@ -89,6 +94,11 @@ encrypt_file_cb (GtkWidget *btn __attribute__((__unused__)),
     gtk_grid_attach (GTK_GRID (grid), encrypt_widgets->message_label, 0, 3, 2, 1);
     gtk_grid_attach_next_to (GTK_GRID (grid), encrypt_widgets->spinner, encrypt_widgets->message_label, GTK_POS_RIGHT, 1, 1);
 
+    GtkWidget *hbox = gtk_box_new (GTK_ORIENTATION_HORIZONTAL, 5);
+    gtk_box_pack_end (GTK_BOX(hbox), encrypt_widgets->ok_btn, TRUE, TRUE, 0);
+    gtk_box_pack_end (GTK_BOX(hbox), encrypt_widgets->cancel_btn, TRUE, TRUE, 0);
+    gtk_grid_attach (GTK_GRID (grid), hbox, 1, 4, 1, 1);
+
     gtk_container_add (GTK_CONTAINER (content_area), grid);
 
     gtk_widget_show_all (encrypt_widgets->dialog);
@@ -96,20 +106,19 @@ encrypt_file_cb (GtkWidget *btn __attribute__((__unused__)),
     gtk_widget_hide (encrypt_widgets->spinner);
 
     g_signal_connect (encrypt_widgets->entry_pwd_retype, "activate", G_CALLBACK (entry_activated_cb), encrypt_widgets);
+    g_signal_connect (encrypt_widgets->ok_btn, "clicked", G_CALLBACK (entry_activated_cb), encrypt_widgets);
+    g_signal_connect (encrypt_widgets->cancel_btn, "clicked", G_CALLBACK (cancel_clicked_cb), encrypt_widgets);
 
     gint result = gtk_dialog_run (GTK_DIALOG (encrypt_widgets->dialog));
     switch (result) {
-        case GTK_RESPONSE_CANCEL:
-            break;
         case GTK_RESPONSE_DELETE_EVENT:
             g_thread_join (encrypt_widgets->enc_thread);
+            gtk_widget_destroy (encrypt_widgets->dialog);
+            multiple_free (2, (gpointer *) &encrypt_widgets->filename, (gpointer *) &encrypt_widgets);
             break;
         default:
             break;
     }
-
-    gtk_widget_destroy (encrypt_widgets->dialog);
-    multiple_free (2, (gpointer *) &encrypt_widgets->filename, (gpointer *) &encrypt_widgets);
 }
 
 
@@ -343,7 +352,7 @@ prepare_encryption (const gchar *algo, const gchar *algo_mode, EncryptWidgets *d
     gtk_widget_show (thread_data->spinner);
     start_spinner (thread_data->spinner);
 
-    change_widgets_sensitivity (3, FALSE, &data->cancel_btn, &data->entry_pwd, &data->entry_pwd_retype);
+    change_widgets_sensitivity (5, FALSE, &data->ok_btn, &data->cancel_btn, &data->entry_pwd, &data->entry_pwd_retype, &data->ck_btn_delete);
 
     data->enc_thread = g_thread_new (NULL, exec_thread, thread_data);
 }
@@ -378,4 +387,15 @@ static void
 set_label_message (GtkWidget *message_label, const gchar *message)
 {
     gtk_label_set_markup (GTK_LABEL (message_label), message);
+}
+
+
+static void
+cancel_clicked_cb (GtkWidget *btn __attribute__((__unused__)),
+                   gpointer user_data)
+{
+    EncryptWidgets *encrypt_widgets = user_data;
+
+    gtk_widget_destroy (encrypt_widgets->dialog);
+    multiple_free (2, (gpointer *) &encrypt_widgets->filename, (gpointer *) &encrypt_widgets);
 }

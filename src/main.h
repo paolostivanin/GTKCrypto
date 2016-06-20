@@ -11,9 +11,9 @@ typedef struct widgets_t {
     GtkWidget *main_window;
 } AppWidgets;
 
-void startup (GtkApplication *, gpointer);
+void startup (GtkApplication *app, gpointer);
 
-void activate (GtkApplication *, gpointer);
+void activate (GtkApplication *app, gpointer);
 
 void quit (GSimpleAction *, GVariant *, gpointer);
 
@@ -21,7 +21,7 @@ void about (GSimpleAction *, GVariant *, gpointer);
 
 GdkPixbuf *create_logo (gboolean);
 
-GtkWidget *create_main_window (GtkApplication *);
+GtkWidget *create_main_window (GtkApplication *app);
 
 void add_boxes_and_grid (AppWidgets *);
 

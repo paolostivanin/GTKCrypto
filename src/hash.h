@@ -4,6 +4,7 @@
 #define HASH_COMPUTED ((gpointer) 0)
 #define HASH_ERROR ((gpointer) -2)
 #define MUNMAP_FAILED ((gpointer) -3)
+#define HMAC_ERROR ((gpointer) -4)
 
 #define FILE_BUFFER 134217728  //128 MiB
 
@@ -20,8 +21,10 @@
 #define SHA3_512_DIGEST_SIZE 64
 #define WHIRLPOOL_DIGEST_SIZE 64
 
-gpointer compute_hash (gcry_md_hd_t, const gchar *);
+gpointer compute_hash (gcry_md_hd_t hd, const gchar *file_path);
 
-gchar *finalize_hash (gcry_md_hd_t, gint, gint);
+gchar *finalize_hash (gcry_md_hd_t hd, gint algo, gint digest_size);
+
+guchar *calculate_hmac (const gchar *file_path, const guchar *key, gsize keylen);
 
 #endif
