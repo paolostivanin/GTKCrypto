@@ -2,26 +2,7 @@
 #include <gcrypt.h>
 #include "gtkcrypto.h"
 #include "hash.h"
-
-#define FILE_BUFFER 67108864 // 64 MiB
-#define ROUNDS 50000
-#define SALT_SIZE 32
-#define HMAC_KEY_SIZE 32
-
-typedef struct header_metadata_t {
-    guint8 *iv;
-    gsize iv_size;
-    guint8 salt[SALT_SIZE];
-    gint algo;
-    gint algo_mode;
-    guint8 padding_value;
-} Metadata;
-
-typedef struct key_t {
-    guchar *derived_key;
-    guchar *crypto_key;
-    guchar *hmac_key;
-} EncryptionKeys;
+#include "crypt.h"
 
 static void set_algo_and_mode (Metadata *, const gchar *, const gchar *);
 
@@ -44,7 +25,6 @@ encrypt_file (const gchar *input_file_path, const gchar *pwd, const gchar *algo,
     gsize algo_blk_len = gcry_cipher_get_algo_blklen (header_metadata->algo);
 
     header_metadata->iv_size = algo_blk_len;  // iv must be the same size as the block size
-    header_metadata->iv = (guint8 *) gcry_malloc (header_metadata->iv_size);
 
     gcry_create_nonce (header_metadata->iv, header_metadata->iv_size);
     gcry_create_nonce (header_metadata->salt, SALT_SIZE);
@@ -94,21 +74,27 @@ encrypt_file (const gchar *input_file_path, const gchar *pwd, const gchar *algo,
     gcry_cipher_close (hd);
 
     guchar *hmac = calculate_hmac (output_file_path, encryption_keys->hmac_key, HMAC_KEY_SIZE);
-    // TODO wirte hmac
+    gssize written_bytes = g_output_stream_write (G_OUTPUT_STREAM (out_stream), hmac, SHA512_DIGEST_SIZE, NULL, &err);
+    if (written_bytes == -1) {
+        g_printerr ("%s\n", err->message);
+        // TODO do something
+        return;
+    }
+    g_output_stream_close (G_OUTPUT_STREAM (out_stream), NULL, NULL);
 
-    multiple_gcry_free (4, (gpointer *) &encryption_keys->derived_key,
+    multiple_gcry_free (3, (gpointer *) &encryption_keys->derived_key,
                         (gpointer *) &encryption_keys->crypto_key,
-                        (gpointer *) &encryption_keys->hmac_key,
-                        (gpointer *) &header_metadata->iv);
+                        (gpointer *) &encryption_keys->hmac_key);
 
-    multiple_free (3, (gpointer *) &output_file_path,
+    multiple_free (4, (gpointer *) &output_file_path,
                    (gpointer *) &encryption_keys,
-                   (gpointer *) &header_metadata);
+                   (gpointer *) &header_metadata,
+                   (gpointer *) &hmac);
 
-    g_object_unref (in_file);
-    g_object_unref (out_file);
-    g_object_unref (in_stream);
-    g_object_unref (out_stream);
+    multiple_unref (4, (gpointer *) &in_file,
+                    (gpointer *) &out_file,
+                    (gpointer *) &in_stream,
+                    (gpointer *) &out_stream);
 }
 
 
@@ -195,7 +181,6 @@ encrypt_using_cbc_mode (Metadata *header_metadata, gcry_cipher_hd_t hd, gint64 n
                         gsize block_length, GFileInputStream *in_stream, GFileOutputStream *out_stream)
 {
     // TODO test speed by increasing encrypt size from block_size to ...
-    // TODO hmac
     GError *err = NULL;
     guchar *buffer = g_malloc0 (block_length);
     guchar *enc_buffer = g_malloc0 (block_length);
@@ -204,8 +189,8 @@ encrypt_using_cbc_mode (Metadata *header_metadata, gcry_cipher_hd_t hd, gint64 n
 
     gssize rw_len;
 
-    g_output_stream_write (G_OUTPUT_STREAM (out_stream), header_metadata, sizeof (Metadata), NULL, &err);
-    if (err != NULL) {
+    rw_len = g_output_stream_write (G_OUTPUT_STREAM (out_stream), header_metadata, sizeof (Metadata), NULL, &err);
+    if (rw_len == -1) {
         g_printerr ("%s\n", err->message);
         // TODO do something
         return;
@@ -238,6 +223,5 @@ encrypt_using_cbc_mode (Metadata *header_metadata, gcry_cipher_hd_t hd, gint64 n
         done_blocks++;
     }
 
-    g_output_stream_close (G_OUTPUT_STREAM (out_stream), NULL, NULL);
     g_input_stream_close (G_INPUT_STREAM (in_stream), NULL, NULL);
 }

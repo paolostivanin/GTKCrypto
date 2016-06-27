@@ -9,6 +9,8 @@ void multiple_free (gint, gpointer *, ...);
 
 void multiple_gcry_free (gint, gpointer *, ...);
 
+void multiple_unref (gint, gpointer *, ...);
+
 void set_css (const gchar *, gint, GtkWidget **, ...);
 
 gchar *get_file_hash (const gchar *file_path, gint hash_algo, gint digest_size);

@@ -20,7 +20,8 @@ multiple_free (gint argc, gpointer *buf, ...)
 }
 
 
-void multiple_gcry_free (gint argc, gpointer *buf, ...)
+void
+multiple_gcry_free (gint argc, gpointer *buf, ...)
 {
     gint i = 0;
     va_list ptr;
@@ -29,6 +30,23 @@ void multiple_gcry_free (gint argc, gpointer *buf, ...)
         if (*buf != NULL) {
             gcry_free (*buf);
             *buf = NULL;
+        }
+        buf = va_arg (ptr, gpointer *);
+        i++;
+    }
+    va_end (ptr);
+}
+
+
+void
+multiple_unref (gint argc, gpointer *buf, ...)
+{
+    gint i = 0;
+    va_list ptr;
+    va_start (ptr, buf);
+    while (i < argc) {
+        if (*buf != NULL) {
+            g_object_unref (*buf);
         }
         buf = va_arg (ptr, gpointer *);
         i++;

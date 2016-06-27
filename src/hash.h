@@ -6,7 +6,7 @@
 #define MUNMAP_FAILED ((gpointer) -3)
 #define HMAC_ERROR ((gpointer) -4)
 
-#define FILE_BUFFER 134217728  //128 MiB
+#define FILE_BUFFER 67108864 // 64 MiB
 
 #define AVAILABLE_HASH_TYPE 10
 

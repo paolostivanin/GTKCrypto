@@ -1,14 +1,12 @@
 #include <gtk/gtk.h>
 #include <gcrypt.h>
-#include "hash.h"
 #include <sys/mman.h>
+#include "hash.h"
 
 
 guchar *
 calculate_hmac (const gchar *file_path, const guchar *key, gsize keylen)
 {
-    GError *err = NULL;
-
     gcry_md_hd_t hd;
     gcry_md_open (&hd, GCRY_MD_SHA512, GCRY_MD_FLAG_HMAC);
     gcry_md_setkey (hd, key, keylen);
