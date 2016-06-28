@@ -68,6 +68,7 @@ encrypt_file (const gchar *input_file_path, const gchar *pwd, const gchar *algo,
     }
     else {
         gcry_cipher_setctr (hd, header_metadata->iv, header_metadata->iv_size);
+        // TODO complete me
         //encrypt_using_ctr_mode ();
     }
 
