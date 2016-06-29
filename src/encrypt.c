@@ -8,13 +8,14 @@ static void set_algo_and_mode (Metadata *, const gchar *, const gchar *);
 
 static void set_number_of_blocks_and_padding_bytes (goffset, gsize, gint64 *, gint *);
 
-static void encrypt_using_cbc_mode (Metadata *, gcry_cipher_hd_t, gint64, gint, gsize, GFileInputStream *, GFileOutputStream *);
+static void encrypt_using_cbc_mode (Metadata *, gcry_cipher_hd_t, gint64 num_of_blocks, gint num_of_padding_bytes, gsize block_length, GFileInputStream *, GFileOutputStream *);
+
+static void encrypt_using_ctr_mode (Metadata *, gcry_cipher_hd_t, goffset file_size, GFileInputStream *, GFileOutputStream *);
 
 
 void
 encrypt_file (const gchar *input_file_path, const gchar *pwd, const gchar *algo, const gchar *algo_mode)
 {
-    // TODO check what happens if the .enc file already exists
     Metadata *header_metadata = g_new0 (Metadata, 1);
     CryptoKeys *encryption_keys = g_new0 (CryptoKeys, 1);
 
@@ -46,7 +47,7 @@ encrypt_file (const gchar *input_file_path, const gchar *pwd, const gchar *algo,
 
     gchar *output_file_path = g_strconcat (input_file_path, ".enc", NULL);
     GFile *out_file = g_file_new_for_path (output_file_path);
-    GFileOutputStream *out_stream = g_file_append_to (out_file, G_FILE_CREATE_NONE, NULL, &err);
+    GFileOutputStream *out_stream = g_file_append_to (out_file, G_FILE_CREATE_REPLACE_DESTINATION, NULL, &err);
     if (err != NULL) {
         g_printerr ("%s\n", err->message);
         // TODO
@@ -66,8 +67,7 @@ encrypt_file (const gchar *input_file_path, const gchar *pwd, const gchar *algo,
     }
     else {
         gcry_cipher_setctr (hd, header_metadata->iv, header_metadata->iv_size);
-        // TODO complete me
-        //encrypt_using_ctr_mode ();
+        encrypt_using_ctr_mode (header_metadata, hd, filesize, in_stream, out_stream);
     }
 
     gcry_cipher_close (hd);
@@ -157,9 +157,7 @@ encrypt_using_cbc_mode (Metadata *header_metadata, gcry_cipher_hd_t hd, gint64 n
     guchar padding[16] = {0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F};
     header_metadata->padding_value = padding[num_of_padding_bytes];
 
-    gssize rw_len;
-
-    rw_len = g_output_stream_write (G_OUTPUT_STREAM (out_stream), header_metadata, sizeof (Metadata), NULL, &err);
+    gssize rw_len = g_output_stream_write (G_OUTPUT_STREAM (out_stream), header_metadata, sizeof (Metadata), NULL, &err);
     if (rw_len == -1) {
         g_printerr ("%s\n", err->message);
         // TODO do something
@@ -168,6 +166,7 @@ encrypt_using_cbc_mode (Metadata *header_metadata, gcry_cipher_hd_t hd, gint64 n
 
     gsize i;
     gint64 done_blocks = 0;
+
     while (done_blocks < num_of_blocks) {
         rw_len = g_input_stream_read (G_INPUT_STREAM (in_stream), buffer, block_length, NULL, &err);
         if (rw_len == -1) {
@@ -194,4 +193,57 @@ encrypt_using_cbc_mode (Metadata *header_metadata, gcry_cipher_hd_t hd, gint64 n
     }
 
     g_input_stream_close (G_INPUT_STREAM (in_stream), NULL, NULL);
+
+    multiple_free (2, (gpointer *) &buffer, (gpointer *) &enc_buffer);
+}
+
+
+static void
+encrypt_using_ctr_mode (Metadata *header_metadata, gcry_cipher_hd_t hd, goffset file_size,
+                        GFileInputStream *in_stream, GFileOutputStream *out_stream)
+{
+    // TODO test speed by increasing encrypt size from block_size to ...
+    GError *err = NULL;
+
+    gssize rw_len = g_output_stream_write (G_OUTPUT_STREAM (out_stream), header_metadata, sizeof (Metadata), NULL, &err);
+    if (rw_len == -1) {
+        g_printerr ("%s\n", err->message);
+        // TODO do something
+        return;
+    }
+
+    guchar *buffer;
+    guchar *enc_buffer;
+
+    if (file_size < FILE_BUFFER) {
+        buffer = g_malloc0 (file_size);
+        enc_buffer = g_malloc0 (file_size);
+    }
+    else {
+        buffer = g_malloc0 (FILE_BUFFER);
+        enc_buffer = g_malloc0 (FILE_BUFFER);
+    }
+
+    goffset done_size = 0;
+
+    while (done_size < file_size) {
+        if ((file_size - done_size) > FILE_BUFFER) {
+            rw_len = g_input_stream_read (G_INPUT_STREAM (in_stream), buffer, FILE_BUFFER, NULL, &err);
+        }
+        else {
+            rw_len = g_input_stream_read (G_INPUT_STREAM (in_stream), buffer, file_size - done_size, NULL, &err);
+        }
+
+        gcry_cipher_encrypt (hd, enc_buffer, rw_len, buffer, rw_len);
+        rw_len = g_output_stream_write (G_OUTPUT_STREAM (out_stream), enc_buffer, rw_len, NULL, &err);
+
+        memset (buffer, 0, FILE_BUFFER);
+        memset (enc_buffer, 0, FILE_BUFFER);
+
+        done_size += rw_len;
+    }
+
+    g_input_stream_close (G_INPUT_STREAM (in_stream), NULL, NULL);
+
+    multiple_free (2, (gpointer *) &buffer, (gpointer *) &enc_buffer);
 }

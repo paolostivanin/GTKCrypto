@@ -20,7 +20,7 @@ decrypt_file (const gchar *input_file_path, const gchar *pwd)
     if (file_size == -1) {
         return;
     }
-    if (file_size < sizeof (Metadata) + SHA512_DIGEST_SIZE) {
+    if (file_size < (goffset) (sizeof (Metadata) + SHA512_DIGEST_SIZE)) {
         g_printerr ("The selected file is not encrypted.\n");
         return;
     }
@@ -42,7 +42,7 @@ decrypt_file (const gchar *input_file_path, const gchar *pwd)
         output_file_path = g_strndup (input_file_path, (gsize) g_utf8_strlen (input_file_path, -1) - 4); // remove .enc
     }
     GFile *out_file = g_file_new_for_path (output_file_path);
-    GFileOutputStream *out_stream = g_file_append_to (out_file, G_FILE_CREATE_NONE, NULL, &err);
+    GFileOutputStream *out_stream = g_file_append_to (out_file, G_FILE_CREATE_REPLACE_DESTINATION, NULL, &err);
     if (err != NULL) {
         g_printerr ("%s\n", err->message);
         // TODO
@@ -85,6 +85,8 @@ decrypt_file (const gchar *input_file_path, const gchar *pwd)
         return;
     }
     // TODO decrypt (pay attention to iv size and algo mode)
+    // TODO remove tmp file
+    // TODO remove encrypted file? Give option to the user
 
     multiple_unref (5, (gpointer *) &file_encrypted_data,
                     (gpointer *) &in_stream,

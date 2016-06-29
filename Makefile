@@ -6,7 +6,7 @@ DFLAGS = -D_FILE_OFFSET_BITS=64 -U_FORTIFY_SOURCE -D_FORTIFY_SOURCE=2
 NOFLAGS = -Wno-missing-field-initializers -Wno-return-type -Wno-cast-qual
 LDFLAGS = -Wl,-z,now -Wl,-z,relro
 
-LIBS = -lgcrypt $(shell pkg-config --libs gtk+-3.0)
+LIBS = -lgcrypt -lgcr-3 -lgcr-base-3 $(shell pkg-config --libs gtk+-3.0)
 
 SOURCES = $(wildcard src/*.c src/hash/*.c)
 OBJS = ${SOURCES:.c=.o}
