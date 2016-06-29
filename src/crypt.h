@@ -19,6 +19,8 @@ typedef struct key_t {
     guchar *derived_key;
     guchar *crypto_key;
     guchar *hmac_key;
-} EncryptionKeys;
+} CryptoKeys;
+
+gboolean setup_keys (const gchar *pwd, gsize algo_key_len, Metadata *header_metadata, CryptoKeys *encryption_keys);
 
 #endif

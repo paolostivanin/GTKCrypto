@@ -27,7 +27,7 @@ set(SOURCE_FILES
         src/compare-file-hash-cb.c
         src/compute-hash-cb.c
         src/choose-file.c
-        src/common-callbacks.c src/hash.c src/mfree.c src/css.c src/hash.h src/get-file-size.c src/spinner.c src/encrypt-file-cb.c src/common-widgets.c src/encrypt.c src/mcw-sensitivity.c src/secure-file-delete.c src/hmac.c src/decrypt.c)
+        src/common-callbacks.c src/hash.c src/mfree.c src/css.c src/hash.h src/get-file-size.c src/spinner.c src/encrypt-file-cb.c src/common-widgets.c src/encrypt.c src/mcw-sensitivity.c src/secure-file-delete.c src/hmac.c src/decrypt.c src/crypt-common.c)
 
 add_executable(GTKCrypto ${SOURCE_FILES})
 target_link_libraries(GTKCrypto ${GTK3_LIBRARIES} -lgcrypt)

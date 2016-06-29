@@ -6,8 +6,6 @@
 
 static void set_algo_and_mode (Metadata *, const gchar *, const gchar *);
 
-static gboolean setup_keys (const gchar *, gsize, Metadata *, EncryptionKeys *);
-
 static void set_number_of_blocks_and_padding_bytes (goffset, gsize, gint64 *, gint *);
 
 static void encrypt_using_cbc_mode (Metadata *, gcry_cipher_hd_t, gint64, gint, gsize, GFileInputStream *, GFileOutputStream *);
@@ -18,7 +16,7 @@ encrypt_file (const gchar *input_file_path, const gchar *pwd, const gchar *algo,
 {
     // TODO check what happens if the .enc file already exists
     Metadata *header_metadata = g_new0 (Metadata, 1);
-    EncryptionKeys *encryption_keys = g_new0 (EncryptionKeys, 1);
+    CryptoKeys *encryption_keys = g_new0 (CryptoKeys, 1);
 
     set_algo_and_mode (header_metadata, algo, algo_mode);
     gsize algo_key_len = gcry_cipher_get_algo_keylen (header_metadata->algo);
@@ -127,35 +125,6 @@ set_algo_and_mode (Metadata *header_metadata, const gchar *algo, const gchar *al
     else {
         header_metadata->algo_mode = GCRY_CIPHER_MODE_CTR;
     }
-}
-
-
-static gboolean
-setup_keys (const gchar *pwd, gsize algo_key_len, Metadata *header_metadata, EncryptionKeys *encryption_keys)
-{
-    encryption_keys->derived_key = gcry_malloc_secure (64);
-    if (encryption_keys->derived_key == NULL) {
-        return FALSE;
-    }
-
-    if (gcry_kdf_derive (pwd, (gsize) g_utf8_strlen (pwd, -1) + 1, GCRY_KDF_PBKDF2, GCRY_MD_SHA512,
-                         header_metadata->salt, SALT_SIZE, ROUNDS, 64, encryption_keys->derived_key) != 0) {
-        return FALSE;
-    }
-
-    encryption_keys->crypto_key = gcry_malloc_secure (algo_key_len);
-    if (encryption_keys->crypto_key == NULL) {
-        return FALSE;
-    }
-    memcpy (encryption_keys->crypto_key, encryption_keys->derived_key, algo_key_len);
-
-    encryption_keys->hmac_key = gcry_malloc_secure (HMAC_KEY_SIZE);
-    if (encryption_keys->hmac_key == NULL) {
-        return FALSE;
-    }
-    memcpy (encryption_keys->hmac_key, encryption_keys->derived_key + algo_key_len, HMAC_KEY_SIZE);
-
-    return TRUE;
 }
 
 

@@ -1,5 +1,6 @@
 #include <gtk/gtk.h>
 #include <gcrypt.h>
+#include <gcr-3/gcr/gcr-comparable.h>
 #include "gtkcrypto.h"
 #include "hash.h"
 #include "crypt.h"
@@ -7,7 +8,7 @@
 
 static GFile *get_g_file_with_encrypted_data (GFileInputStream *, goffset);
 
-static gboolean compare_hmac (guchar *original_hamc, GFile *encrypted_data);
+static gboolean compare_hmac (guchar *hmac_key, guchar *original_hamc, GFile *encrypted_data);
 
 
 void
@@ -35,7 +36,7 @@ decrypt_file (const gchar *input_file_path, const gchar *pwd)
     gchar *output_file_path;
     if (!g_str_has_suffix (input_file_path, ".enc")) {
         g_printerr ("The selected file may not be encrypted\n");
-        output_file_path = g_strconcat (input_file_path, ".decrypted");
+        output_file_path = g_strconcat (input_file_path, ".decrypted", NULL);
     }
     else {
         output_file_path = g_strndup (input_file_path, (gsize) g_utf8_strlen (input_file_path, -1) - 4); // remove .enc
@@ -49,6 +50,7 @@ decrypt_file (const gchar *input_file_path, const gchar *pwd)
     }
 
     Metadata *header_metadata = g_new0 (Metadata, 1);
+    CryptoKeys *decryption_keys = g_new0 (CryptoKeys, 1);
 
     gssize rw_len = g_input_stream_read (G_INPUT_STREAM (in_stream), header_metadata, sizeof (Metadata), NULL, &err);
     if (rw_len == -1) {
@@ -72,17 +74,32 @@ decrypt_file (const gchar *input_file_path, const gchar *pwd)
         return;
     }
 
-    if (!compare_hmac (original_hmac, file_encrypted_data)) {
+    if (!setup_keys (pwd, gcry_cipher_get_algo_keylen (header_metadata->algo), header_metadata, decryption_keys)) {
+        g_printerr ("Error during key derivation or during memory allocation\n");
+        //TODO
+        return;
+    }
+
+    if (!compare_hmac (decryption_keys->hmac_key, original_hmac, file_encrypted_data)) {
+        // TODO
         return;
     }
     // TODO decrypt (pay attention to iv size and algo mode)
 
-    g_object_unref (file_encrypted_data);
-    g_object_unref(in_stream);
-    g_object_unref(out_stream);
-    g_free(header_metadata);
-    g_free(output_file_path);
-    g_free(original_hmac);
+    multiple_unref (5, (gpointer *) &file_encrypted_data,
+                    (gpointer *) &in_stream,
+                    (gpointer *) &out_stream,
+                    (gpointer *) &in_file,
+                    (gpointer *) &out_file);
+
+    multiple_gcry_free (3, (gpointer *) &decryption_keys->crypto_key,
+                        (gpointer *) &decryption_keys->derived_key,
+                        (gpointer *) &decryption_keys->hmac_key);
+
+    multiple_free (4, (gpointer *) &header_metadata,
+                   (gpointer *) &output_file_path,
+                   (gpointer *) &original_hmac,
+                   (gpointer *) &decryption_keys);
 }
 
 
@@ -122,7 +139,7 @@ get_g_file_with_encrypted_data (GFileInputStream *in_stream, goffset file_size)
                 rw_len = g_input_stream_read (G_INPUT_STREAM (in_stream), buf, FILE_BUFFER, NULL, &err);
             }
             else {
-                rw_len = g_input_stream_read (G_INPUT_STREAM (in_stream), buf, file_size - done_size, NULL, &err);
+                rw_len = g_input_stream_read (G_INPUT_STREAM (in_stream), buf, len_file_data - done_size, NULL, &err);
             }
             if (rw_len == -1) {
                 g_printerr ("%s\n", err->message);
@@ -135,6 +152,7 @@ get_g_file_with_encrypted_data (GFileInputStream *in_stream, goffset file_size)
         }
     }
 
+    g_input_stream_close (G_INPUT_STREAM (in_stream), NULL, NULL);
     g_output_stream_close (G_OUTPUT_STREAM (out_enc_stream), NULL, NULL);
     g_object_unref (out_enc_stream);
     g_free (buf);
@@ -144,10 +162,21 @@ get_g_file_with_encrypted_data (GFileInputStream *in_stream, goffset file_size)
 
 
 static gboolean
-compare_hmac (guchar *hmac, GFile *fl) {
+compare_hmac (guchar *hmac_key, guchar *hmac, GFile *fl) {
     gchar *path = g_file_get_path (fl);
 
     guchar *computed_hmac = calculate_hmac (path, hmac_key, HMAC_KEY_SIZE);
 
+    gboolean different;
+
+    if (gcr_comparable_memcmp (hmac, SHA512_DIGEST_SIZE, computed_hmac, SHA512_DIGEST_SIZE) != 0) {
+        different = TRUE;
+    }
+    else {
+        different = FALSE;
+    }
+
     multiple_free (2, (gpointer *) &path, (gpointer *) &computed_hmac);
+
+    return different;
 }
