@@ -21,7 +21,7 @@ typedef struct encrypt_file_widgets_t {
     GThread *enc_thread;
 } EncryptWidgets;
 
-typedef struct thread_data_t {
+typedef struct enc_thread_data_t {
     GtkWidget *dialog;
     GtkWidget *spinner;
     GtkWidget *message_label;
@@ -63,8 +63,6 @@ encrypt_file_cb (GtkWidget *btn __attribute__((__unused__)),
     encrypt_widgets->dialog = create_dialog (encrypt_widgets->main_window, "enc_dialog", NULL);
     encrypt_widgets->cancel_btn = gtk_button_new_with_label ("Cancel");
     encrypt_widgets->ok_btn = gtk_button_new_with_label ("OK");
-    //gtk_widget_set_margin_top (encrypt_widgets->cancel_btn, 5);
-    //gtk_widget_set_margin_top (encrypt_widgets->ok_btn, 5);
     gtk_widget_set_size_request (encrypt_widgets->dialog, 600, -1);
 
     do_header_bar (encrypt_widgets->dialog, encrypt_widgets);
@@ -397,5 +395,6 @@ cancel_clicked_cb (GtkWidget *btn __attribute__((__unused__)),
     EncryptWidgets *encrypt_widgets = user_data;
 
     gtk_widget_destroy (encrypt_widgets->dialog);
+
     multiple_free (2, (gpointer *) &encrypt_widgets->filename, (gpointer *) &encrypt_widgets);
 }
