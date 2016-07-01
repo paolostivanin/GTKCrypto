@@ -47,7 +47,7 @@ add_boxes_and_grid (AppWidgets *widgets)
     }
 
     g_signal_connect (button[0], "clicked", G_CALLBACK (encrypt_file_cb), widgets->main_window);
-    gtk_widget_set_sensitive (button[1], FALSE);
+    g_signal_connect (button[1], "clicked", G_CALLBACK (decrypt_file_cb), widgets->main_window);
     gtk_widget_set_sensitive (button[2], FALSE);
     gtk_widget_set_sensitive (button[3], FALSE);
     gtk_widget_set_sensitive (button[4], FALSE);

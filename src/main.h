@@ -31,4 +31,6 @@ void compute_hash_cb (GtkWidget *, gpointer);
 
 void encrypt_file_cb (GtkWidget *, gpointer);
 
+void decrypt_file_cb (GtkWidget *, gpointer);
+
 #endif
