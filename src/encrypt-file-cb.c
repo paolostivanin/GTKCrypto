@@ -110,7 +110,11 @@ encrypt_file_cb (GtkWidget *btn __attribute__((__unused__)),
     switch (result) {
         case GTK_RESPONSE_DELETE_EVENT:
             if (encrypt_widgets->enc_thread != NULL) {
-                g_thread_join (encrypt_widgets->enc_thread);
+                gpointer msg = g_thread_join (encrypt_widgets->enc_thread);
+                if (msg != NULL) {
+                    show_message_dialog (encrypt_widgets->main_window, (gchar *) msg, GTK_MESSAGE_ERROR);
+                    g_free (msg);
+                }
             }
             gtk_widget_destroy (encrypt_widgets->dialog);
             multiple_free (2, (gpointer *) &encrypt_widgets->filename, (gpointer *) &encrypt_widgets);
@@ -366,19 +370,19 @@ exec_thread (gpointer user_data)
 
     gchar *message = g_strconcat ("Encrypting <b>", basename, "</b>...", NULL);
     set_label_message (data->message_label, message);
-    encrypt_file (data->filename, data->pwd, data->algo_btn_name, data->algo_mode_btn_name);
+    gpointer msg = encrypt_file (data->filename, data->pwd, data->algo_btn_name, data->algo_mode_btn_name);
 
-    if (data->delete_file) {
-        message = g_strconcat ("Overwriting and deleting <b>", basename, "</b>...", NULL);
-        set_label_message (data->message_label, "Deleting...");
-        secure_file_delete (data->filename);
+    if (data->delete_file && msg == NULL) {
+            message = g_strconcat ("Overwriting and deleting <b>", basename, "</b>...", NULL);
+            set_label_message (data->message_label, "Deleting...");
+            secure_file_delete (data->filename);
     }
 
     gtk_dialog_response (GTK_DIALOG (data->dialog), GTK_RESPONSE_DELETE_EVENT);
 
     multiple_free (3, (gpointer *) &data, (gpointer *) &basename, (gpointer *) &message);
 
-    g_thread_exit ((gpointer) 0);
+    g_thread_exit (msg);
 }
 
 
