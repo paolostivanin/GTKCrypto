@@ -227,8 +227,15 @@ decrypt (Metadata *header_metadata, CryptoKeys *dec_keys, GFile *enc_data, goffs
         return;
     }
 
-    guchar *enc_buf = g_malloc0 (FILE_BUFFER);
-    guchar *dec_buf = g_malloc0 (FILE_BUFFER);
+    guchar *enc_buf = g_try_malloc0 (FILE_BUFFER);
+    guchar *dec_buf = g_try_malloc0 (FILE_BUFFER);
+
+    if (enc_buf == NULL || dec_buf == NULL) {
+        g_printerr ("Error during memory allocation\n");
+        // TODO
+        return;
+    }
+
     goffset done_size = 0;
     gssize read_len;
 

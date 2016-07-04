@@ -204,44 +204,43 @@ encrypt_using_ctr_mode (Metadata *header_metadata, gcry_cipher_hd_t hd, goffset 
 {
     GError *err = NULL;
 
-    gssize rw_len = g_output_stream_write (G_OUTPUT_STREAM (out_stream), header_metadata, sizeof (Metadata), NULL, &err);
-    if (rw_len == -1) {
+    if (g_output_stream_write (G_OUTPUT_STREAM (out_stream), header_metadata, sizeof (Metadata), NULL, &err) == -1) {
         g_printerr ("%s\n", err->message);
         // TODO do something
         return;
     }
 
-    // TODO got a segfault
+    guchar *buffer = g_try_malloc0 (FILE_BUFFER);
+    guchar *enc_buffer = g_try_malloc0 (FILE_BUFFER);
 
-    guchar *buffer;
-    guchar *enc_buffer;
-
-    if (file_size < FILE_BUFFER) {
-        buffer = g_malloc0 (file_size);
-        enc_buffer = g_malloc0 (file_size);
-    }
-    else {
-        buffer = g_malloc0 (FILE_BUFFER);
-        enc_buffer = g_malloc0 (FILE_BUFFER);
+    if (buffer == NULL || enc_buffer == NULL) {
+        g_printerr ("Error during memory allocation\n");
+        // TODO
+        return;
     }
 
     goffset done_size = 0;
+    gssize read_len;
 
     while (done_size < file_size) {
         if ((file_size - done_size) > FILE_BUFFER) {
-            rw_len = g_input_stream_read (G_INPUT_STREAM (in_stream), buffer, FILE_BUFFER, NULL, &err);
+            read_len = g_input_stream_read (G_INPUT_STREAM (in_stream), buffer, FILE_BUFFER, NULL, &err);
         }
         else {
-            rw_len = g_input_stream_read (G_INPUT_STREAM (in_stream), buffer, file_size - done_size, NULL, &err);
+            read_len = g_input_stream_read (G_INPUT_STREAM (in_stream), buffer, file_size - done_size, NULL, &err);
         }
 
-        gcry_cipher_encrypt (hd, enc_buffer, rw_len, buffer, rw_len);
-        rw_len = g_output_stream_write (G_OUTPUT_STREAM (out_stream), enc_buffer, rw_len, NULL, &err);
+        gcry_cipher_encrypt (hd, enc_buffer, read_len, buffer, read_len);
+        if (g_output_stream_write (G_OUTPUT_STREAM (out_stream), enc_buffer, read_len, NULL, &err) == -1) {
+            g_printerr ("%s\n", err->message);
+            // TODO do something
+            return;
+        }
 
         memset (buffer, 0, FILE_BUFFER);
         memset (enc_buffer, 0, FILE_BUFFER);
 
-        done_size += rw_len;
+        done_size += read_len;
     }
 
     g_input_stream_close (G_INPUT_STREAM (in_stream), NULL, NULL);
