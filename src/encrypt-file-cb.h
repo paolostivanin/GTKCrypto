@@ -6,6 +6,4 @@
 
 void encrypt_file (const gchar *input_file_path, const gchar *pwd, const gchar *algo, const gchar *algo_mode);
 
-void secure_file_delete (const gchar *file_path);
-
 #endif

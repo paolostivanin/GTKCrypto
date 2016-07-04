@@ -2,6 +2,7 @@
 #include "gtkcrypto.h"
 #include "common-widgets.h"
 #include "common-callbacks.h"
+#include "crypt-common.h"
 #include "encrypt-file-cb.h"
 
 typedef struct encrypt_file_widgets_t {
@@ -46,8 +47,6 @@ static void prepare_encryption (const gchar *, const gchar *, EncryptWidgets *);
 
 static gpointer exec_thread (gpointer);
 
-static void set_label_message (GtkWidget *, const gchar *);
-
 static void cancel_clicked_cb (GtkWidget *, gpointer);
 
 
@@ -56,7 +55,9 @@ encrypt_file_cb (GtkWidget *btn __attribute__((__unused__)),
                  gpointer user_data)
 {
     EncryptWidgets *encrypt_widgets = g_new0 (EncryptWidgets, 1);
+
     encrypt_widgets->main_window = (GtkWidget *) user_data;
+    encrypt_widgets->enc_thread = NULL;
 
     encrypt_widgets->filename = choose_file (encrypt_widgets->main_window);
 
@@ -66,8 +67,6 @@ encrypt_file_cb (GtkWidget *btn __attribute__((__unused__)),
     gtk_widget_set_size_request (encrypt_widgets->dialog, 600, -1);
 
     do_header_bar (encrypt_widgets->dialog, encrypt_widgets);
-
-    GtkWidget *content_area = gtk_dialog_get_content_area (GTK_DIALOG (encrypt_widgets->dialog));
 
     encrypt_widgets->entry_pwd = gtk_entry_new ();
     encrypt_widgets->entry_pwd_retype = gtk_entry_new ();
@@ -97,7 +96,7 @@ encrypt_file_cb (GtkWidget *btn __attribute__((__unused__)),
     gtk_box_pack_end (GTK_BOX(hbox), encrypt_widgets->cancel_btn, TRUE, TRUE, 0);
     gtk_grid_attach (GTK_GRID (grid), hbox, 1, 4, 1, 1);
 
-    gtk_container_add (GTK_CONTAINER (content_area), grid);
+    gtk_container_add (GTK_CONTAINER (gtk_dialog_get_content_area (GTK_DIALOG (encrypt_widgets->dialog))), grid);
 
     gtk_widget_show_all (encrypt_widgets->dialog);
 
@@ -110,7 +109,9 @@ encrypt_file_cb (GtkWidget *btn __attribute__((__unused__)),
     gint result = gtk_dialog_run (GTK_DIALOG (encrypt_widgets->dialog));
     switch (result) {
         case GTK_RESPONSE_DELETE_EVENT:
-            g_thread_join (encrypt_widgets->enc_thread);
+            if (encrypt_widgets->enc_thread != NULL) {
+                g_thread_join (encrypt_widgets->enc_thread);
+            }
             gtk_widget_destroy (encrypt_widgets->dialog);
             multiple_free (2, (gpointer *) &encrypt_widgets->filename, (gpointer *) &encrypt_widgets);
             break;
@@ -378,13 +379,6 @@ exec_thread (gpointer user_data)
     multiple_free (3, (gpointer *) &data, (gpointer *) &basename, (gpointer *) &message);
 
     g_thread_exit ((gpointer) 0);
-}
-
-
-static void
-set_label_message (GtkWidget *message_label, const gchar *message)
-{
-    gtk_label_set_markup (GTK_LABEL (message_label), message);
 }
 
 

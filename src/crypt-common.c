@@ -1,6 +1,6 @@
 #include <gtk/gtk.h>
 #include <gcrypt.h>
-#include "crypt.h"
+#include "crypt-common.h"
 
 
 gboolean
@@ -29,4 +29,11 @@ setup_keys (const gchar *pwd, gsize algo_key_len, Metadata *header_metadata, Cry
     memcpy (keys->hmac_key, keys->derived_key + algo_key_len, HMAC_KEY_SIZE);
 
     return TRUE;
+}
+
+
+void
+set_label_message (GtkWidget *message_label, const gchar *message)
+{
+    gtk_label_set_markup (GTK_LABEL (message_label), message);
 }

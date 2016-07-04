@@ -2,7 +2,7 @@
 #include <gcrypt.h>
 #include "gtkcrypto.h"
 #include "hash.h"
-#include "crypt.h"
+#include "crypt-common.h"
 
 static void set_algo_and_mode (Metadata *, const gchar *, const gchar *);
 
@@ -202,7 +202,6 @@ static void
 encrypt_using_ctr_mode (Metadata *header_metadata, gcry_cipher_hd_t hd, goffset file_size,
                         GFileInputStream *in_stream, GFileOutputStream *out_stream)
 {
-    // TODO test speed by increasing encrypt size from block_size to ...
     GError *err = NULL;
 
     gssize rw_len = g_output_stream_write (G_OUTPUT_STREAM (out_stream), header_metadata, sizeof (Metadata), NULL, &err);
@@ -211,6 +210,8 @@ encrypt_using_ctr_mode (Metadata *header_metadata, gcry_cipher_hd_t hd, goffset 
         // TODO do something
         return;
     }
+
+    // TODO got a segfault
 
     guchar *buffer;
     guchar *enc_buffer;
