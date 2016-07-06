@@ -21,9 +21,9 @@
 #define SHA3_512_DIGEST_SIZE 64
 #define WHIRLPOOL_DIGEST_SIZE 64
 
-gpointer compute_hash (gcry_md_hd_t hd, const gchar *file_path);
+gpointer compute_hash (gcry_md_hd_t *hd, const gchar *file_path);
 
-gchar *finalize_hash (gcry_md_hd_t hd, gint algo, gint digest_size);
+gchar *finalize_hash (gcry_md_hd_t *hd, gint algo, gint digest_size);
 
 guchar *calculate_hmac (const gchar *file_path, const guchar *key, gsize keylen);
 

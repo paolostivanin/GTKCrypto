@@ -8,9 +8,9 @@ static void set_algo_and_mode (Metadata *, const gchar *, const gchar *);
 
 static void set_number_of_blocks_and_padding_bytes (goffset, gsize, gint64 *, gint *);
 
-static gchar *encrypt_using_cbc_mode (Metadata *, gcry_cipher_hd_t, gint64 num_of_blocks, gint num_of_padding_bytes, gsize block_length, GFileInputStream *, GFileOutputStream *);
+static gchar *encrypt_using_cbc_mode (Metadata *, gcry_cipher_hd_t *, gint64 num_of_blocks, gint num_of_padding_bytes, gsize block_length, GFileInputStream *, GFileOutputStream *);
 
-static gchar *encrypt_using_ctr_mode (Metadata *, gcry_cipher_hd_t, goffset file_size, GFileInputStream *, GFileOutputStream *);
+static gchar *encrypt_using_ctr_mode (Metadata *, gcry_cipher_hd_t *, goffset file_size, GFileInputStream *, GFileOutputStream *);
 
 
 gpointer
@@ -26,7 +26,7 @@ encrypt_file (const gchar *input_file_path, const gchar *pwd, const gchar *algo,
     header_metadata->iv_size = algo_blk_len;  // iv must be the same size as the block size
 
     gcry_create_nonce (header_metadata->iv, header_metadata->iv_size);
-    gcry_create_nonce (header_metadata->salt, SALT_SIZE);
+    gcry_create_nonce (header_metadata->salt, KDF_SALT_SIZE);
 
     if (!setup_keys (pwd, algo_key_len, header_metadata, encryption_keys)) {
         multiple_free (2, (gpointer *) &encryption_keys, (gpointer *) &header_metadata);
@@ -68,14 +68,15 @@ encrypt_file (const gchar *input_file_path, const gchar *pwd, const gchar *algo,
     gint64 number_of_blocks;
     gint number_of_padding_bytes;
     gchar *ret_msg;
+    //TODO add err checking gcrypt
     if (header_metadata->algo_mode == GCRY_CIPHER_MODE_CBC) {
         set_number_of_blocks_and_padding_bytes (filesize, algo_blk_len, &number_of_blocks, &number_of_padding_bytes);
         gcry_cipher_setiv (hd, header_metadata->iv, header_metadata->iv_size);
-        ret_msg = encrypt_using_cbc_mode (header_metadata, hd, number_of_blocks, number_of_padding_bytes, algo_blk_len, in_stream, out_stream);
+        ret_msg = encrypt_using_cbc_mode (header_metadata, &hd, number_of_blocks, number_of_padding_bytes, algo_blk_len, in_stream, out_stream);
     }
     else {
         gcry_cipher_setctr (hd, header_metadata->iv, header_metadata->iv_size);
-        ret_msg = encrypt_using_ctr_mode (header_metadata, hd, filesize, in_stream, out_stream);
+        ret_msg = encrypt_using_ctr_mode (header_metadata, &hd, filesize, in_stream, out_stream);
     }
     if (ret_msg != NULL) {
         multiple_gcry_free (3, (gpointer *) &encryption_keys->derived_key, (gpointer *) &encryption_keys->crypto_key,
@@ -172,7 +173,7 @@ set_number_of_blocks_and_padding_bytes (goffset file_size, gsize block_length, g
 
 
 static gchar *
-encrypt_using_cbc_mode (Metadata *header_metadata, gcry_cipher_hd_t hd, gint64 num_of_blocks, gint num_of_padding_bytes,
+encrypt_using_cbc_mode (Metadata *header_metadata, gcry_cipher_hd_t *hd, gint64 num_of_blocks, gint num_of_padding_bytes,
                         gsize block_length, GFileInputStream *in_stream, GFileOutputStream *out_stream)
 {
     // TODO test speed by increasing encrypt size from block_size to ...
@@ -206,7 +207,7 @@ encrypt_using_cbc_mode (Metadata *header_metadata, gcry_cipher_hd_t hd, gint64 n
                 buffer[i] = header_metadata->padding_value;
             }
         }
-        gcry_cipher_encrypt (hd, enc_buffer, block_length, buffer, block_length);
+        gcry_cipher_encrypt (*hd, enc_buffer, block_length, buffer, block_length);
         if (g_output_stream_write (G_OUTPUT_STREAM (out_stream), enc_buffer, block_length, NULL, &err) != block_length) {
             multiple_free (2, (gpointer *) &buffer, (gpointer *) &enc_buffer);
             return g_strdup ("Error while trying to write encrypted data to the output file");
@@ -224,7 +225,7 @@ encrypt_using_cbc_mode (Metadata *header_metadata, gcry_cipher_hd_t hd, gint64 n
 
 
 static gchar *
-encrypt_using_ctr_mode (Metadata *header_metadata, gcry_cipher_hd_t hd, goffset file_size,
+encrypt_using_ctr_mode (Metadata *header_metadata, gcry_cipher_hd_t *hd, goffset file_size,
                         GFileInputStream *in_stream, GFileOutputStream *out_stream)
 {
     GError *err = NULL;
@@ -255,7 +256,7 @@ encrypt_using_ctr_mode (Metadata *header_metadata, gcry_cipher_hd_t hd, goffset 
             return g_strdup (err->message);
         }
 
-        gcry_cipher_encrypt (hd, enc_buffer, read_len, buffer, read_len);
+        gcry_cipher_encrypt (*hd, enc_buffer, read_len, buffer, read_len);
         if (g_output_stream_write (G_OUTPUT_STREAM (out_stream), enc_buffer, read_len, NULL, &err) == -1) {
             multiple_free (2, (gpointer *) &buffer, (gpointer *) &enc_buffer);
             return g_strdup (err->message);

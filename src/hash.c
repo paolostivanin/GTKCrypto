@@ -17,7 +17,7 @@ get_file_hash (const gchar *filename, gint hash_algo, gint digest_size)
     gcry_md_hd_t hd;
     gcry_md_open(&hd, algo, 0);
 
-    gpointer status = compute_hash (hd, filename);
+    gpointer status = compute_hash (&hd, filename);
     if (status == MAP_FAILED) {
         g_printerr ("mmap error\n");
         return NULL;
@@ -30,13 +30,13 @@ get_file_hash (const gchar *filename, gint hash_algo, gint digest_size)
         return NULL;
     }
     else {
-        return finalize_hash (hd, algo, digest_size);
+        return finalize_hash (&hd, algo, digest_size);
     }
 }
 
 
 gpointer
-compute_hash (gcry_md_hd_t hd, const gchar *filename)
+compute_hash (gcry_md_hd_t *hd, const gchar *filename)
 {
     guint8 *addr;
     gint ret_val = 0;
@@ -59,7 +59,7 @@ compute_hash (gcry_md_hd_t hd, const gchar *filename)
             g_close (fd, NULL);
             return MAP_FAILED;
         }
-        gcry_md_write (hd, addr, (gsize) file_size);
+        gcry_md_write (*hd, addr, (gsize) file_size);
         ret_val = munmap (addr, (gsize) file_size);
         if (ret_val == -1) {
             g_close (fd, NULL);
@@ -75,7 +75,7 @@ compute_hash (gcry_md_hd_t hd, const gchar *filename)
                 g_close (fd, NULL);
                 return MAP_FAILED;
             }
-            gcry_md_write (hd, addr, FILE_BUFFER);
+            gcry_md_write (*hd, addr, FILE_BUFFER);
             done_size += FILE_BUFFER;
             diff = file_size - done_size;
             offset += FILE_BUFFER;
@@ -85,7 +85,7 @@ compute_hash (gcry_md_hd_t hd, const gchar *filename)
                     g_close (fd, NULL);
                     return MAP_FAILED;
                 }
-                gcry_md_write (hd, addr, diff);
+                gcry_md_write (*hd, addr, diff);
                 ret_val = munmap (addr, diff);
                 if (ret_val == -1) {
                     g_close (fd, NULL);
@@ -106,11 +106,11 @@ compute_hash (gcry_md_hd_t hd, const gchar *filename)
 
 
 gchar *
-finalize_hash (gcry_md_hd_t hd, gint algo, gint digest_size)
+finalize_hash (gcry_md_hd_t *hd, gint algo, gint digest_size)
 {
-    gcry_md_final (hd);
+    gcry_md_final (*hd);
     gchar *finalized_hash = g_malloc ((gsize) digest_size * 2 + 1);
-    guchar *hash = gcry_md_read (hd, algo);
+    guchar *hash = gcry_md_read (*hd, algo);
     gint i;
 
     for (i = 0; i < digest_size; i++)
@@ -118,7 +118,7 @@ finalize_hash (gcry_md_hd_t hd, gint algo, gint digest_size)
 
     finalized_hash[digest_size * 2] = '\0';
 
-    gcry_md_close (hd);
+    gcry_md_close (*hd);
 
     return finalized_hash;
 }
