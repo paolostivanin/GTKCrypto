@@ -6,7 +6,7 @@
 
 
 guchar *
-calculate_hmac (const gchar *file_path, const guchar *key, gsize keylen)
+calculate_hmac (const gchar *file_path, const guchar *key, gsize keylen, guchar *user_hmac)
 {
     gsize mac_len = gcry_mac_get_algo_maclen (GCRY_MAC_HMAC_SHA3_512);
 
@@ -44,41 +44,87 @@ calculate_hmac (const gchar *file_path, const guchar *key, gsize keylen)
         gcry_mac_close (mac);
         return NULL;
     }
-    // TODO g input stream read to buf
-    goffset done_size = 0;
-    while (done_size < file_size) {
-        if ((file_size - done_size) < FILE_BUFFER) {
-            err = gcry_mac_write (mac, buf, file_size - done_size);
-            if (err) {
-                g_printerr ("mac_write error: %s/%s\n", gcry_strsource (err), gcry_strerror (err));
-                gcry_mac_close (mac);
-                g_free (buf);
-                return NULL;
-            }
-            break;
-        }
-        else {
-            err = gcry_mac_write (mac, buf, FILE_BUFFER);
-        }
-        if (err) {
-            g_printerr ("mac_write error: %s/%s\n", gcry_strsource (err), gcry_strerror (err));
-            gcry_mac_close (mac);
-            g_free (buf);
-            return NULL;
-        }
-        done_size += FILE_BUFFER;
-    }
 
-    err = gcry_mac_read (mac, hmac, &mac_len);
-    if (err) {
-        g_printerr ("mac_read error: %s/%s\n", gcry_strsource (err), gcry_strerror (err));
+    GError *gerr = NULL;
+    GFile *file = g_file_new_for_path (file_path);
+    GFileInputStream *istream = g_file_read (file, NULL, &gerr);
+    if (gerr != NULL) {
+        g_printerr ("%s\n", gerr->message);
+        g_object_unref (file);
         gcry_mac_close (mac);
         g_free (buf);
         return NULL;
     }
 
+    gssize read_len;
+    goffset done_size = 0;
+    while (done_size < file_size) {
+        if ((file_size - done_size) < FILE_BUFFER) {
+            read_len = g_input_stream_read (G_INPUT_STREAM (istream), buf, file_size - done_size, NULL, &gerr);
+            if (read_len == -1) {
+                g_printerr ("%s\n", gerr->message);
+                return NULL;
+            }
+            err = gcry_mac_write (mac, buf, read_len);
+            if (err) {
+                g_printerr ("mac_write error: %s/%s\n", gcry_strsource (err), gcry_strerror (err));
+                gcry_mac_close (mac);
+                g_free (buf);
+                g_input_stream_close (G_INPUT_STREAM (istream), NULL, NULL);
+                multiple_unref (2, (gpointer *) &file, (gpointer *) &istream);
+                return NULL;
+            }
+            break;
+        }
+        else {
+            read_len = g_input_stream_read (G_INPUT_STREAM (istream), buf, FILE_BUFFER, NULL, &gerr);
+            if (read_len == -1) {
+                g_printerr ("%s\n", gerr->message);
+                return NULL;
+            }
+            err = gcry_mac_write (mac, buf, read_len);
+        }
+        if (err) {
+            g_printerr ("mac_write error: %s/%s\n", gcry_strsource (err), gcry_strerror (err));
+            gcry_mac_close (mac);
+            g_free (buf);
+            g_input_stream_close (G_INPUT_STREAM (istream), NULL, NULL);
+            multiple_unref (2, (gpointer *) &file, (gpointer *) &istream);
+            return NULL;
+        }
+        done_size += FILE_BUFFER;
+    }
+
+    if (user_hmac != NULL) {
+        err = gcry_mac_verify (mac, user_hmac, mac_len);
+        gcry_mac_close (mac);
+        g_free (buf);
+        g_input_stream_close (G_INPUT_STREAM (istream), NULL, NULL);
+        multiple_unref (2, (gpointer *) &file, (gpointer *) &istream);
+        if (err) {
+            g_printerr ("HMAC verification failed: %s/%s\n", gcry_strsource (err), gcry_strerror (err));
+            return HMAC_MISMATCH;
+        }
+        else {
+            return HMAC_OK;
+        }
+    }
+    else {
+        err = gcry_mac_read (mac, hmac, &mac_len);
+        if (err) {
+            g_printerr ("mac_read error: %s/%s\n", gcry_strsource(err), gcry_strerror(err));
+            gcry_mac_close (mac);
+            g_free (buf);
+            g_input_stream_close (G_INPUT_STREAM (istream), NULL, NULL);
+            multiple_unref (2, (gpointer *) &file, (gpointer *) &istream);
+            return NULL;
+        }
+    }
+
     gcry_mac_close (mac);
     g_free (buf);
+    g_input_stream_close (G_INPUT_STREAM (istream), NULL, NULL);
+    multiple_unref (2, (gpointer *) &file, (gpointer *) &istream);
 
     return hmac;
 }

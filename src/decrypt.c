@@ -182,20 +182,12 @@ static gboolean
 compare_hmac (guchar *hmac_key, guchar *hmac, GFile *fl) {
     gchar *path = g_file_get_path (fl);
 
-    guchar *computed_hmac = calculate_hmac (path, hmac_key, HMAC_KEY_SIZE);
-
-    gboolean hmac_equal;
-
-    if (gcr_comparable_memcmp (hmac, SHA512_DIGEST_SIZE, computed_hmac, SHA512_DIGEST_SIZE) != 0) {
-        hmac_equal = FALSE;
+    if (calculate_hmac (path, hmac_key, HMAC_KEY_SIZE, hmac) == HMAC_MISMATCH) {
+        return FALSE;
     }
     else {
-        hmac_equal = TRUE;
+        return TRUE;
     }
-
-    multiple_free (2, (gpointer *) &path, (gpointer *) &computed_hmac);
-
-    return hmac_equal;
 }
 
 

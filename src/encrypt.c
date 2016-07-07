@@ -93,7 +93,7 @@ encrypt_file (const gchar *input_file_path, const gchar *pwd, const gchar *algo,
 
     gcry_cipher_close (hd);
 
-    guchar *hmac = calculate_hmac (output_file_path, encryption_keys->hmac_key, HMAC_KEY_SIZE);
+    guchar *hmac = calculate_hmac (output_file_path, encryption_keys->hmac_key, HMAC_KEY_SIZE, NULL);
     gssize written_bytes = g_output_stream_write (G_OUTPUT_STREAM (out_stream), hmac, SHA512_DIGEST_SIZE, NULL, &err);
     if (written_bytes == -1) {
         multiple_gcry_free (3, (gpointer *) &encryption_keys->derived_key, (gpointer *) &encryption_keys->crypto_key,
