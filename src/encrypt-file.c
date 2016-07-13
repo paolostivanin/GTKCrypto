@@ -68,7 +68,6 @@ encrypt_file (const gchar *input_file_path, const gchar *pwd, const gchar *algo,
     gint64 number_of_blocks;
     gint number_of_padding_bytes;
     gchar *ret_msg;
-    //TODO add err checking gcrypt
     if (header_metadata->algo_mode == GCRY_CIPHER_MODE_CBC) {
         set_number_of_blocks_and_padding_bytes (filesize, algo_blk_len, &number_of_blocks, &number_of_padding_bytes);
         gcry_cipher_setiv (hd, header_metadata->iv, header_metadata->iv_size);
@@ -176,7 +175,6 @@ static gchar *
 encrypt_using_cbc_mode (Metadata *header_metadata, gcry_cipher_hd_t *hd, gint64 num_of_blocks, gint num_of_padding_bytes,
                         gsize block_length, GFileInputStream *in_stream, GFileOutputStream *out_stream)
 {
-    // TODO test speed by increasing encrypt size from block_size to ...
     GError *err = NULL;
     guchar *buffer = g_try_malloc0 (block_length);
     guchar *enc_buffer = g_try_malloc0 (block_length);

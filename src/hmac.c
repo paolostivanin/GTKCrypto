@@ -6,7 +6,7 @@
 
 
 guchar *
-calculate_hmac (const gchar *file_path, const guchar *key, gsize keylen, guchar *user_hmac)
+calculate_hmac (const gchar *file_path, const guchar *key, guchar *user_hmac)
 {
     gsize mac_len = gcry_mac_get_algo_maclen (GCRY_MAC_HMAC_SHA3_512);
 
@@ -25,7 +25,7 @@ calculate_hmac (const gchar *file_path, const guchar *key, gsize keylen, guchar 
 
     err = gcry_mac_setkey (mac, key, HMAC_KEY_SIZE);
     if (err) {
-        fprintf(stderr, "mac_setkey error: %s/%s\n", gcry_strsource (err), gcry_strerror (err));
+        g_printerr ("mac_setkey error: %s/%s\n", gcry_strsource (err), gcry_strerror (err));
         gcry_mac_close (mac);
         return NULL;
     }

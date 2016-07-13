@@ -6,7 +6,7 @@ DFLAGS = -D_FILE_OFFSET_BITS=64 -U_FORTIFY_SOURCE -D_FORTIFY_SOURCE=2
 NOFLAGS = -Wno-missing-field-initializers -Wno-return-type -Wno-cast-qual -Wno-sign-compare
 LDFLAGS = -Wl,-O1,--sort-common,--as-needed,-z,relro
 
-LIBS = -lgcrypt -lgcr-3 -lgcr-base-3 $(shell pkg-config --libs gtk+-3.0)
+LIBS = -lgcrypt -lgpgme -lgcr-3 -lgcr-base-3 $(shell pkg-config --libs gtk+-3.0)
 
 SOURCES = $(wildcard src/*.c src/hash/*.c)
 OBJS = ${SOURCES:.c=.o}
@@ -16,13 +16,13 @@ PROG = gtkcrypto
 .SUFFIXES:.c .o
 
 .c.o:
-	$(CC) -c $(CFLAGS) $(NOFLAGS) $(DFLAGS) $< -o $@
+	$(CC) -c $(CFLAGS) $(NOFLAGS) $(DFLAGS) $(LDFLAGS) $< -o $@
 
 all: $(PROG)
 
 
 $(PROG) : $(OBJS)
-	$(CC) $(CFLAGS) $(NOFLAGS) $(DFLAGS) $(OBJS) -o $@ $(LIBS)
+	$(CC) $(CFLAGS) $(NOFLAGS) $(DFLAGS) $(LDFLAGS) $(OBJS) -o $@ $(LIBS)
 
 
 .PHONY: clean
