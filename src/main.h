@@ -33,4 +33,6 @@ void encrypt_file_cb (GtkWidget *, gpointer);
 
 void decrypt_file_cb (GtkWidget *, gpointer);
 
+void sign_file_cb (GtkWidget *, gpointer);
+
 #endif

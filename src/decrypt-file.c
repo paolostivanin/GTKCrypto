@@ -182,7 +182,7 @@ static gboolean
 compare_hmac (guchar *hmac_key, guchar *hmac, GFile *fl) {
     gchar *path = g_file_get_path (fl);
 
-    if (calculate_hmac (path, hmac_key, HMAC_KEY_SIZE, hmac) == HMAC_MISMATCH) {
+    if (calculate_hmac (path, hmac_key, hmac) == HMAC_MISMATCH) {
         return FALSE;
     }
     else {
