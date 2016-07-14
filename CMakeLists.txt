@@ -42,7 +42,8 @@ set(SOURCE_FILES
         src/hmac.c src/decrypt-file.c
         src/crypt-common.c
         src/decrypt-file-cb.c
-        src/sign-file.c src/sign-file-cb.c)
+        src/gpgme-misc.c
+        src/sign-file-cb.c)
 
 add_executable(GTKCrypto ${SOURCE_FILES})
 target_link_libraries(GTKCrypto ${GTK3_LIBRARIES} -lgcrypt -lgpgme -lgcr-3 -lgcr-base-3)

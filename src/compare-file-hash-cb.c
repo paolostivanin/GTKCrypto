@@ -177,7 +177,7 @@ exec_thread (gpointer user_data)
     gchar *hash = get_file_hash (data->filename, data->hash_algo, data->digest_size);
     if (hash == NULL) {
         show_message_dialog (data->widgets_data->main_window, "Error during hash computation", GTK_MESSAGE_ERROR);
-        multiple_free (3, (gpointer *) &(data->filename), (gpointer *) &hash, (gpointer) &data);
+        multiple_free (3, (gpointer) &(data->filename), (gpointer) &hash, (gpointer) &data);
         g_thread_exit (NULL);
     }
 
@@ -197,7 +197,7 @@ exec_thread (gpointer user_data)
             gtk_widget_set_sensitive (data->widgets_data->cancel_btn, TRUE);
         }
     }
-    multiple_free (3, (gpointer *) &(data->filename), (gpointer *) &hash, (gpointer) &data);
+    multiple_free (3, (gpointer) &(data->filename), (gpointer) &hash, (gpointer) &data);
     g_thread_exit ((gpointer) 0);
 }
 

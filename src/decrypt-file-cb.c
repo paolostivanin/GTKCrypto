@@ -88,7 +88,7 @@ decrypt_file_cb (GtkWidget *btn __attribute__((__unused__)),
                 g_thread_join (decrypt_widgets->dec_thread);
             }
             gtk_widget_destroy (decrypt_widgets->dialog);
-            multiple_free (2, (gpointer *) &decrypt_widgets->filename, (gpointer *) &decrypt_widgets);
+            multiple_free (2, (gpointer) &decrypt_widgets->filename, (gpointer) &decrypt_widgets);
             break;
         default:
             break;
@@ -133,7 +133,7 @@ cancel_clicked_cb (GtkWidget *btn __attribute__((__unused__)),
 
     gtk_widget_destroy (decrypt_widgets->dialog);
 
-    multiple_free (2, (gpointer *) &decrypt_widgets->filename, (gpointer *) &decrypt_widgets);
+    multiple_free (2, (gpointer) &decrypt_widgets->filename, (gpointer) &decrypt_widgets);
 }
 
 
@@ -156,7 +156,7 @@ exec_thread (gpointer user_data)
 
     gtk_dialog_response (GTK_DIALOG (data->dialog), GTK_RESPONSE_DELETE_EVENT);
 
-    multiple_free (3, (gpointer *) &data, (gpointer *) &basename, (gpointer *) &message);
+    multiple_free (3, (gpointer) &data, (gpointer) &basename, (gpointer) &message);
 
     g_thread_exit ((gpointer) 0);
 }

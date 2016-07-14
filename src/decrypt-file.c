@@ -103,20 +103,20 @@ decrypt_file (const gchar *input_file_path, const gchar *pwd)
     g_unlink (g_file_get_path (file_encrypted_data));
     // TODO remove encrypted file? Give option to the user
 
-    multiple_unref (5, (gpointer *) &file_encrypted_data,
-                    (gpointer *) &in_stream,
-                    (gpointer *) &out_stream,
-                    (gpointer *) &in_file,
-                    (gpointer *) &out_file);
+    multiple_unref (5, (gpointer) &file_encrypted_data,
+                    (gpointer) &in_stream,
+                    (gpointer) &out_stream,
+                    (gpointer) &in_file,
+                    (gpointer) &out_file);
 
-    multiple_gcry_free (3, (gpointer *) &decryption_keys->crypto_key,
-                        (gpointer *) &decryption_keys->derived_key,
-                        (gpointer *) &decryption_keys->hmac_key);
+    multiple_gcry_free (3, (gpointer) &decryption_keys->crypto_key,
+                        (gpointer) &decryption_keys->derived_key,
+                        (gpointer) &decryption_keys->hmac_key);
 
-    multiple_free (4, (gpointer *) &header_metadata,
-                   (gpointer *) &output_file_path,
-                   (gpointer *) &original_hmac,
-                   (gpointer *) &decryption_keys);
+    multiple_free (4, (gpointer) &header_metadata,
+                   (gpointer) &output_file_path,
+                   (gpointer) &original_hmac,
+                   (gpointer) &decryption_keys);
 }
 
 
@@ -251,7 +251,7 @@ decrypt (Metadata *header_metadata, CryptoKeys *dec_keys, GFile *enc_data, goffs
 
     gcry_cipher_close (hd);
 
-    multiple_free (2, (gpointer *) &enc_buf, (gpointer *) &dec_buf);
+    multiple_free (2, (gpointer) &enc_buf, (gpointer) &dec_buf);
 
     g_input_stream_close (G_INPUT_STREAM (in_stream), NULL, NULL);
 

@@ -71,7 +71,7 @@ calculate_hmac (const gchar *file_path, const guchar *key, guchar *user_hmac)
                 gcry_mac_close (mac);
                 g_free (buf);
                 g_input_stream_close (G_INPUT_STREAM (istream), NULL, NULL);
-                multiple_unref (2, (gpointer *) &file, (gpointer *) &istream);
+                multiple_unref (2, (gpointer) &file, (gpointer) &istream);
                 return NULL;
             }
             break;
@@ -89,7 +89,7 @@ calculate_hmac (const gchar *file_path, const guchar *key, guchar *user_hmac)
             gcry_mac_close (mac);
             g_free (buf);
             g_input_stream_close (G_INPUT_STREAM (istream), NULL, NULL);
-            multiple_unref (2, (gpointer *) &file, (gpointer *) &istream);
+            multiple_unref (2, (gpointer) &file, (gpointer) &istream);
             return NULL;
         }
         done_size += FILE_BUFFER;
@@ -100,7 +100,7 @@ calculate_hmac (const gchar *file_path, const guchar *key, guchar *user_hmac)
         gcry_mac_close (mac);
         g_free (buf);
         g_input_stream_close (G_INPUT_STREAM (istream), NULL, NULL);
-        multiple_unref (2, (gpointer *) &file, (gpointer *) &istream);
+        multiple_unref (2, (gpointer) &file, (gpointer) &istream);
         if (err) {
             g_printerr ("HMAC verification failed: %s/%s\n", gcry_strsource (err), gcry_strerror (err));
             return HMAC_MISMATCH;
@@ -116,7 +116,7 @@ calculate_hmac (const gchar *file_path, const guchar *key, guchar *user_hmac)
             gcry_mac_close (mac);
             g_free (buf);
             g_input_stream_close (G_INPUT_STREAM (istream), NULL, NULL);
-            multiple_unref (2, (gpointer *) &file, (gpointer *) &istream);
+            multiple_unref (2, (gpointer) &file, (gpointer) &istream);
             return NULL;
         }
     }
@@ -124,7 +124,7 @@ calculate_hmac (const gchar *file_path, const guchar *key, guchar *user_hmac)
     gcry_mac_close (mac);
     g_free (buf);
     g_input_stream_close (G_INPUT_STREAM (istream), NULL, NULL);
-    multiple_unref (2, (gpointer *) &file, (gpointer *) &istream);
+    multiple_unref (2, (gpointer) &file, (gpointer) &istream);
 
     return hmac;
 }
