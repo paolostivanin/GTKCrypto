@@ -140,7 +140,7 @@ sign_file (const gchar *input_file_path, const gchar *fpr)
 
 
 GSList *
-retrive_availale_keys ()
+get_available_keys ()
 {
     init_gpgme ();
 
@@ -182,18 +182,14 @@ retrive_availale_keys ()
         }
         key_info->key_fpr = g_strdup (key->subkeys->fpr);
 
-        list = g_slist_append(list, g_memdup (list, sizeof (KeyInfo)));
+        list = g_slist_append (list, g_memdup (list, sizeof (KeyInfo)));
 
         g_free (key_info);
 
         gpgme_key_release (key);
     }
-    
-    gpgme_release (ctx);
 
-    // g_print("number of elements: %u\n", g_slist_length(list));
-    // g_print ("%s\n", ((KeyInfo *)(list->data))->a);
-    // g_slist_free_full (list, g_free);
+    gpgme_release (ctx);
 
     return list;
 }

@@ -2,7 +2,6 @@
 #define GPGME_MISC_H_H
 
 #define SIG_MAXLEN 4096
-#define FINGERPRINT_CHARS 41  //40 chars + \0
 
 #define SIGN_OK ((gpointer) 0)
 #define GPGME_ERROR ((gpointer) -1)
@@ -17,7 +16,7 @@ typedef struct _key_info_t {
     gchar *key_fpr;
 } KeyInfo;
 
-GSList *retrive_availale_keys (void);
+GSList *get_available_keys (void);
 
 gpointer sign_file (const gchar *input_file_path, const gchar *fpr);
 
