@@ -30,10 +30,3 @@ setup_keys (const gchar *pwd, gsize algo_key_len, Metadata *header_metadata, Cry
 
     return TRUE;
 }
-
-
-void
-set_label_message (GtkWidget *message_label, const gchar *message)
-{
-    gtk_label_set_markup (GTK_LABEL (message_label), message);
-}

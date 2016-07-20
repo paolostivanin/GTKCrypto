@@ -28,7 +28,7 @@ typedef struct dec_thread_data_t {
 
 static void cancel_clicked_cb (GtkWidget *, gpointer user_data);
 
-static void prepare_decryption (GtkWidget *, gpointer user_data);
+static void prepare_decryption_cb (GtkWidget *, gpointer user_data);
 
 static gpointer exec_thread (gpointer user_data);
 
@@ -77,8 +77,8 @@ decrypt_file_cb (GtkWidget *btn __attribute__((__unused__)),
 
     gtk_widget_hide (decrypt_widgets->spinner);
 
-    g_signal_connect (decrypt_widgets->entry_pwd, "activate", G_CALLBACK (prepare_decryption), decrypt_widgets);
-    g_signal_connect (decrypt_widgets->ok_btn, "clicked", G_CALLBACK (prepare_decryption), decrypt_widgets);
+    g_signal_connect (decrypt_widgets->entry_pwd, "activate", G_CALLBACK (prepare_decryption_cb), decrypt_widgets);
+    g_signal_connect (decrypt_widgets->ok_btn, "clicked", G_CALLBACK (prepare_decryption_cb), decrypt_widgets);
     g_signal_connect (decrypt_widgets->cancel_btn, "clicked", G_CALLBACK(cancel_clicked_cb), decrypt_widgets);
 
     gint result = gtk_dialog_run (GTK_DIALOG (decrypt_widgets->dialog));
@@ -97,7 +97,19 @@ decrypt_file_cb (GtkWidget *btn __attribute__((__unused__)),
 
 
 static void
-prepare_decryption (GtkWidget *w __attribute__((__unused__)),
+cancel_clicked_cb (GtkWidget *btn __attribute__((__unused__)),
+                   gpointer user_data)
+{
+    DecryptWidgets *decrypt_widgets = user_data;
+
+    gtk_widget_destroy (decrypt_widgets->dialog);
+
+    multiple_free (2, (gpointer) &decrypt_widgets->filename, (gpointer) &decrypt_widgets);
+}
+
+
+static void
+prepare_decryption_cb (GtkWidget *w __attribute__((__unused__)),
                     gpointer user_data)
 {
     DecryptWidgets *data = user_data;
@@ -122,18 +134,6 @@ prepare_decryption (GtkWidget *w __attribute__((__unused__)),
     change_widgets_sensitivity (4, FALSE, &data->ok_btn, &data->cancel_btn, &data->entry_pwd, &data->ck_btn_delete);
 
     data->dec_thread = g_thread_new (NULL, exec_thread, thread_data);
-}
-
-
-static void
-cancel_clicked_cb (GtkWidget *btn __attribute__((__unused__)),
-                   gpointer user_data)
-{
-    DecryptWidgets *decrypt_widgets = user_data;
-
-    gtk_widget_destroy (decrypt_widgets->dialog);
-
-    multiple_free (2, (gpointer) &decrypt_widgets->filename, (gpointer) &decrypt_widgets);
 }
 
 

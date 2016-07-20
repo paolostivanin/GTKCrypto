@@ -10,13 +10,13 @@ show_message_dialog (GtkWidget *parent,
     static GtkWidget *dialog = NULL;
 
     if (parent == NULL) {
-        dialog = gtk_message_dialog_new (NULL, GTK_DIALOG_MODAL, message_type, GTK_BUTTONS_OK,
-                                        "%s", message);
+        dialog = gtk_message_dialog_new (NULL, GTK_DIALOG_MODAL, message_type, GTK_BUTTONS_OK, NULL);
     }
     else {
-        dialog = gtk_message_dialog_new (GTK_WINDOW (parent), GTK_DIALOG_MODAL, message_type, GTK_BUTTONS_OK,
-                                        "%s", message);
+        dialog = gtk_message_dialog_new (GTK_WINDOW (parent), GTK_DIALOG_MODAL, message_type, GTK_BUTTONS_OK, NULL);
     }
+
+    gtk_message_dialog_set_markup (GTK_MESSAGE_DIALOG (dialog), message);
 
     gtk_dialog_run (GTK_DIALOG (dialog));
 

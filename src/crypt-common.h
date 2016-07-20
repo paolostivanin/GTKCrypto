@@ -23,8 +23,6 @@ typedef struct key_t {
 
 gboolean setup_keys (const gchar *pwd, gsize algo_key_len, Metadata *header_metadata, CryptoKeys *encryption_keys);
 
-void set_label_message (GtkWidget *message_label, const gchar *message);
-
 void secure_file_delete (const gchar *file_path);
 
 #endif

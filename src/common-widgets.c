@@ -30,3 +30,10 @@ create_header_bar (GtkWidget *dialog, const gchar *title)
 
     return header_bar;
 }
+
+
+void
+set_label_message (GtkWidget *message_label, const gchar *message)
+{
+    gtk_label_set_markup (GTK_LABEL (message_label), message);
+}

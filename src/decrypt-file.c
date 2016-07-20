@@ -1,6 +1,5 @@
 #include <gtk/gtk.h>
 #include <gcrypt.h>
-#include <gcr-3/gcr/gcr-comparable.h>
 #include <glib/gstdio.h>
 #include "gtkcrypto.h"
 #include "hash.h"

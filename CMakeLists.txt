@@ -46,4 +46,4 @@ set(SOURCE_FILES
         src/sign-file-cb.c)
 
 add_executable(GTKCrypto ${SOURCE_FILES})
-target_link_libraries(GTKCrypto ${GTK3_LIBRARIES} -lgcrypt -lgpgme -lgcr-3 -lgcr-base-3)
+target_link_libraries(GTKCrypto ${GTK3_LIBRARIES} -lgcrypt -lgpgme)
