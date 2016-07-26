@@ -54,6 +54,12 @@ sign_file_cb (GtkWidget *btn __attribute__((__unused__)),
 
     sign_file_widgets->gpg_keys = get_available_keys ();
 
+    if (sign_file_widgets->gpg_keys == NULL) {
+        show_message_dialog (sign_file_widgets->main_window, "No GPG keys available", GTK_MESSAGE_INFO);
+        g_free (sign_file_widgets);
+        return;
+    }
+
     sign_file_widgets->combo_box = gtk_combo_box_text_new ();
 
     gtk_widget_set_hexpand (sign_file_widgets->combo_box, TRUE);
@@ -103,13 +109,17 @@ sign_file_cb (GtkWidget *btn __attribute__((__unused__)),
     switch (result) {
         case GTK_RESPONSE_DELETE_EVENT:
             if (sign_file_widgets->sign_thread != NULL) {
-                g_thread_join (sign_file_widgets->sign_thread);
+                gpointer status = g_thread_join (sign_file_widgets->sign_thread);
+                if (status != SIGN_OK) {
+                    show_message_dialog (sign_file_widgets->main_window, "Couldn't sign file", GTK_MESSAGE_ERROR);
+                }
+                else {
+                    gchar *info_message = g_strconcat ("File <b>", sign_file_widgets->filename, "</b> has been successfully signed\n"
+                            "(GPG key fingerprint: ", gtk_combo_box_get_active_id (GTK_COMBO_BOX (sign_file_widgets->combo_box)), ")", NULL);
+                    show_message_dialog (sign_file_widgets->dialog, info_message, GTK_MESSAGE_INFO);
+                    g_free (info_message);
+                }
             }
-
-            gchar *info_message = g_strconcat ("File <b>", sign_file_widgets->filename, "</b> has been successfully signed\n"
-                    "(GPG key fingerprint: ", gtk_combo_box_get_active_id (GTK_COMBO_BOX (sign_file_widgets->combo_box)), ")", NULL);
-            show_message_dialog (sign_file_widgets->dialog, info_message, GTK_MESSAGE_INFO);
-            g_free (info_message);
 
             g_slist_free_full (sign_file_widgets->gpg_keys, g_free);
             g_slist_free_full (sign_file_widgets->to_free, g_free);
@@ -172,11 +182,11 @@ exec_thread (gpointer user_data)
 
     gchar *message = g_strconcat ("Signing <b>", basename, "</b>...", NULL);
     set_label_message (data->message_label, message);
-    sign_file (data->filename, data->key_fingerprint);
+    gpointer status = sign_file (data->filename, data->key_fingerprint);
 
     gtk_dialog_response (GTK_DIALOG (data->dialog), GTK_RESPONSE_DELETE_EVENT);
 
     multiple_free (3, (gpointer) &data, (gpointer) &basename, (gpointer) &message);
 
-    g_thread_exit ((gpointer) 0);
+    g_thread_exit (status);
 }

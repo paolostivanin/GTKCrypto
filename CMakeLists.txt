@@ -43,7 +43,7 @@ set(SOURCE_FILES
         src/crypt-common.c
         src/decrypt-file-cb.c
         src/gpgme-misc.c
-        src/sign-file-cb.c)
+        src/sign-file-cb.c src/verify-signature-cb.c)
 
 add_executable(GTKCrypto ${SOURCE_FILES})
 target_link_libraries(GTKCrypto ${GTK3_LIBRARIES} -lgcrypt -lgpgme)

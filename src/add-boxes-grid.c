@@ -11,20 +11,25 @@ add_boxes_and_grid (AppWidgets *widgets)
     GtkWidget *frame[NUM_OF_WIDGETS];
     GtkWidget *box[NUM_OF_WIDGETS];
 
-    const gchar *button_label[] = {"Encrypt", "Decrypt", "Sign", "Compute", "Compare"};
+    const gchar *button_label[] = {"Encrypt", "Decrypt", "Sign", "Verify Signature", "Compute", "Compare"};
     const gchar *frame_label[] = {"File", "Text", "Hash"};
-    const gchar *button_name[] = {"enc_btn", "dec_file_btn", "sign_file_btn", "enc_txt_btn", "dec_txt_btn",
-                                  "sign_text_btn", "compute_hash_btn", "compare_hash_btn"};
+    const gchar *button_name[] = {"enc_btn", "dec_file_btn", "sign_file_btn", "ver_sig_btn",
+                                  "enc_txt_btn", "dec_txt_btn",
+                                  "compute_hash_btn", "compare_hash_btn"};
 
-    gint i, j;
-    for (i = 0, j = 0; i < NUM_OF_BUTTONS; i++) {
-        if (i < 3) {
+    gint i;
+    for (i = 0; i < NUM_OF_BUTTONS; i++) {
+        if (i < 4) {
             button[i] = gtk_button_new_with_label (button_label[i]);
         }
-        else {
-            button[i] = gtk_button_new_with_label (button_label[j]);
-            j++;
-        }
+    }
+
+    button[4] = gtk_button_new_with_label (button_label[0]);
+    button[5] = gtk_button_new_with_label (button_label[1]);
+    button[6] = gtk_button_new_with_label (button_label[4]);
+    button[7] = gtk_button_new_with_label (button_label[5]);
+
+    for (i = 0; i < NUM_OF_BUTTONS; i++) {
         gtk_widget_set_name (GTK_WIDGET (button[i]), button_name[i]);
     }
 
@@ -36,9 +41,10 @@ add_boxes_and_grid (AppWidgets *widgets)
 
     for (i = 0; i < NUM_OF_BUTTONS; i++) {
         gtk_widget_set_margin_bottom (button[i], 5);
-        if (i < 3)
+        if (i < 4) {
             gtk_box_pack_start (GTK_BOX (box[0]), button[i], TRUE, TRUE, 2);
-        else if (i >= 3 && i < 6) {
+        }
+        else if (i >= 4 && i < 6) {
             gtk_box_pack_start (GTK_BOX (box[1]), button[i], TRUE, TRUE, 2);
         }
         else {
@@ -46,9 +52,11 @@ add_boxes_and_grid (AppWidgets *widgets)
         }
     }
 
+    // TODO add verify signature button
     g_signal_connect (button[0], "clicked", G_CALLBACK (encrypt_file_cb), widgets->main_window);
     g_signal_connect (button[1], "clicked", G_CALLBACK (decrypt_file_cb), widgets->main_window);
     g_signal_connect (button[2], "clicked", G_CALLBACK (sign_file_cb), widgets->main_window);
+    g_signal_connect (button[3], "clicked", G_CALLBACK (verify_signature_cb), widgets->main_window);
     gtk_widget_set_sensitive (button[3], FALSE);
     gtk_widget_set_sensitive (button[4], FALSE);
     gtk_widget_set_sensitive (button[5], FALSE);

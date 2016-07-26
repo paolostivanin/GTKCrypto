@@ -65,14 +65,14 @@ sign_file (const gchar *input_file_path, const gchar *fpr)
         return FILE_OPEN_ERROR;
     }
 
-    error = gpgme_data_new_from_stream(&clear_text, infp);
+    error = gpgme_data_new_from_stream (&clear_text, infp);
     if (error) {
         g_printerr ("%s:%d: %s: %s\n", __FILE__, __LINE__, gpgme_strsource (error), gpgme_strerror (error));
         cleanup (infp, NULL, NULL, NULL, &signing_key, &context);
         return GPGME_ERROR;
     }
 
-    error = gpgme_data_new(&signed_text);
+    error = gpgme_data_new (&signed_text);
     if (error) {
         g_printerr ("%s:%d: %s: %s\n", __FILE__, __LINE__, gpgme_strsource (error), gpgme_strerror (error));
         cleanup (infp, NULL, NULL, NULL, &signing_key, &context);
@@ -198,6 +198,105 @@ get_available_keys ()
     gpgme_release (ctx);
 
     return list;
+}
+
+
+gpointer
+verify_signature (const gchar *detached_signature_path, const gchar *signed_file_path) {
+    init_gpgme ();
+    gpgme_ctx_t ctx;
+    gpgme_signature_t sig;
+    gpgme_data_t signature_data, signed_data;
+
+    gpgme_error_t error = gpgme_new (&ctx);
+    if (error) {
+        g_printerr ("%s:%d: %s: %s\n", __FILE__, __LINE__, gpgme_strsource (error), gpgme_strerror (error));
+        return GPGME_ERROR;
+    }
+
+    gpgme_set_armor (ctx, 1);
+
+    error = gpgme_engine_check_version (GPGME_PROTOCOL_OpenPGP);
+    if (error) {
+        g_printerr ("%s:%d: %s: %s\n", __FILE__, __LINE__, gpgme_strsource (error), gpgme_strerror (error));
+        gpgme_release (ctx);
+        return GPGME_ERROR;
+    }
+
+    const char *keyring_dir = gpgme_get_dirinfo ("homedir");
+    error = gpgme_ctx_set_engine_info (ctx, GPGME_PROTOCOL_OpenPGP, NULL, keyring_dir);
+    if (error) {
+        g_printerr ("%s:%d: %s: %s\n", __FILE__, __LINE__, gpgme_strsource (error), gpgme_strerror (error));
+        gpgme_release (ctx);
+        return GPGME_ERROR;
+    }
+
+    FILE *sig_fp = g_fopen (detached_signature_path, "r");
+    FILE *sig_data_fp = g_fopen (signed_file_path, "r");
+    if (sig_fp == NULL || sig_data_fp == NULL) {
+        g_printerr ("Couldn't open input file\n");
+        gpgme_release (ctx);
+        return FILE_OPEN_ERROR;
+    }
+
+    error = gpgme_data_new_from_stream (&signature_data, sig_fp);
+    if (error) {
+        g_printerr ("%s:%d: %s: %s\n", __FILE__, __LINE__, gpgme_strsource (error), gpgme_strerror (error));
+        fclose (sig_fp);
+        fclose (sig_data_fp);
+        gpgme_release (ctx);
+        return GPGME_ERROR;
+    }
+
+    error = gpgme_data_new_from_stream (&signed_data, sig_data_fp);
+    if (error) {
+        g_printerr ("%s:%d: %s: %s\n", __FILE__, __LINE__, gpgme_strsource (error), gpgme_strerror (error));
+        fclose (sig_fp);
+        fclose (sig_data_fp);
+        gpgme_release (ctx);
+        gpgme_data_release (signature_data);
+        return GPGME_ERROR;
+    }
+
+    error = gpgme_op_verify (ctx, signature_data, signed_data, NULL);
+
+    gpgme_data_release (signature_data);
+    gpgme_data_release (signed_data);
+
+    fclose (sig_fp);
+    fclose (sig_data_fp);
+
+    if (error != GPG_ERR_NO_ERROR) {
+        g_printerr ("%s:%d: %s: %s\n", __FILE__, __LINE__, gpgme_strsource (error), gpgme_strerror (error));
+        gpgme_release (ctx);
+        return GPGME_ERROR;
+    }
+
+    gpgme_verify_result_t result = gpgme_op_verify_result (ctx);
+    if (!result) {
+        g_printerr ("%s:%d: %s: %s\n", __FILE__, __LINE__, gpgme_strsource (error), gpgme_strerror (error));
+        gpgme_release (ctx);
+        return GPGME_ERROR;
+    }
+
+    sig = result->signatures;
+    if (!sig) {
+        gpgme_release (ctx);
+        return NO_GPG_KEYS_AVAILABLE;
+    }
+
+    for (; sig; sig = sig->next) {
+        if ((sig->summary & GPGME_SIGSUM_VALID) ||  // Valid
+            (sig->summary & GPGME_SIGSUM_GREEN) ||  // Valid
+            (sig->summary == 0 && sig->status == GPG_ERR_NO_ERROR)) // Valid but key is not certified with a trusted signature
+        {
+            gpgme_release (ctx);
+            return VALID_SIGNATURE;
+        }
+    }
+
+    gpgme_release (ctx);
+    return BAD_SIGNATURE;
 }
 
 
