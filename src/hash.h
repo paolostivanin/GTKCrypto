@@ -1,5 +1,4 @@
-#ifndef HASH_H
-#define HASH_H
+#pragma once
 
 #define HASH_COMPUTED ((gpointer) 0)
 #define HASH_ERROR ((gpointer) -2)
@@ -27,5 +26,3 @@ gpointer compute_hash (gcry_md_hd_t *hd, const gchar *file_path);
 gchar *finalize_hash (gcry_md_hd_t *hd, gint algo, gint digest_size);
 
 guchar *calculate_hmac (const gchar *file_path, const guchar *key, guchar *user_hmac);
-
-#endif

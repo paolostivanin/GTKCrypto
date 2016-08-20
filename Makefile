@@ -1,9 +1,12 @@
 CC = gcc
 #CC = clang
 
-CFLAGS = -Wall -Wextra -O2 -Wformat=2 -ftrapv -fstack-protector-all -fstack-protector-strong -fPIE -fdiagnostics-color=always -Wstrict-prototypes -Wshadow -Wunreachable-code  -Wwrite-strings -Wpointer-arith -Wbad-function-cast -Wcast-qual -Wcast-align $(shell pkg-config --cflags gtk+-3.0)
+CFLAGS = -Wall -Wextra -std=c11 -O2 -Wformat=2 -ftrapv -fstack-protector-all -fstack-protector-strong -pie -fpie -fdiagnostics-color=always -Wstrict-prototypes -Wunreachable-code  -Wwrite-strings -Wpointer-arith -Wbad-function-cast -Wcast-qual -Wcast-align $(shell pkg-config --cflags gtk+-3.0)
+
 DFLAGS = -D_FILE_OFFSET_BITS=64 -U_FORTIFY_SOURCE -D_FORTIFY_SOURCE=2
+
 NOFLAGS = -Wno-missing-field-initializers -Wno-return-type -Wno-cast-qual -Wno-sign-compare
+
 LDFLAGS = -Wl,-O1,--sort-common,--as-needed,-z,relro
 
 LIBS = -lgcrypt -lgpgme $(shell pkg-config --libs gtk+-3.0)

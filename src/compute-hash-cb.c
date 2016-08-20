@@ -51,8 +51,7 @@ compute_hash_cb (GtkWidget *button __attribute((__unused__)),
     gtk_widget_set_margin_top (hash_widgets->cancel_btn, 10);
     gtk_widget_set_size_request (dialog, 800, -1);
 
-    gint i;
-    for (i = 0; i < AVAILABLE_HASH_TYPE; i++) {
+    for (gint i = 0; i < AVAILABLE_HASH_TYPE; i++) {
         hash_widgets->check_button[i] = gtk_check_button_new_with_label (ck_btn_labels[i]);
         gtk_widget_set_name (hash_widgets->check_button[i], ck_btn_labels[i]);
 
@@ -77,8 +76,7 @@ compute_hash_cb (GtkWidget *button __attribute((__unused__)),
     gtk_grid_set_row_spacing (GTK_GRID (grid), 10);
     gtk_grid_set_column_spacing (GTK_GRID (grid), 5);
 
-    gint j;
-    for (i = 0, j = 0; i < AVAILABLE_HASH_TYPE; i++, j++) {
+    for (gint i = 0, j = 0; i < AVAILABLE_HASH_TYPE; i++, j++) {
         gtk_grid_attach (GTK_GRID (grid), hash_widgets->check_button[i], 0, j, 1, 1);
         gtk_grid_attach_next_to (GTK_GRID (grid), hash_widgets->hash_entry[i], hash_widgets->check_button[i], GTK_POS_RIGHT, 4, 1);
         gtk_grid_attach_next_to (GTK_GRID (grid), hash_widgets->spinner[i], hash_widgets->hash_entry[i], GTK_POS_RIGHT, 1, 1);
@@ -109,7 +107,6 @@ prepare_hash_computation_cb (GtkWidget *ck_btn, gpointer user_data)
 {
     ComputeHashData *data  = user_data;
 
-    gint i;
     if (!gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (ck_btn))) {
         gtk_entry_set_text (GTK_ENTRY (get_entry_from_check_btn (ck_btn, data)), "");
         return;
@@ -165,7 +162,7 @@ prepare_hash_computation_cb (GtkWidget *ck_btn, gpointer user_data)
         digest_size = WHIRLPOOL_DIGEST_SIZE;
     }
 
-    for (i = 0; i < AVAILABLE_HASH_TYPE; i++) {
+    for (gint i = 0; i < AVAILABLE_HASH_TYPE; i++) {
         if (g_strcmp0 (gtk_widget_get_name (ck_btn), gtk_widget_get_name (data->spinner[i])) == 0) {
             start_spinner (data->spinner[i]);
             break;
@@ -196,8 +193,7 @@ exec_thread (gpointer pushed_data,
         show_message_dialog (data->widgets->main_window, "Error during hash computation", GTK_MESSAGE_ERROR);
     }
     else {
-        gint i;
-        for (i = 0; i < AVAILABLE_HASH_TYPE; i++) {
+        for (gint i = 0; i < AVAILABLE_HASH_TYPE; i++) {
             if (g_strcmp0 (gtk_widget_get_name (data->ck_btn), gtk_widget_get_name (data->widgets->hash_entry[i])) == 0) {
                 gtk_entry_set_text (GTK_ENTRY (data->widgets->hash_entry[i]), hash);
                 g_hash_table_insert (data->widgets->hash_table,
@@ -231,8 +227,7 @@ is_last_thread (GThreadPool *tp)
 static GtkWidget *
 get_entry_from_check_btn (GtkWidget *ck_btn, ComputeHashData *data)
 {
-    gint i;
-    for (i = 0; i < AVAILABLE_HASH_TYPE; i++) {
+    for (gint i = 0; i < AVAILABLE_HASH_TYPE; i++) {
         if (g_strcmp0 (gtk_widget_get_name (ck_btn), gtk_widget_get_name (data->hash_entry[i])) == 0) {
             return data->hash_entry[i];
         }

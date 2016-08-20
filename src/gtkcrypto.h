@@ -1,5 +1,4 @@
-#ifndef GTKCRYPTO_H_INCLUDED
-#define GTKCRYPTO_H_INCLUDED
+#pragma once
 
 void show_message_dialog (GtkWidget *parent, const gchar *message, GtkMessageType);
 
@@ -24,5 +23,3 @@ void start_spinner (GtkWidget *spinner);
 void stop_spinner (GtkWidget *spinner);
 
 void change_widgets_sensitivity (gint number_of_widgets, gboolean value, GtkWidget **widget, ...);
-
-#endif

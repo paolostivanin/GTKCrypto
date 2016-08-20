@@ -1,5 +1,4 @@
-#ifndef GPGME_MISC_H_H
-#define GPGME_MISC_H_H
+#pragma once
 
 #define SIG_MAXLEN 4096
 
@@ -24,5 +23,3 @@ GSList *get_available_keys (void);
 gpointer sign_file (const gchar *input_file_path, const gchar *fpr);
 
 gpointer verify_signature (const gchar *detached_signature_path, const gchar *signed_file_path);
-
-#endif

@@ -1,5 +1,4 @@
-#ifndef MAIN_H_INCLUDED
-#define MAIN_H_INCLUDED
+#pragma once
 
 #include <gtk/gtk.h>
 
@@ -36,5 +35,3 @@ void decrypt_file_cb (GtkWidget *, gpointer);
 void sign_file_cb (GtkWidget *, gpointer);
 
 void verify_signature_cb (GtkWidget *, gpointer);
-
-#endif

@@ -162,9 +162,8 @@ create_popover (GtkWidget *parent, GtkPositionType pos, gpointer user_data)
     GtkWidget *popover = gtk_popover_new (parent);
     gtk_popover_set_position (GTK_POPOVER (popover), pos);
 
-    gint i, j;
     encrypt_widgets->radio_button_algo[0] = gtk_radio_button_new_with_label_from_widget (NULL, algo[0]);
-    for (i = 1, j = 1; i < AVAILABLE_ALGO; i++, j++) {
+    for (gint i = 1, j = 1; i < AVAILABLE_ALGO; i++, j++) {
         encrypt_widgets->radio_button_algo[i] = gtk_radio_button_new_with_label_from_widget(
                 GTK_RADIO_BUTTON (encrypt_widgets->radio_button_algo[0]), algo[j]);
     }
@@ -173,22 +172,22 @@ create_popover (GtkWidget *parent, GtkPositionType pos, gpointer user_data)
     encrypt_widgets->radio_button_algo_mode[1] = gtk_radio_button_new_with_label_from_widget (
             GTK_RADIO_BUTTON (encrypt_widgets->radio_button_algo_mode[0]), algo_type[1]);
 
-    for (i = 0; i < AVAILABLE_ALGO; i++) {
+    for (gint i = 0; i < AVAILABLE_ALGO; i++) {
         gtk_widget_set_name (encrypt_widgets->radio_button_algo[i], algo[i]);
     }
 
-    for (i = 0; i < AVAILABLE_ALGO_MODE; i++) {
+    for (gint i = 0; i < AVAILABLE_ALGO_MODE; i++) {
         gtk_widget_set_name (encrypt_widgets->radio_button_algo_mode[i], algo_type[i]);
     }
 
     GtkWidget *final_box = get_final_box_layout (encrypt_widgets);
 
-    for (i = 0; i < AVAILABLE_ALGO; i++) {
+    for (gint i = 0; i < AVAILABLE_ALGO; i++) {
         g_signal_connect_swapped (encrypt_widgets->radio_button_algo[i], "clicked", G_CALLBACK (toggle_active_cb),
                                   encrypt_widgets->header_bar_menu);
     }
 
-    for (i = 0; i < AVAILABLE_ALGO_MODE; i++) {
+    for (gint i = 0; i < AVAILABLE_ALGO_MODE; i++) {
         g_signal_connect_swapped (encrypt_widgets->radio_button_algo_mode[i], "clicked", G_CALLBACK(toggle_active_cb),
                                   encrypt_widgets->header_bar_menu);
     }
@@ -216,17 +215,16 @@ get_final_box_layout (EncryptWidgets *encrypt_widgets)
     GtkWidget *v_box[num_of_vboxes];
     GtkWidget *h_box[num_of_hboxes];
 
-    gint i;
-    for (i = 0; i < num_of_vboxes; i++) {
+    for (gint i = 0; i < num_of_vboxes; i++) {
         v_box[i] = gtk_box_new (GTK_ORIENTATION_VERTICAL, 4);
     }
 
-    for (i = 0; i < num_of_hboxes; i++) {
+    for (gint i = 0; i < num_of_hboxes; i++) {
         h_box[i] = gtk_box_new (GTK_ORIENTATION_HORIZONTAL, 4);
     }
 
     GtkWidget *label[2], *v_line[2], *h_line[2];
-    for (i = 0; i < 2; i++) {
+    for (gint i = 0; i < 2; i++) {
         label[i] = gtk_label_new (label_data[i]);
         v_line[i] = gtk_separator_new (GTK_ORIENTATION_VERTICAL);
         h_line[i] = gtk_separator_new (GTK_ORIENTATION_HORIZONTAL);
@@ -238,13 +236,12 @@ get_final_box_layout (EncryptWidgets *encrypt_widgets)
     gtk_box_pack_start (GTK_BOX (v_box[0]), h_line[0], FALSE, TRUE, 0);
 
     // Algo
-    gint j;
-    for (i = 1, j = 0; j < AVAILABLE_ALGO / 2; j++) {
+    for (gint i = 1, j = 0; j < AVAILABLE_ALGO / 2; j++) {
         gtk_box_pack_start (GTK_BOX (v_box[i]), encrypt_widgets->radio_button_algo[j], FALSE, TRUE, 0);
     }
 
     // Algo
-    for (i = 2, j = AVAILABLE_ALGO / 2; j < AVAILABLE_ALGO; j++) {
+    for (gint i = 2, j = AVAILABLE_ALGO / 2; j < AVAILABLE_ALGO; j++) {
         gtk_box_pack_start (GTK_BOX (v_box[i]), encrypt_widgets->radio_button_algo[j], FALSE, TRUE, 0);
     }
 
@@ -282,19 +279,18 @@ static void
 entry_activated_cb (GtkWidget *entry __attribute__((__unused__)),
                     gpointer user_data)
 {
-    gint i, j;
     EncryptWidgets *encrypt_widgets = user_data;
 
     if (!check_pwd (encrypt_widgets->main_window, encrypt_widgets->entry_pwd, encrypt_widgets->entry_pwd_retype)) {
         return;
     }
     else {
-        for (i = 0; i < AVAILABLE_ALGO; i++) {
+        for (gint i = 0; i < AVAILABLE_ALGO; i++) {
             if (gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (encrypt_widgets->radio_button_algo[i]))) {
                 break;
             }
         }
-        for (j = 0; j < AVAILABLE_ALGO_MODE; j++) {
+        for (gint j = 0; j < AVAILABLE_ALGO_MODE; j++) {
             if (gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (encrypt_widgets->radio_button_algo_mode[j]))) {
                 break;
             }

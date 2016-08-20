@@ -1,5 +1,4 @@
-#ifndef CRYPT_H
-#define CRYPT_H
+#pragma once
 
 #define MAX_IV_SIZE 16
 #define HMAC_KEY_SIZE 64
@@ -24,5 +23,3 @@ typedef struct key_t {
 gboolean setup_keys (const gchar *pwd, gsize algo_key_len, Metadata *header_metadata, CryptoKeys *encryption_keys);
 
 void secure_file_delete (const gchar *file_path);
-
-#endif

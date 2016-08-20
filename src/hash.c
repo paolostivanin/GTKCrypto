@@ -1,3 +1,5 @@
+#define _GNU_SOURCE
+
 #include <gtk/gtk.h>
 #include <gcrypt.h>
 #include <fcntl.h>
@@ -111,9 +113,8 @@ finalize_hash (gcry_md_hd_t *hd, gint algo, gint digest_size)
     gcry_md_final (*hd);
     gchar *finalized_hash = g_malloc ((gsize) digest_size * 2 + 1);
     guchar *hash = gcry_md_read (*hd, algo);
-    gint i;
 
-    for (i = 0; i < digest_size; i++)
+    for (gint i = 0; i < digest_size; i++)
         g_sprintf (finalized_hash + (i*2), "%02x", hash[i]);
 
     finalized_hash[digest_size * 2] = '\0';

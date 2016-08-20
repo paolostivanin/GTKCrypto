@@ -65,11 +65,10 @@ sign_file_cb (GtkWidget *btn __attribute__((__unused__)),
     gtk_widget_set_hexpand (sign_file_widgets->combo_box, TRUE);
     gtk_widget_set_hexpand (sign_file_widgets->message_label, TRUE);
 
-    gint i;
     gchar *str;
     sign_file_widgets->to_free = NULL;
 
-    for (i = 0; i < g_slist_length (sign_file_widgets->gpg_keys); i++) {
+    for (gint i = 0; i < g_slist_length (sign_file_widgets->gpg_keys); i++) {
         if (g_utf8_strlen (((KeyInfo *) (sign_file_widgets->gpg_keys->data))->name, -1) +
             g_utf8_strlen (((KeyInfo *) (sign_file_widgets->gpg_keys->data))->email, -1) > 128) {
                 str = g_strconcat ("Name and email too long. Key ID: ", ((KeyInfo *) (sign_file_widgets->gpg_keys->data))->key_id, NULL);

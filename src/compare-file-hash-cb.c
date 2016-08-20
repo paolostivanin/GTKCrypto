@@ -119,8 +119,8 @@ select_file_cb (GtkEntry *entry,
 
     gchar *filename = choose_file (hash_widgets->main_window);
 
-    gint i, hash_algo = -1, digest_size = -1;
-    for (i = 0; i < 6; i++) {
+    gint hash_algo = -1, digest_size = -1;
+    for (gint i = 0; i < 6; i++) {
         if (gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (hash_widgets->radio_button[i]))) {
             if (g_strcmp0 (gtk_widget_get_name (hash_widgets->radio_button[i]), "md5_radio_btn") == 0) {
                 hash_algo = GCRY_MD_MD5;
@@ -241,10 +241,8 @@ create_popover (GtkWidget *parent, GtkPositionType pos, HashWidgets *widgets)
     GtkWidget *popover = gtk_popover_new (parent);
     gtk_popover_set_position (GTK_POPOVER (popover), pos);
 
-    gint i, j;
-
     widgets->radio_button[0] = gtk_radio_button_new_with_label_from_widget (NULL, algo[0]);
-    for (i = 1, j = 1; i < 6; i++, j++) {
+    for (gint i = 1, j = 1; i < 6; i++, j++) {
         widgets->radio_button[i] = gtk_radio_button_new_with_label_from_widget(
                 GTK_RADIO_BUTTON (widgets->radio_button[0]), algo[j]);
     }
@@ -256,13 +254,13 @@ create_popover (GtkWidget *parent, GtkPositionType pos, HashWidgets *widgets)
     gtk_widget_set_name (widgets->radio_button[4], "sha3_256_radio_btn");
     gtk_widget_set_name (widgets->radio_button[5], "sha3_512_radio_btn");
 
-    for (i = 0; i < 2; i++)
+    for (gint i = 0; i < 2; i++)
         gtk_box_pack_start (GTK_BOX (box[0]), widgets->radio_button[i], TRUE, TRUE, 0);
 
-    for (i = 2; i < 4; i++)
+    for (gint i = 2; i < 4; i++)
         gtk_box_pack_start (GTK_BOX (box[1]), widgets->radio_button[i], FALSE, TRUE, 0);
 
-    for (i = 4; i < 6; i++)
+    for (gint i = 4; i < 6; i++)
         gtk_box_pack_start (GTK_BOX (box[2]), widgets->radio_button[i], FALSE, TRUE, 0);
 
     GtkWidget *vline1 = gtk_separator_new (GTK_ORIENTATION_VERTICAL);
@@ -274,7 +272,7 @@ create_popover (GtkWidget *parent, GtkPositionType pos, HashWidgets *widgets)
     gtk_box_pack_start (GTK_BOX (box[3]), vline2, TRUE, TRUE, 0);
     gtk_box_pack_start (GTK_BOX (box[3]), box[2], FALSE, FALSE, 0);
 
-    for (i = 0; i < 6; i++) {
+    for (gint i = 0; i < 6; i++) {
         g_signal_connect_swapped (widgets->radio_button[i], "clicked", G_CALLBACK(toggle_active_cb),
                                   widgets->header_bar_menu);
     }
