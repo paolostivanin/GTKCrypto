@@ -117,7 +117,7 @@ select_file_cb (GtkEntry *entry,
     HashWidgets *hash_widgets = user_data;
     thread_data->widgets_data = hash_widgets;
 
-    gchar *filename = choose_file (hash_widgets->main_window);
+    gchar *filename = choose_file (hash_widgets->main_window, "Pick file to compare");
 
     gint hash_algo = -1, digest_size = -1;
     for (gint i = 0; i < 6; i++) {
@@ -191,8 +191,8 @@ exec_thread (gpointer user_data)
     }
 
     if (!gtk_widget_get_sensitive (data->widgets_data->cancel_btn)) {
-        // if cancel_btn is non-sensitive AND both the gtk_entry have have text inside them, THEN cancel_btn becomes
-        // sensitive again.
+        /* if cancel_btn is non-sensitive AND both the gtk_entry have have text inside them, THEN cancel_btn becomes
+         + sensitive again. */
         if ((data->widgets_data->entry1_changed) && (data->widgets_data->entry2_changed)) {
             gtk_widget_set_sensitive (data->widgets_data->cancel_btn, TRUE);
         }

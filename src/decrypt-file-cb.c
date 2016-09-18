@@ -41,7 +41,7 @@ decrypt_file_cb (GtkWidget *btn __attribute__((__unused__)),
     decrypt_widgets->main_window = user_data;
     decrypt_widgets->dec_thread = NULL;
 
-    decrypt_widgets->filename = choose_file (decrypt_widgets->main_window);
+    decrypt_widgets->filename = choose_file (decrypt_widgets->main_window, "Pick file to decrypt");
 
     decrypt_widgets->dialog = create_dialog (decrypt_widgets->main_window, "dec_dialog", "Decrypt file");
     decrypt_widgets->cancel_btn = gtk_button_new_with_label ("Cancel");
