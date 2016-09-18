@@ -38,8 +38,8 @@ set(SOURCE_FILES
         src/common-widgets.c
         src/encrypt-file.c
         src/mcw-sensitivity.c
-        src/secure-file-delete.c
-        src/hmac.c src/decrypt-file.c
+        src/hmac.c
+        src/decrypt-file.c
         src/crypt-common.c
         src/decrypt-file-cb.c
         src/gpgme-misc.c

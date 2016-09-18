@@ -184,4 +184,6 @@ cancel_btn_clicked_cb ( GtkWidget *btn __attribute__((__unused__)),
     gtk_widget_destroy (verify_widgets->dialog);
 
     g_free (verify_widgets);
+
+    return;
 }

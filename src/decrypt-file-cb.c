@@ -1,7 +1,7 @@
 #include <gtk/gtk.h>
+#include <glib/gstdio.h>
 #include "gtkcrypto.h"
 #include "common-widgets.h"
-#include "crypt-common.h"
 #include "decrypt-file-cb.h"
 
 typedef struct decrypt_file_widgets_t {
@@ -149,9 +149,9 @@ exec_thread (gpointer user_data)
     decrypt_file (data->filename, data->pwd);
 
     if (data->delete_file) {
-        message = g_strconcat ("Overwriting and deleting <b>", basename, "</b>...", NULL);
-        set_label_message (data->message_label, "Deleting...");
-        secure_file_delete (data->filename);
+        message = g_strconcat ("Deleting <b>", basename, "</b>...", NULL);
+        set_label_message (data->message_label, message);
+        g_unlink (data->filename);
     }
 
     gtk_dialog_response (GTK_DIALOG (data->dialog), GTK_RESPONSE_DELETE_EVENT);
