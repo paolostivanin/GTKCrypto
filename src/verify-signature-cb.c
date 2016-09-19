@@ -9,7 +9,6 @@
 typedef struct verify_signature_widgets_t {
     GtkWidget *main_window;
     GtkWidget *dialog;
-    GtkWidget *ok_btn;
     GtkWidget *cancel_btn;
     GtkWidget *signed_file_entry;
     GtkWidget *signature_file_entry;
@@ -34,6 +33,8 @@ static void cancel_btn_clicked_cb (GtkWidget *btn, gpointer user_data);
 
 static int check_signature_file (const gchar *sig_file);
 
+static void entry_changed_cb (GtkWidget *button, gpointer user_data);
+
 
 void
 verify_signature_cb (GtkWidget *btn __attribute__((__unused__)),
@@ -48,10 +49,8 @@ verify_signature_cb (GtkWidget *btn __attribute__((__unused__)),
 
     verify_widgets->dialog = create_dialog (verify_widgets->main_window, "ver_sig_dialog", "Verify Signature");
 
-    verify_widgets->ok_btn = gtk_dialog_add_button (GTK_DIALOG (verify_widgets->dialog), "OK", GTK_RESPONSE_OK);
     verify_widgets->cancel_btn = gtk_dialog_add_button (GTK_DIALOG (verify_widgets->dialog), "Cancel",
                                                         GTK_RESPONSE_CANCEL);
-    gtk_widget_set_margin_top (verify_widgets->ok_btn, 10);
     gtk_widget_set_margin_top (verify_widgets->cancel_btn, 10);
 
     gtk_widget_set_size_request (verify_widgets->dialog, 600, -1);
@@ -83,11 +82,7 @@ verify_signature_cb (GtkWidget *btn __attribute__((__unused__)),
     gtk_grid_attach (GTK_GRID (grid), verify_widgets->message_label, 0, 2, 3, 1);
     gtk_grid_attach_next_to (GTK_GRID (grid), verify_widgets->spinner, verify_widgets->message_label,
                              GTK_POS_RIGHT, 1, 1);
-
-    GtkWidget *hbox = gtk_box_new (GTK_ORIENTATION_HORIZONTAL, 5);
-    gtk_box_pack_end (GTK_BOX(hbox), verify_widgets->ok_btn, TRUE, TRUE, 0);
-    gtk_box_pack_end (GTK_BOX(hbox), verify_widgets->cancel_btn, TRUE, TRUE, 0);
-    gtk_grid_attach (GTK_GRID (grid), hbox, 0, 3, 4, 1);
+    gtk_grid_attach (GTK_GRID (grid), verify_widgets->cancel_btn, 2, 3, 2, 1);
 
     gtk_container_add (GTK_CONTAINER (gtk_dialog_get_content_area (GTK_DIALOG (verify_widgets->dialog))), grid);
 
@@ -147,13 +142,13 @@ entry_changed_cb (GtkWidget *btn, gpointer user_data)
     if (verify_widgets->entry_data.entry1_changed == TRUE &&verify_widgets->entry_data.entry2_changed == TRUE) {
         gint err = check_signature_file (verify_widgets->entry_data.entry2_filename);
         if (err == FILE_TOO_BIG) {
-            //TODO
+            //TODO: exit and warn the user that the wrong file was chosen
         }
         else if (err == MISSING_SIG_EXT) {
-            //TODO
+            //TODO: ask if the chosen file is ok
         }
         else {
-            //TODO
+            //TODO: verify the signature
         }
     }
 }
@@ -184,6 +179,4 @@ cancel_btn_clicked_cb ( GtkWidget *btn __attribute__((__unused__)),
     gtk_widget_destroy (verify_widgets->dialog);
 
     g_free (verify_widgets);
-
-    return;
 }

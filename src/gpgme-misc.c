@@ -202,7 +202,8 @@ get_available_keys ()
 
 
 gpointer
-verify_signature (const gchar *detached_signature_path, const gchar *signed_file_path) {
+verify_signature (const gchar *detached_signature_path, const gchar *signed_file_path)
+{
     init_gpgme ();
     gpgme_ctx_t ctx;
     gpgme_signature_t sig;
@@ -286,12 +287,13 @@ verify_signature (const gchar *detached_signature_path, const gchar *signed_file
     }
 
     for (; sig; sig = sig->next) {
-        if ((sig->summary & GPGME_SIGSUM_VALID) ||  // Valid
-            (sig->summary & GPGME_SIGSUM_GREEN) ||  // Valid
-            (sig->summary == 0 && sig->status == GPG_ERR_NO_ERROR)) // Valid but key is not certified with a trusted signature
-        {
+        if ((sig->summary & GPGME_SIGSUM_VALID) || (sig->summary & GPGME_SIGSUM_GREEN)) {
             gpgme_release (ctx);
-            return VALID_SIGNATURE;
+            return SIGNATURE_OK;
+        }
+        else if (sig->summary == 0 && sig->status == GPG_ERR_NO_ERROR) {  // Valid but key is not certified with a trusted signature
+            gpgme_release (ctx);
+            return SIGNATURE_OK_KEY_NOT_TRUSTED;
         }
     }
 

@@ -2,7 +2,8 @@
 
 #define SIG_MAXLEN 4096
 
-#define VALID_SIGNATURE ((gpointer) 1)
+#define SIGNATURE_OK_KEY_NOT_TRUSTED ((gpointer) 2)
+#define SIGNATURE_OK ((gpointer) 1)
 #define SIGN_OK ((gpointer) 0)
 #define GPGME_ERROR ((gpointer) -1)
 #define FILE_OPEN_ERROR ((gpointer) -2)
