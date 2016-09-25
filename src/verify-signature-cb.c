@@ -13,6 +13,7 @@ typedef struct verify_signature_widgets_t {
     GtkWidget *signature_file_entry;
     GtkWidget *spinner;
     GtkWidget *message_label;
+    GThread *thread;
     struct {
         gchar *entry1_filename;
         gchar *entry2_filename;
@@ -21,9 +22,12 @@ typedef struct verify_signature_widgets_t {
     } entry_data;
 } VerifyWidgets;
 
-typedef struct compare_hash_thread_data_t {
-    gchar *filename;
-    VerifyWidgets *widgets_data;
+typedef struct verify_signature_thread_data_t {
+    GtkWidget *dialog;
+    GtkWidget *spinner;
+    GtkWidget *message_label;
+    gchar *signed_file;
+    gchar *signature_file;
 } ThreadData;
 
 static void select_file_cb (GtkEntry *entry, GtkEntryIconPosition icon_pos, GdkEvent *event, gpointer user_data);
@@ -32,6 +36,8 @@ static void cancel_btn_clicked_cb (GtkWidget *btn, gpointer user_data);
 
 static void entry_changed_cb (GtkWidget *button, gpointer user_data);
 
+static gpointer exec_thread (gpointer user_data);
+
 
 void
 verify_signature_cb (GtkWidget *btn __attribute__((__unused__)),
@@ -39,9 +45,9 @@ verify_signature_cb (GtkWidget *btn __attribute__((__unused__)),
 {
     VerifyWidgets *verify_widgets = g_new0 (VerifyWidgets, 1);
 
+    verify_widgets->thread = NULL;
     verify_widgets->entry_data.entry1_changed = FALSE;
     verify_widgets->entry_data.entry2_changed = FALSE;
-
     verify_widgets->main_window = user_data;
 
     verify_widgets->dialog = create_dialog (verify_widgets->main_window, "ver_sig_dialog", "Verify Signature");
@@ -94,6 +100,24 @@ verify_signature_cb (GtkWidget *btn __attribute__((__unused__)),
     gint result = gtk_dialog_run (GTK_DIALOG (verify_widgets->dialog));
     switch (result) {
         case GTK_RESPONSE_DELETE_EVENT:
+            if (verify_widgets->thread != NULL) {
+                gpointer status = g_thread_join (verify_widgets->thread);
+                if (status == BAD_SIGNATURE) {
+                    show_message_dialog (verify_widgets->main_window, "Bad signature for the given file", GTK_MESSAGE_WARNING);
+                }
+                else if (status == GPGME_ERROR || status == FILE_OPEN_ERROR) {
+                    show_message_dialog (verify_widgets->main_window, "An error occured while checking the signature", GTK_MESSAGE_WARNING);
+                }
+                else {
+                    if (status == SIGNATURE_OK) {
+                        show_message_dialog (verify_widgets->main_window, "Signature OK for the given file", GTK_MESSAGE_INFO);
+                    }
+                    else {
+                        show_message_dialog (verify_widgets->main_window, "Signature OK for the given file but the key is not certified with a trusted signature", GTK_MESSAGE_INFO);
+                    }
+                }
+            }
+            
             gtk_widget_destroy (verify_widgets->dialog);
             multiple_free (3, (gpointer) &verify_widgets->entry_data.entry1_filename,
                            (gpointer) &verify_widgets->entry_data.entry1_filename,
@@ -102,6 +126,18 @@ verify_signature_cb (GtkWidget *btn __attribute__((__unused__)),
         default:
             break;
     }
+}
+
+
+static void
+cancel_btn_clicked_cb ( GtkWidget *btn __attribute__((__unused__)),
+                        gpointer user_data)
+{
+    VerifyWidgets *verify_widgets = user_data;
+
+    gtk_widget_destroy (verify_widgets->dialog);
+
+    g_free (verify_widgets);
 }
 
 
@@ -138,25 +174,43 @@ entry_changed_cb (GtkWidget *btn, gpointer user_data)
         verify_widgets->entry_data.entry2_changed = TRUE;
     }
 
-    if (verify_widgets->entry_data.entry1_changed == TRUE &&verify_widgets->entry_data.entry2_changed == TRUE) {
+    if (verify_widgets->entry_data.entry1_changed == TRUE && verify_widgets->entry_data.entry2_changed == TRUE) {
         if (get_file_size (verify_widgets->entry_data.entry2_filename) > MAX_SIG_FILE_SIZE) {
             show_message_dialog (verify_widgets->main_window, "The chosen file is not a detached signature.", GTK_MESSAGE_ERROR);
             gtk_dialog_response (GTK_DIALOG (verify_widgets->dialog), GTK_RESPONSE_DELETE_EVENT);
         }
         else {
-            //TODO: verify the signature
+            ThreadData *thread_data = g_new0 (ThreadData, 1);
+            thread_data->dialog = verify_widgets->dialog;
+            thread_data->spinner = verify_widgets->spinner;
+            thread_data->message_label = verify_widgets->message_label;
+            thread_data->signed_file = verify_widgets->entry_data.entry1_filename;
+            thread_data->signature_file = verify_widgets->entry_data.entry2_filename;
+
+            gtk_widget_show (thread_data->spinner);
+            start_spinner (thread_data->spinner);
+
+            change_widgets_sensitivity (3, FALSE, &verify_widgets->cancel_btn,
+                                        verify_widgets->signed_file_entry,
+                                        verify_widgets->signature_file_entry);
+
+            verify_widgets->thread = g_thread_new (NULL, exec_thread, thread_data);
         }
     }
 }
 
 
-static void
-cancel_btn_clicked_cb ( GtkWidget *btn __attribute__((__unused__)),
-                        gpointer user_data)
+static gpointer
+exec_thread (gpointer user_data)
 {
-    VerifyWidgets *verify_widgets = user_data;
+    ThreadData *data = user_data;
 
-    gtk_widget_destroy (verify_widgets->dialog);
+    set_label_message (data->message_label, "Checking signature...");
+    gpointer status = verify_signature (data->signed_file, data->signature_file);
 
-    g_free (verify_widgets);
+    gtk_dialog_response (GTK_DIALOG (data->dialog), GTK_RESPONSE_DELETE_EVENT);
+
+    g_free (data);
+
+    g_thread_exit (status);
 }
