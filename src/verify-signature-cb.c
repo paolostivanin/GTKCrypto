@@ -85,7 +85,6 @@ verify_signature_cb (GtkWidget *btn __attribute__((__unused__)),
     gtk_grid_attach (GTK_GRID (grid), verify_widgets->message_label, 0, 2, 3, 1);
     gtk_grid_attach_next_to (GTK_GRID (grid), verify_widgets->spinner, verify_widgets->message_label,
                              GTK_POS_RIGHT, 1, 1);
-    gtk_grid_attach (GTK_GRID (grid), verify_widgets->cancel_btn, 2, 3, 2, 1);
 
     gtk_container_add (GTK_CONTAINER (gtk_dialog_get_content_area (GTK_DIALOG (verify_widgets->dialog))), grid);
 
@@ -117,7 +116,7 @@ verify_signature_cb (GtkWidget *btn __attribute__((__unused__)),
                     }
                 }
             }
-            
+
             gtk_widget_destroy (verify_widgets->dialog);
             multiple_free (3, (gpointer) &verify_widgets->entry_data.entry1_filename,
                            (gpointer) &verify_widgets->entry_data.entry1_filename,
