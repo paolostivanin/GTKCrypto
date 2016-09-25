@@ -95,7 +95,9 @@ verify_signature_cb (GtkWidget *btn __attribute__((__unused__)),
     switch (result) {
         case GTK_RESPONSE_DELETE_EVENT:
             gtk_widget_destroy (verify_widgets->dialog);
-            g_free (verify_widgets);
+            multiple_free (3, (gpointer) &verify_widgets->entry_data.entry1_filename,
+                           (gpointer) &verify_widgets->entry_data.entry1_filename,
+                           (gpointer) &verify_widgets);
             break;
         default:
             break;
@@ -138,7 +140,8 @@ entry_changed_cb (GtkWidget *btn, gpointer user_data)
 
     if (verify_widgets->entry_data.entry1_changed == TRUE &&verify_widgets->entry_data.entry2_changed == TRUE) {
         if (get_file_size (verify_widgets->entry_data.entry2_filename) > MAX_SIG_FILE_SIZE) {
-            //TODO: exit and warn the user that the wrong file was chosen
+            show_message_dialog (verify_widgets->main_window, "The chosen file is not a detached signature.", GTK_MESSAGE_ERROR);
+            gtk_dialog_response (GTK_DIALOG (verify_widgets->dialog), GTK_RESPONSE_DELETE_EVENT);
         }
         else {
             //TODO: verify the signature
