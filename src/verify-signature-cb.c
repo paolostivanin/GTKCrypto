@@ -2,7 +2,6 @@
 #include "common-widgets.h"
 #include "gtkcrypto.h"
 #include "gpgme-misc.h"
-#include "verify-signature-cb.h"
 
 #define MAX_SIG_FILE_SIZE 4096
 
@@ -30,8 +29,6 @@ typedef struct compare_hash_thread_data_t {
 static void select_file_cb (GtkEntry *entry, GtkEntryIconPosition icon_pos, GdkEvent *event, gpointer user_data);
 
 static void cancel_btn_clicked_cb (GtkWidget *btn, gpointer user_data);
-
-static int check_signature_file (const gchar *sig_file);
 
 static void entry_changed_cb (GtkWidget *button, gpointer user_data);
 
@@ -116,7 +113,7 @@ select_file_cb (GtkEntry *entry,
 
     gchar *filename = choose_file (verify_widgets->main_window, "Choose file");
 
-    if (gtk_widget_get_name (GTK_WIDGET (entry)) == "signed_file_entry") {
+    if (g_strcmp0 (gtk_widget_get_name (GTK_WIDGET (entry)), "signed_file_entry") == 0) {
         verify_widgets->entry_data.entry1_filename = g_strdup (filename);
     }
     else {
@@ -140,33 +137,13 @@ entry_changed_cb (GtkWidget *btn, gpointer user_data)
     }
 
     if (verify_widgets->entry_data.entry1_changed == TRUE &&verify_widgets->entry_data.entry2_changed == TRUE) {
-        gint err = check_signature_file (verify_widgets->entry_data.entry2_filename);
-        if (err == FILE_TOO_BIG) {
+        if (get_file_size (verify_widgets->entry_data.entry2_filename) > MAX_SIG_FILE_SIZE) {
             //TODO: exit and warn the user that the wrong file was chosen
-        }
-        else if (err == MISSING_SIG_EXT) {
-            //TODO: ask if the chosen file is ok
         }
         else {
             //TODO: verify the signature
         }
     }
-}
-
-
-static int
-check_signature_file (const gchar *signature_file)
-{
-    goffset sig_file_size = get_file_size (signature_file);
-    if (sig_file_size > MAX_SIG_FILE_SIZE) {
-        return FILE_TOO_BIG;
-    }
-
-    if (!file_has_extension (signature_file, ".sig")) {
-        return MISSING_SIG_EXT;
-    }
-
-    return SIG_FILE_OK;
 }
 
 

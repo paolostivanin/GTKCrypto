@@ -41,7 +41,7 @@ sign_file_cb (GtkWidget *btn __attribute__((__unused__)),
     sign_file_widgets->sign_thread = NULL;
 
     sign_file_widgets->main_window = user_data;
-    sign_file_widgets->filename = choose_file (sign_file_widgets->main_window);
+    sign_file_widgets->filename = choose_file (sign_file_widgets->main_window, "Choose File");
 
     sign_file_widgets->dialog = create_dialog (sign_file_widgets->main_window, "sign_fl_diag", "Select GPG key");
     sign_file_widgets->cancel_btn = gtk_button_new_with_label ("Cancel");
