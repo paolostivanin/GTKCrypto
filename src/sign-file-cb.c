@@ -42,7 +42,10 @@ sign_file_cb (GtkWidget *btn __attribute__((__unused__)),
 
     sign_file_widgets->main_window = user_data;
     sign_file_widgets->filename = choose_file (sign_file_widgets->main_window, "Choose File");
-
+    if (sign_file_widgets->filename == NULL) {
+        g_free (sign_file_widgets);
+        return;
+    }
     sign_file_widgets->dialog = create_dialog (sign_file_widgets->main_window, "sign_fl_diag", "Select GPG key");
     sign_file_widgets->cancel_btn = gtk_button_new_with_label ("Cancel");
     sign_file_widgets->ok_btn = gtk_button_new_with_label ("OK");
@@ -52,6 +55,7 @@ sign_file_cb (GtkWidget *btn __attribute__((__unused__)),
 
     sign_file_widgets->spinner = create_spinner ();
 
+    //TODO check why key is listed twice
     sign_file_widgets->gpg_keys = get_available_keys ();
 
     if (sign_file_widgets->gpg_keys == NULL) {

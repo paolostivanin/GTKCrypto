@@ -16,6 +16,7 @@ get_file_size (const gchar *file_path)
     info = g_file_query_info (G_FILE (file), attributes, flags, cancellable, &error);
     if (info == NULL) {
         g_printerr ("%s\n", error->message);
+        g_clear_error (&error);
         return -1;
     }
     file_size = g_file_info_get_size (info);

@@ -20,7 +20,7 @@ about (GSimpleAction __attribute__((__unused__)) *action,
 
     gtk_about_dialog_set_version (GTK_ABOUT_DIALOG (a_dialog), APP_VERSION);
 
-    gtk_about_dialog_set_copyright (GTK_ABOUT_DIALOG (a_dialog), "Copyright (C) 2016");
+    gtk_about_dialog_set_copyright (GTK_ABOUT_DIALOG (a_dialog), "Copyright (C) 2017");
 
     gtk_about_dialog_set_comments (GTK_ABOUT_DIALOG (a_dialog),
                                   "Encrypt and decrypt files using different cipher algo and different cipher mode or "

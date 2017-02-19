@@ -1,11 +1,12 @@
-cmake_minimum_required(VERSION 3.3)
+cmake_minimum_required(VERSION 3.5)
 
 project(GTKCrypto)
 
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall -Wextra -std=c11 -O2 -Wformat=2 -fstack-protector-all -fstack-protector-strong
--pie -fpie -fdiagnostics-color=always -Wstrict-prototypes -Wunreachable-code  -Wwrite-strings -Wpointer-arith -Wbad-function-cast
--Wcast-align -Wno-missing-field-initializers -Wno-return-type -Wno-cast-qual -Wno-sign-compare
--Wl,-O1,--sort-common,--as-needed,-z,relro -D_FILE_OFFSET_BITS=64 -U_FORTIFY_SOURCE -D_FORTIFY_SOURCE=2")
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall -Wextra -std=c11 -O3 -Wformat=2 -fstack-protector-all -fstack-protector-strong")
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -pie -fpie -fdiagnostics-color=always -Wstrict-prototypes -Wunreachable-code  -Wwrite-strings")
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wpointer-arith -Wbad-function-cast -Wcast-align -Wno-missing-field-initializers")
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wno-return-type -Wno-cast-qual -Wno-sign-compare -Wl,--sort-common,--as-needed,-z,relro")
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -D_FILE_OFFSET_BITS=64 -U_FORTIFY_SOURCE -D_FORTIFY_SOURCE=3")
 
 find_package(PkgConfig REQUIRED)
 pkg_check_modules(GTK3 REQUIRED gtk+-3.0)

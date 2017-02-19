@@ -53,6 +53,7 @@ calculate_hmac (const gchar *file_path, const guchar *key, guchar *user_hmac)
         g_object_unref (file);
         gcry_mac_close (mac);
         g_free (buf);
+        g_clear_error (&gerr);
         return NULL;
     }
 

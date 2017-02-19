@@ -16,6 +16,7 @@ choose_file (GtkWidget *main_window, const gchar *title)
             break;
         case GTK_RESPONSE_CANCEL:
             gtk_widget_destroy (dialog);
+            break;
         default:
             break;
     }

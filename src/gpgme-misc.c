@@ -126,6 +126,7 @@ sign_file (const gchar *input_file_path, const gchar *fpr)
     if (gerr != NULL) {
         g_printerr ("Couldn't open output file for writing\n");
         cleanup (infp, fpout, NULL, output_file_path, &signing_key, &context);
+        g_clear_error (&gerr);
         return FILE_OPEN_ERROR;
     }
 

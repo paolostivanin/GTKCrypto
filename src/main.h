@@ -1,7 +1,5 @@
 #pragma once
 
-#include <gtk/gtk.h>
-
 #define APP_NAME "GTKCrypto"
 #define APP_VERSION "1.0.0"
 #define GCRYPT_MIN_VERSION "1.7.0"

@@ -15,8 +15,10 @@ create_logo (gboolean is_about_dialog)
     else
         logo = gdk_pixbuf_new_from_file_at_size (my_icon, 64, 64, &err);
 
-    if (err != NULL)
+    if (err != NULL) {
         g_printerr ("%s\n", err->message);
+        g_clear_error (&err);
+    }
 
     return logo;
 }

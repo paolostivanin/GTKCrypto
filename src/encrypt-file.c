@@ -36,6 +36,7 @@ encrypt_file (const gchar *input_file_path, const gchar *pwd, const gchar *algo,
     goffset filesize = get_file_size (input_file_path);
 
     GError *err = NULL;
+    gchar *err_msg = NULL;
 
     GFile *in_file = g_file_new_for_path (input_file_path);
     GFileInputStream *in_stream = g_file_read (in_file, NULL, &err);
@@ -44,8 +45,9 @@ encrypt_file (const gchar *input_file_path, const gchar *pwd, const gchar *algo,
                             (gpointer) &encryption_keys->hmac_key);
         multiple_free (2, (gpointer) &encryption_keys, (gpointer) &header_metadata);
         g_object_unref (in_file);
-
-        return g_strdup (err->message);
+        err_msg = g_strdup (err->message);
+        g_clear_error (&err);
+        return err_msg;
     }
 
     gchar *output_file_path = g_strconcat (input_file_path, ".enc", NULL);
@@ -57,8 +59,9 @@ encrypt_file (const gchar *input_file_path, const gchar *pwd, const gchar *algo,
         multiple_free (3, (gpointer) &encryption_keys, (gpointer) &header_metadata, (gpointer) &output_file_path);
         multiple_unref (3, (gpointer) &in_file, (gpointer) &out_file, (gpointer) &in_stream);
         g_input_stream_close (G_INPUT_STREAM (in_stream), NULL, NULL);
-
-        return g_strdup (err->message);
+        err_msg = g_strdup (err->message);
+        g_clear_error (&err);
+        return err_msg;
     }
 
     gcry_cipher_hd_t hd;
@@ -102,8 +105,9 @@ encrypt_file (const gchar *input_file_path, const gchar *pwd, const gchar *algo,
         multiple_unref (4, (gpointer) &in_file, (gpointer) &out_file, (gpointer) &in_stream,
                         (gpointer) &out_stream);
         g_output_stream_close (G_OUTPUT_STREAM (out_stream), NULL, NULL);
-
-        return g_strdup (err->message);
+        err_msg = g_strdup (err->message);
+        g_clear_error (&err);
+        return err_msg;
     }
 
     g_input_stream_close (G_INPUT_STREAM (in_stream), NULL, NULL);
@@ -176,6 +180,7 @@ encrypt_using_cbc_mode (Metadata *header_metadata, gcry_cipher_hd_t *hd, gint64 
                         gsize block_length, GFileInputStream *in_stream, GFileOutputStream *out_stream)
 {
     GError *err = NULL;
+    gchar *err_msg = NULL;
     guchar *buffer = g_try_malloc0 (block_length);
     guchar *enc_buffer = g_try_malloc0 (block_length);
     guchar padding[16] = {0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F};
@@ -187,7 +192,9 @@ encrypt_using_cbc_mode (Metadata *header_metadata, gcry_cipher_hd_t *hd, gint64 
 
     if (g_output_stream_write (G_OUTPUT_STREAM (out_stream), header_metadata, sizeof (Metadata), NULL, &err) == -1) {
         multiple_free (2, (gpointer) &buffer, (gpointer) &enc_buffer);
-        return g_strdup (err->message);
+        err_msg = g_strdup (err->message);
+        g_clear_error (&err);
+        return err_msg;
     }
 
     gsize i;
@@ -198,7 +205,9 @@ encrypt_using_cbc_mode (Metadata *header_metadata, gcry_cipher_hd_t *hd, gint64 
         read_len = g_input_stream_read (G_INPUT_STREAM (in_stream), buffer, block_length, NULL, &err);
         if (read_len == -1) {
             multiple_free (2, (gpointer) &buffer, (gpointer) &enc_buffer);
-            return g_strdup (err->message);
+            err_msg = g_strdup (err->message);
+            g_clear_error (&err);
+            return err_msg;
         }
         if (read_len < block_length) {
             for (i = (block_length - num_of_padding_bytes); i < block_length; i++) {
@@ -227,9 +236,12 @@ encrypt_using_ctr_mode (Metadata *header_metadata, gcry_cipher_hd_t *hd, goffset
                         GFileInputStream *in_stream, GFileOutputStream *out_stream)
 {
     GError *err = NULL;
+    gchar *err_msg = NULL;
 
     if (g_output_stream_write (G_OUTPUT_STREAM (out_stream), header_metadata, sizeof (Metadata), NULL, &err) == -1) {
-        return g_strdup (err->message);
+        err_msg = g_strdup (err->message);
+        g_clear_error (&err);
+        return err_msg;
     }
 
     guchar *buffer = g_try_malloc0 (FILE_BUFFER);
@@ -251,13 +263,17 @@ encrypt_using_ctr_mode (Metadata *header_metadata, gcry_cipher_hd_t *hd, goffset
         }
         if (read_len == -1) {
             multiple_free (2, (gpointer) &buffer, (gpointer) &enc_buffer);
-            return g_strdup (err->message);
+            err_msg = g_strdup (err->message);
+            g_clear_error (&err);
+            return err_msg;
         }
 
         gcry_cipher_encrypt (*hd, enc_buffer, read_len, buffer, read_len);
         if (g_output_stream_write (G_OUTPUT_STREAM (out_stream), enc_buffer, read_len, NULL, &err) == -1) {
             multiple_free (2, (gpointer) &buffer, (gpointer) &enc_buffer);
-            return g_strdup (err->message);
+            err_msg = g_strdup (err->message);
+            g_clear_error (&err);
+            return err_msg;
         }
 
         memset (buffer, 0, FILE_BUFFER);

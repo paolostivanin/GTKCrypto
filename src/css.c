@@ -11,6 +11,7 @@ void set_css (const gchar *path, gint argc, GtkWidget **widget, ...)
     gtk_css_provider_load_from_path (css, path, &err);
     if (err != NULL) {
         g_printerr ("%s\n", err->message);
+        g_clear_error(&err);
     }
     else {
         i = 0;

@@ -31,7 +31,7 @@ decrypt_file (const gchar *input_file_path, const gchar *pwd)
     GFileInputStream *in_stream = g_file_read (in_file, NULL, &err);
     if (err != NULL) {
         g_printerr ("%s\n", err->message);
-        // TODO
+        // TODO see encrypt-file.c 
         return;
     }
 
