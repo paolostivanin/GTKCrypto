@@ -85,7 +85,11 @@ decrypt_file_cb (GtkWidget *btn __attribute__((__unused__)),
     switch (result) {
         case GTK_RESPONSE_DELETE_EVENT:
             if (decrypt_widgets->dec_thread != NULL) {
-                g_thread_join (decrypt_widgets->dec_thread);
+                gpointer msg = g_thread_join (decrypt_widgets->dec_thread);
+                if (msg != NULL) {
+                    show_message_dialog (decrypt_widgets->main_window, (gchar *) msg, GTK_MESSAGE_ERROR);
+                    g_free (msg);
+                }
             }
             gtk_widget_destroy (decrypt_widgets->dialog);
             multiple_free (2, (gpointer) &decrypt_widgets->filename, (gpointer) &decrypt_widgets);
@@ -146,7 +150,7 @@ exec_thread (gpointer user_data)
 
     gchar *message = g_strconcat ("Decrypting <b>", basename, "</b>...", NULL);
     set_label_message (data->message_label, message);
-    decrypt_file (data->filename, data->pwd);
+    gpointer msg = decrypt_file (data->filename, data->pwd);
 
     if (data->delete_file) {
         message = g_strconcat ("Deleting <b>", basename, "</b>...", NULL);
@@ -158,5 +162,5 @@ exec_thread (gpointer user_data)
 
     multiple_free (3, (gpointer) &data, (gpointer) &basename, (gpointer) &message);
 
-    g_thread_exit ((gpointer) 0);
+    g_thread_exit (msg);
 }

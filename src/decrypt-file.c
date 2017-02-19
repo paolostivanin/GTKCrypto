@@ -10,29 +10,29 @@ static GFile *get_g_file_with_encrypted_data (GFileInputStream *, goffset);
 
 static gboolean compare_hmac (guchar *hmac_key, guchar *original_hamc, GFile *encrypted_data);
 
-static void decrypt (Metadata *, CryptoKeys *, GFile *encrypted_data, goffset enc_data_size, GFileOutputStream *dest);
+gpointer decrypt (Metadata *, CryptoKeys *, GFile *encrypted_data, goffset enc_data_size, GFileOutputStream *dest);
 
 
-void
+gpointer
 decrypt_file (const gchar *input_file_path, const gchar *pwd)
 {
     GError *err = NULL;
+    gchar *err_msg = NULL;
 
     goffset file_size = get_file_size (input_file_path);
     if (file_size == -1) {
-        return;
+        return g_strdup ("Couldn't get the file size.");
     }
     if (file_size < (goffset) (sizeof (Metadata) + SHA512_DIGEST_SIZE)) {
-        g_printerr ("The selected file is not encrypted.\n");
-        return;
+        return g_strdup ("The selected file is not encrypted.");
     }
 
     GFile *in_file = g_file_new_for_path (input_file_path);
     GFileInputStream *in_stream = g_file_read (in_file, NULL, &err);
     if (err != NULL) {
-        g_printerr ("%s\n", err->message);
-        // TODO see encrypt-file.c
-        return;
+        err_msg = g_strdup (err->message);
+        g_clear_error (&err);
+        return err_msg;
     }
 
     gchar *output_file_path;
@@ -46,9 +46,9 @@ decrypt_file (const gchar *input_file_path, const gchar *pwd)
     GFile *out_file = g_file_new_for_path (output_file_path);
     GFileOutputStream *out_stream = g_file_append_to (out_file, G_FILE_CREATE_REPLACE_DESTINATION, NULL, &err);
     if (err != NULL) {
-        g_printerr ("%s\n", err->message);
-        // TODO
-        return;
+        err_msg = g_strdup (err->message);
+        g_clear_error (&err);
+        return err_msg;
     }
 
     Metadata *header_metadata = g_new0 (Metadata, 1);
@@ -56,48 +56,46 @@ decrypt_file (const gchar *input_file_path, const gchar *pwd)
 
     gssize rw_len = g_input_stream_read (G_INPUT_STREAM (in_stream), header_metadata, sizeof (Metadata), NULL, &err);
     if (rw_len == -1) {
-        g_printerr ("%s\n", err->message);
-        // TODO
-        return;
+        err_msg = g_strdup (err->message);
+        g_clear_error (&err);
+        return err_msg;
     }
 
     guchar *original_hmac = g_malloc (SHA512_DIGEST_SIZE);
     if (!g_seekable_seek (G_SEEKABLE (in_stream), file_size - SHA512_DIGEST_SIZE, G_SEEK_SET, NULL, &err)) {
-        g_printerr ("Couldn't set the position, exiting...\n");
-        //TODO
-        return;
+        err_msg = g_strdup (err->message);
+        g_clear_error (&err);
+        return err_msg;
     }
     rw_len = g_input_stream_read (G_INPUT_STREAM (in_stream), original_hmac, SHA512_DIGEST_SIZE, NULL, &err);
     if (rw_len == -1) {
-        g_printerr ("%s\n", err->message);
-        // TODO
-        return;
+        err_msg = g_strdup (err->message);
+        g_clear_error (&err);
+        return err_msg;
     }
 
     if (!g_seekable_seek (G_SEEKABLE (in_stream), 0, G_SEEK_SET, NULL, &err)) {
-        g_printerr ("Couldn't set the position, exiting...\n");
-        //TODO
-        return;
+        err_msg = g_strdup (err->message);
+        g_clear_error (&err);
+        return err_msg;
     }
     GFile *file_encrypted_data = get_g_file_with_encrypted_data (in_stream, file_size);
     if (file_encrypted_data == NULL) {
-        // TODO
-        return;
+        return g_strdup ("Couldn't get the encrypted data from the file.");
     }
 
     if (!setup_keys (pwd, gcry_cipher_get_algo_keylen (header_metadata->algo), header_metadata, decryption_keys)) {
-        g_printerr ("Error during key derivation or during memory allocation\n");
-        //TODO
-        return;
+        return g_strdup ("Error during key derivation or during memory allocation.");
     }
 
     if (!compare_hmac (decryption_keys->hmac_key, original_hmac, file_encrypted_data)) {
-        g_printerr ("HMAC differs from the one stored inside the file.\nEither the password is wrong or the file has been corrupted.\n");
-        // TODO
-        return;
+        return g_strdup ("HMAC differs from the one stored inside the file.\nEither the password is wrong or the file has been corrupted.");
     }
 
-    decrypt (header_metadata, decryption_keys, file_encrypted_data, file_size - sizeof (Metadata) - SHA512_DIGEST_SIZE, out_stream);
+    gchar *msg = decrypt (header_metadata, decryption_keys, file_encrypted_data, file_size - sizeof (Metadata) - SHA512_DIGEST_SIZE, out_stream);
+    if (msg != NULL) {
+        return msg;
+    }
 
     g_unlink (g_file_get_path (file_encrypted_data));
     // TODO remove encrypted file? Give option to the user
@@ -132,14 +130,12 @@ get_g_file_with_encrypted_data (GFileInputStream *in_stream, goffset file_size)
     GFile *tmp_encrypted_file = g_file_new_tmp (NULL, &ostream, &err);
     if (tmp_encrypted_file == NULL) {
         g_printerr ("%s\n", err->message);
-        // TODO
         return NULL;
     }
 
     GFileOutputStream *out_enc_stream = g_file_append_to (tmp_encrypted_file, G_FILE_CREATE_NONE, NULL, &err);
     if (out_enc_stream == NULL) {
         g_printerr ("%s\n", err->message);
-        // TODO
         return NULL;
     }
 
@@ -159,7 +155,6 @@ get_g_file_with_encrypted_data (GFileInputStream *in_stream, goffset file_size)
             }
             if (read_len == -1) {
                 g_printerr ("%s\n", err->message);
-                // TODO
                 return NULL;
             }
             g_output_stream_write (G_OUTPUT_STREAM (out_enc_stream), buf, read_len, NULL, &err);
@@ -190,7 +185,7 @@ compare_hmac (guchar *hmac_key, guchar *hmac, GFile *fl) {
 }
 
 
-static void
+gpointer
 decrypt (Metadata *header_metadata, CryptoKeys *dec_keys, GFile *enc_data, goffset enc_data_size, GFileOutputStream *ostream)
 {
     gcry_cipher_hd_t hd;
@@ -205,26 +200,25 @@ decrypt (Metadata *header_metadata, CryptoKeys *dec_keys, GFile *enc_data, goffs
     }
 
     GError *err = NULL;
+    gchar *err_msg = NULL;
 
     GFileInputStream *in_stream = g_file_read (enc_data, NULL, &err);
     if (err != NULL) {
-        g_printerr ("%s\n", err->message);
-        // TODO
-        return;
+        err_msg = g_strdup (err->message);
+        g_clear_error (&err);
+        return err_msg;
     }
     if (!g_seekable_seek (G_SEEKABLE (in_stream), sizeof (Metadata), G_SEEK_SET, NULL, &err)) {
-        g_printerr ("Couldn't set the position, exiting...\n");
-        //TODO
-        return;
+        err_msg = g_strdup (err->message);
+        g_clear_error (&err);
+        return err_msg;
     }
 
     guchar *enc_buf = g_try_malloc0 (FILE_BUFFER);
     guchar *dec_buf = g_try_malloc0 (FILE_BUFFER);
 
     if (enc_buf == NULL || dec_buf == NULL) {
-        g_printerr ("Error during memory allocation\n");
-        // TODO
-        return;
+        return g_strdup ("Error during memory allocation.");
     }
 
     goffset done_size = 0;
@@ -255,4 +249,6 @@ decrypt (Metadata *header_metadata, CryptoKeys *dec_keys, GFile *enc_data, goffs
     g_input_stream_close (G_INPUT_STREAM (in_stream), NULL, NULL);
 
     g_object_unref (in_stream);
+
+    return NULL;
 }
