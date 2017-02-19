@@ -12,9 +12,9 @@ Security
 --------
 * Confidentiality is given by AES/Twofish/Serpent/Camellia/CAST5/Blowfish;
 * Integrity is given by the MAC calculation (MAC = HMAC+SHA512);
-* The input key is derived using PBKDF2 with 50'000 iterations and using SHA512 as hash algo;
-* The key is temporarly stored inside a portion of secure memory which is erased when the program exits;
-* The original file will be overwritten prior its removing, if so is chosen by the user (secure file deletion);
+* The input key is derived using PBKDF2 with 100'000 iterations and using SHA512 as hash algo;
+* The key is temporarly stored inside a portion of secure memory which is erased before the program exits;
+* The original file will be overwritten prior its removing, if so is chosen by the user;
 
 
 Requirements
@@ -29,9 +29,14 @@ How to compile
 --------------
 * `git clone https://github.com/paolostivanin/GTKCrypto.git`
 * `cd GTKCrypto`
-* `make`
+* `mkdir build && cd build`
+* `cmake ../ && make`
 * `make install`
-After you have successfully compiled the software, you will find the `gtkcrypto` binary inside the project's root directory.
+
+
+Latest version
+--------------
+Currently, the software is being rewritten and the next stable version will be `2017.3.1`. All the enabled feature are (almost) ready for daily usage but, because of the beta tag, there could be some incompatibilities with future updates.
 
 
 Notes

@@ -2,7 +2,7 @@
 
 #define MAX_IV_SIZE 16
 #define HMAC_KEY_SIZE 64
-#define KDF_ITERATIONS 75000
+#define KDF_ITERATIONS 100000
 #define KDF_SALT_SIZE 32
 
 typedef struct header_metadata_t {
