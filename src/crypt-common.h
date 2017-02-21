@@ -23,5 +23,3 @@ typedef struct key_t {
 } CryptoKeys;
 
 gboolean setup_keys (const gchar *pwd, gsize algo_key_len, Metadata *header_metadata, CryptoKeys *encryption_keys);
-
-void secure_file_delete (const gchar *file_path);
