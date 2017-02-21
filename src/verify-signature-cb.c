@@ -149,6 +149,9 @@ select_file_cb (GtkEntry *entry,
     VerifyWidgets *verify_widgets = user_data;
 
     gchar *filename = choose_file (verify_widgets->main_window, "Choose file");
+    if (filename == NULL) {
+        return;
+    }
 
     if (g_strcmp0 (gtk_widget_get_name (GTK_WIDGET (entry)), "signed_file_entry") == 0) {
         verify_widgets->entry_data.entry1_filename = g_strdup (filename);

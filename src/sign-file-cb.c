@@ -55,7 +55,6 @@ sign_file_cb (GtkWidget *btn __attribute__((__unused__)),
 
     sign_file_widgets->spinner = create_spinner ();
 
-    //TODO check why key is listed twice
     sign_file_widgets->gpg_keys = get_available_keys ();
 
     if (sign_file_widgets->gpg_keys == NULL) {
@@ -72,19 +71,17 @@ sign_file_cb (GtkWidget *btn __attribute__((__unused__)),
     gchar *str;
     sign_file_widgets->to_free = NULL;
 
-    for (gint i = 0; i < g_slist_length (sign_file_widgets->gpg_keys); i++) {
-        if (g_utf8_strlen (((KeyInfo *) (sign_file_widgets->gpg_keys->data))->name, -1) +
-            g_utf8_strlen (((KeyInfo *) (sign_file_widgets->gpg_keys->data))->email, -1) > 128) {
-                str = g_strconcat ("Name and email too long. Key ID: ", ((KeyInfo *) (sign_file_widgets->gpg_keys->data))->key_id, NULL);
-        }
-        else {
-            str = g_strconcat (((KeyInfo *) (sign_file_widgets->gpg_keys->data))->name, " <", ((KeyInfo *) (sign_file_widgets->gpg_keys->data))->email, "> (",
-                              ((KeyInfo *) (sign_file_widgets->gpg_keys->data))->key_id, ")", NULL);
+    for (guint i = 0; i < g_slist_length (sign_file_widgets->gpg_keys); i++) {
+        KeyInfo *key_data = g_slist_nth_data (sign_file_widgets->gpg_keys, i);
+        if (g_utf8_strlen (key_data->name, -1) + g_utf8_strlen (key_data->email, -1) > 128) {
+            str = g_strconcat ("Name and email too long. Key ID: ", key_data->key_id, NULL);
+        } else {
+            str = g_strconcat (key_data->name, " <", key_data->email, "> (", key_data->key_id, ")", NULL);
         }
         sign_file_widgets->to_free = g_slist_append (sign_file_widgets->to_free, g_strdup (str));
         g_free (str);
-        gtk_combo_box_text_append (GTK_COMBO_BOX_TEXT (sign_file_widgets->combo_box), ((KeyInfo *) (sign_file_widgets->gpg_keys->data))->key_fpr,
-                                        (gchar *) g_slist_nth_data (sign_file_widgets->to_free, g_slist_length (sign_file_widgets->to_free) - 1));
+        gtk_combo_box_text_append (GTK_COMBO_BOX_TEXT (sign_file_widgets->combo_box), key_data->key_fpr,
+                                        (gchar *) g_slist_nth_data (sign_file_widgets->to_free, i));
     }
 
     GtkWidget *grid = gtk_grid_new ();

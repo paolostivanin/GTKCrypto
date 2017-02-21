@@ -52,7 +52,6 @@ add_boxes_and_grid (AppWidgets *widgets)
         }
     }
 
-    // TODO add verify signature button
     g_signal_connect (button[0], "clicked", G_CALLBACK (encrypt_file_cb), widgets->main_window);
     g_signal_connect (button[1], "clicked", G_CALLBACK (decrypt_file_cb), widgets->main_window);
     g_signal_connect (button[2], "clicked", G_CALLBACK (sign_file_cb), widgets->main_window);
