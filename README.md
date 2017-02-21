@@ -21,8 +21,8 @@ Requirements
 ------------
 * GCC or Clang: *suggested* version of Clang *>= 3.6*, of GCC *>= 4.9.0*;
 * Gcrypt: **required** version **>=1.7**;
-* GTK+: **required** version **>=3.14**, *suggested* version *3.20*;
-* Glib: **required** version **>=2.42**, *suggested* version *2.48*;
+* GTK+: **required** version **>=3.18**, *suggested* version *3.22*;
+* Glib: **required** version **>=2.46**, *suggested* version *2.50*;
 
 
 How to compile
@@ -32,6 +32,12 @@ How to compile
 * `mkdir build && cd build`
 * `cmake ../ && make`
 * `make install`
+
+
+How can I trust your program?
+----------------------------
+Don't trust me, trust the code. But if you really want to be sure I'm not doing things in the wrong way, than just encrypt a file using GTKCrypto and write your own decrypt program.
+This is a relatively quick and easy task to achieve, just be sure to first understand the structure of the encrypted file (spoiler: `enc_file = metadata + encrypted_data + HMAC`). More info [HERE](https://github.com/paolostivanin/GTKCrypto/blob/master/src/crypt-common.h).
 
 
 Latest version

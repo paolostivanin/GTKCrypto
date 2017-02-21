@@ -1,5 +1,7 @@
 #pragma once
 
+// The encryption/decryption key is derived using PBKDF2 with SHA512 while the HMAC function uses `SHA_3_512`.
+
 #define MAX_IV_SIZE 16
 #define HMAC_KEY_SIZE 64
 #define KDF_ITERATIONS 100000
