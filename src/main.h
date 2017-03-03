@@ -1,7 +1,7 @@
 #pragma once
 
 #define APP_NAME "GTKCrypto"
-#define APP_VERSION "2017.3.1-beta"
+#define APP_VERSION "1.0-beta"
 #define GCRYPT_MIN_VERSION "1.7.0"
 
 typedef struct widgets_t {
