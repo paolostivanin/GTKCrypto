@@ -4,6 +4,7 @@
 #include "common-callbacks.h"
 #include "common-widgets.h"
 #include "hash.h"
+#include "misc-style.h"
 
 
 typedef struct compare_hash_widgets_t {
@@ -67,12 +68,12 @@ compare_files_hash_cb (GtkWidget *button  __attribute__((__unused__)),
     gtk_widget_set_hexpand (hash_widgets->file1_hash_entry, TRUE);
     gtk_widget_set_hexpand (hash_widgets->file2_hash_entry, TRUE);
 
-    set_css ("./css/entry.css", 2, &(hash_widgets->file1_hash_entry), &(hash_widgets->file2_hash_entry));
+    PangoData *pango_data = get_pango_monospace_attr ();
+    gtk_entry_set_attributes (GTK_ENTRY (hash_widgets->file1_hash_entry), pango_data->attrs);
+    gtk_entry_set_attributes (GTK_ENTRY (hash_widgets->file2_hash_entry), pango_data->attrs);
 
-    gtk_entry_set_icon_from_icon_name (GTK_ENTRY (hash_widgets->file1_hash_entry), GTK_ENTRY_ICON_SECONDARY,
-                                       "document-open-symbolic");
-    gtk_entry_set_icon_from_icon_name (GTK_ENTRY (hash_widgets->file2_hash_entry), GTK_ENTRY_ICON_SECONDARY,
-                                       "document-open-symbolic");
+    gtk_entry_set_icon_from_icon_name (GTK_ENTRY (hash_widgets->file1_hash_entry), GTK_ENTRY_ICON_SECONDARY, "document-open-symbolic");
+    gtk_entry_set_icon_from_icon_name (GTK_ENTRY (hash_widgets->file2_hash_entry), GTK_ENTRY_ICON_SECONDARY, "document-open-symbolic");
 
     hash_widgets->spinner_entry1 = create_spinner();
     hash_widgets->spinner_entry2 = create_spinner();
@@ -81,10 +82,8 @@ compare_files_hash_cb (GtkWidget *button  __attribute__((__unused__)),
     gtk_grid_set_column_spacing (GTK_GRID (grid), 5);
     gtk_grid_attach (GTK_GRID (grid), hash_widgets->file1_hash_entry, 0, 1, 4, 1);
     gtk_grid_attach (GTK_GRID (grid), hash_widgets->file2_hash_entry, 0, 2, 4, 1);
-    gtk_grid_attach_next_to (GTK_GRID (grid), hash_widgets->spinner_entry1, hash_widgets->file1_hash_entry,
-                             GTK_POS_RIGHT, 1, 1);
-    gtk_grid_attach_next_to (GTK_GRID (grid), hash_widgets->spinner_entry2, hash_widgets->file2_hash_entry,
-                             GTK_POS_RIGHT, 1, 1);
+    gtk_grid_attach_next_to (GTK_GRID (grid), hash_widgets->spinner_entry1, hash_widgets->file1_hash_entry, GTK_POS_RIGHT, 1, 1);
+    gtk_grid_attach_next_to (GTK_GRID (grid), hash_widgets->spinner_entry2, hash_widgets->file2_hash_entry, GTK_POS_RIGHT, 1, 1);
 
     g_signal_connect (hash_widgets->file1_hash_entry, "icon-press", G_CALLBACK (select_file_cb), hash_widgets);
     g_signal_connect (hash_widgets->file2_hash_entry, "icon-press", G_CALLBACK (select_file_cb), hash_widgets);
@@ -99,6 +98,7 @@ compare_files_hash_cb (GtkWidget *button  __attribute__((__unused__)),
     switch (result) {
         case GTK_RESPONSE_CANCEL:
             gtk_widget_destroy (dialog);
+            pango_data_free (pango_data);
             g_free (hash_widgets);
             break;
         default:
@@ -308,10 +308,11 @@ entry_changed_cb (GtkWidget *btn, gpointer user_data)
         const gchar *hash2 = gtk_entry_get_text (GTK_ENTRY (data->file2_hash_entry));
 
         if (g_strcmp0 (hash1, hash2) != 0) {
-            set_css ("./css/hash-err.css", 2, &(data->file1_hash_entry), &(data->file2_hash_entry));
-        }
-        else {
-            set_css ("./css/hash-ok.css", 2, &(data->file1_hash_entry), &(data->file2_hash_entry));
+            set_css (HASH_ERR_CSS, data->file1_hash_entry);
+            set_css (HASH_ERR_CSS, data->file2_hash_entry);
+        } else {
+            set_css (HASH_OK_CSS, data->file1_hash_entry);
+            set_css (HASH_OK_CSS, data->file2_hash_entry);
         }
     }
 }

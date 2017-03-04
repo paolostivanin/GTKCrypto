@@ -4,6 +4,7 @@
 #include "common-callbacks.h"
 #include "common-widgets.h"
 #include "hash.h"
+#include "misc-style.h"
 
 
 typedef struct compute_hash_widgets_t {
@@ -49,11 +50,13 @@ compute_hash_cb (GtkWidget *button __attribute((__unused__)),
         return;
     }
 
-    GtkWidget *dialog = create_dialog (hash_widgets->main_window, "dialog", "Compute Hash");
+    GtkWidget *dialog = create_dialog (hash_widgets->main_window, "dialog_hash", "Compute Hash");
 
     hash_widgets->cancel_btn = gtk_dialog_add_button (GTK_DIALOG (dialog), "Cancel", GTK_RESPONSE_CANCEL);
     gtk_widget_set_margin_top (hash_widgets->cancel_btn, 10);
     gtk_widget_set_size_request (dialog, 800, -1);
+
+    PangoData *pango_data = get_pango_monospace_attr ();
 
     for (gint i = 0; i < AVAILABLE_HASH_TYPE; i++) {
         hash_widgets->check_button[i] = gtk_check_button_new_with_label (ck_btn_labels[i]);
@@ -66,6 +69,8 @@ compute_hash_cb (GtkWidget *button __attribute((__unused__)),
         gtk_widget_set_name (hash_widgets->hash_entry[i], ck_btn_labels[i]);
         gtk_editable_set_editable (GTK_EDITABLE (hash_widgets->hash_entry[i]), FALSE);
         gtk_widget_set_hexpand (hash_widgets->hash_entry[i], TRUE);
+
+        gtk_entry_set_attributes (GTK_ENTRY (hash_widgets->hash_entry[i]), pango_data->attrs);
 
         gtk_entry_set_icon_from_icon_name (GTK_ENTRY (hash_widgets->hash_entry[i]), GTK_ENTRY_ICON_SECONDARY, "edit-copy-symbolic");
         gtk_entry_set_icon_tooltip_text (GTK_ENTRY (hash_widgets->hash_entry[i]), GTK_ENTRY_ICON_SECONDARY, "Copy to clipboard");
@@ -95,6 +100,7 @@ compute_hash_cb (GtkWidget *button __attribute((__unused__)),
     switch (result) {
         case GTK_RESPONSE_CANCEL:
             gtk_widget_destroy (dialog);
+            pango_data_free (pango_data);
             g_thread_pool_free (hash_widgets->thread_pool, FALSE, FALSE);
             g_hash_table_remove_all (hash_widgets->hash_table);
             g_hash_table_unref (hash_widgets->hash_table);
@@ -128,40 +134,31 @@ prepare_hash_computation_cb (GtkWidget *ck_btn, gpointer user_data)
     if (g_strcmp0 (gtk_widget_get_name (ck_btn), "MD5") == 0) {
         hash_algo = GCRY_MD_MD5;
         digest_size = MD5_DIGEST_SIZE;
-    }
-    else if (g_strcmp0 (gtk_widget_get_name (ck_btn), "SHA-1") == 0) {
+    } else if (g_strcmp0 (gtk_widget_get_name (ck_btn), "SHA-1") == 0) {
         hash_algo = GCRY_MD_SHA1;
         digest_size = SHA1_DIGEST_SIZE;
-    }
-    else if (g_strcmp0 (gtk_widget_get_name (ck_btn), "GOST94") == 0) {
+    } else if (g_strcmp0 (gtk_widget_get_name (ck_btn), "GOST94") == 0) {
         hash_algo = GCRY_MD_GOSTR3411_94;
         digest_size = GOST94_DIGEST_SIZE;
-    }
-    else if (g_strcmp0 (gtk_widget_get_name (ck_btn), "SHA-256") == 0) {
+    } else if (g_strcmp0 (gtk_widget_get_name (ck_btn), "SHA-256") == 0) {
         hash_algo = GCRY_MD_SHA256;
         digest_size = SHA256_DIGEST_SIZE;
-    }
-    else if (g_strcmp0 (gtk_widget_get_name (ck_btn), "SHA3-256") == 0) {
+    } else if (g_strcmp0 (gtk_widget_get_name (ck_btn), "SHA3-256") == 0) {
         hash_algo = GCRY_MD_SHA3_256;
         digest_size = SHA3_256_DIGEST_SIZE;
-    }
-    else if (g_strcmp0 (gtk_widget_get_name (ck_btn), "SHA-384") == 0) {
+    } else if (g_strcmp0 (gtk_widget_get_name (ck_btn), "SHA-384") == 0) {
         hash_algo = GCRY_MD_SHA384;
         digest_size = SHA384_DIGEST_SIZE;
-    }
-    else if (g_strcmp0 (gtk_widget_get_name (ck_btn), "SHA3-384") == 0) {
+    } else if (g_strcmp0 (gtk_widget_get_name (ck_btn), "SHA3-384") == 0) {
         hash_algo = GCRY_MD_SHA3_384;
         digest_size = SHA3_384_DIGEST_SIZE;
-    }
-    else if (g_strcmp0 (gtk_widget_get_name (ck_btn), "SHA-512") == 0) {
+    } else if (g_strcmp0 (gtk_widget_get_name (ck_btn), "SHA-512") == 0) {
         hash_algo = GCRY_MD_SHA512;
         digest_size = SHA512_DIGEST_SIZE;
-    }
-    else if (g_strcmp0 (gtk_widget_get_name (ck_btn), "SHA3-512") == 0) {
+    } else if (g_strcmp0 (gtk_widget_get_name (ck_btn), "SHA3-512") == 0) {
         hash_algo = GCRY_MD_SHA3_512;
         digest_size = SHA3_512_DIGEST_SIZE;
-    }
-    else if (g_strcmp0 (gtk_widget_get_name (ck_btn), "WHIRLPOOL") == 0) {
+    } else if (g_strcmp0 (gtk_widget_get_name (ck_btn), "WHIRLPOOL") == 0) {
         hash_algo = GCRY_MD_WHIRLPOOL;
         digest_size = WHIRLPOOL_DIGEST_SIZE;
     }
@@ -195,8 +192,7 @@ exec_thread (gpointer pushed_data,
     gchar *hash = get_file_hash (data->widgets->filename, data->hash_algo, data->digest_size);
     if (hash == NULL) {
         show_message_dialog (data->widgets->main_window, "Error during hash computation", GTK_MESSAGE_ERROR);
-    }
-    else {
+    } else {
         for (gint i = 0; i < AVAILABLE_HASH_TYPE; i++) {
             if (g_strcmp0 (gtk_widget_get_name (data->ck_btn), gtk_widget_get_name (data->widgets->hash_entry[i])) == 0) {
                 gtk_entry_set_text (GTK_ENTRY (data->widgets->hash_entry[i]), hash);
@@ -221,8 +217,7 @@ is_last_thread (GThreadPool *tp)
 {
     if (g_thread_pool_get_num_threads (tp) == 1) {
         return TRUE;
-    }
-    else {
+    } else {
         return FALSE;
     }
 }
