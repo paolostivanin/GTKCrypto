@@ -32,7 +32,7 @@ set(SOURCE_FILES
         src/common-callbacks.c
         src/hash.c
         src/mfree.c
-        src/css.c
+        src/misc-style.c
         src/get-file-size.c
         src/spinner.c
         src/encrypt-file-cb.c
