@@ -118,6 +118,10 @@ select_file_cb (GtkEntry *entry,
     thread_data->widgets_data = hash_widgets;
 
     gchar *filename = choose_file (hash_widgets->main_window, "Pick file to compare");
+    if (filename == NULL) {
+        g_free (thread_data);
+        return;
+    }
 
     gint hash_algo = -1, digest_size = -1;
     for (gint i = 0; i < 6; i++) {

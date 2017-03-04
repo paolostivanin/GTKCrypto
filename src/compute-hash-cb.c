@@ -44,6 +44,10 @@ compute_hash_cb (GtkWidget *button __attribute((__unused__)),
     hash_widgets->main_window = (GtkWidget *) user_data;
 
     hash_widgets->filename = choose_file (hash_widgets->main_window, "Choose file");
+    if (hash_widgets->filename == NULL) {
+        g_free (hash_widgets);
+        return;
+    }
 
     GtkWidget *dialog = create_dialog (hash_widgets->main_window, "dialog", "Compute Hash");
 

@@ -57,6 +57,10 @@ encrypt_file_cb (GtkWidget *btn __attribute__((__unused__)),
     encrypt_widgets->enc_thread = NULL;
 
     encrypt_widgets->filename = choose_file (encrypt_widgets->main_window, "Pick file to encrypt");
+    if (encrypt_widgets->filename == NULL) {
+        g_free (encrypt_widgets);
+        return;
+    }
 
     encrypt_widgets->dialog = create_dialog (encrypt_widgets->main_window, "enc_dialog", NULL);
     encrypt_widgets->cancel_btn = gtk_button_new_with_label ("Cancel");

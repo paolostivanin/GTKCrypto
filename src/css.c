@@ -2,7 +2,8 @@
 #include <stdarg.h>
 
 
-void set_css (const gchar *path, gint argc, GtkWidget **widget, ...)
+void
+set_css (const gchar *path, gint argc, GtkWidget **widget, ...)
 {
     GError *err = NULL;
     gint i;
@@ -12,8 +13,7 @@ void set_css (const gchar *path, gint argc, GtkWidget **widget, ...)
     if (err != NULL) {
         g_printerr ("%s\n", err->message);
         g_clear_error(&err);
-    }
-    else {
+    } else {
         i = 0;
         va_list ptr;
         va_start (ptr, widget);
