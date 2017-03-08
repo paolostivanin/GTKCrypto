@@ -117,7 +117,8 @@ select_file_cb (GtkEntry *entry,
     HashWidgets *hash_widgets = user_data;
     thread_data->widgets_data = hash_widgets;
 
-    gchar *filename = choose_file (hash_widgets->main_window, "Pick file to compare");
+    GSList *list = choose_file (hash_widgets->main_window, "Pick file to compare", FALSE);
+    gchar *filename = get_filename_from_list (list);
     if (filename == NULL) {
         g_free (thread_data);
         return;

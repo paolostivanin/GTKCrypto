@@ -44,7 +44,8 @@ compute_hash_cb (GtkWidget *button __attribute((__unused__)),
     ComputeHashData *hash_widgets = g_new0 (ComputeHashData, 1);
     hash_widgets->main_window = (GtkWidget *) user_data;
 
-    hash_widgets->filename = choose_file (hash_widgets->main_window, "Choose file");
+    GSList *list = choose_file (hash_widgets->main_window, "Choose file", FALSE);
+    hash_widgets->filename = get_filename_from_list (list);
     if (hash_widgets->filename == NULL) {
         g_free (hash_widgets);
         return;

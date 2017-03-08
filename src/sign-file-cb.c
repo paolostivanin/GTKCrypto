@@ -41,7 +41,8 @@ sign_file_cb (GtkWidget *btn __attribute__((__unused__)),
     sign_file_widgets->sign_thread = NULL;
 
     sign_file_widgets->main_window = user_data;
-    sign_file_widgets->filename = choose_file (sign_file_widgets->main_window, "Choose File");
+    GSList *list = choose_file (sign_file_widgets->main_window, "Choose File", FALSE);
+    sign_file_widgets->filename = get_filename_from_list (list);
     if (sign_file_widgets->filename == NULL) {
         g_free (sign_file_widgets);
         return;

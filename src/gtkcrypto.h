@@ -2,7 +2,9 @@
 
 void show_message_dialog (GtkWidget *parent, const gchar *message, GtkMessageType);
 
-gchar *choose_file (GtkWidget *parent, const gchar *title);
+GSList * choose_file (GtkWidget *parent, const gchar *title, gboolean select_multiple);
+
+gchar *get_filename_from_list (GSList *list);
 
 void multiple_free (gint, gpointer *, ...);
 

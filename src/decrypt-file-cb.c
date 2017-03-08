@@ -41,7 +41,8 @@ decrypt_file_cb (GtkWidget *btn __attribute__((__unused__)),
     decrypt_widgets->main_window = user_data;
     decrypt_widgets->dec_thread = NULL;
 
-    decrypt_widgets->filename = choose_file (decrypt_widgets->main_window, "Pick file to decrypt");
+    //TODO fixme (gslist)
+    decrypt_widgets->filename = choose_file (decrypt_widgets->main_window, "Choose file(s) to decrypt", TRUE);
     if (decrypt_widgets->filename == NULL) {
         g_free (decrypt_widgets);
         return;
