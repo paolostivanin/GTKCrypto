@@ -1,10 +1,10 @@
 #pragma once
 
-#define HASH_COMPUTED ((gpointer) 0)
-#define HASH_ERROR ((gpointer) -2)
-#define MUNMAP_FAILED ((gpointer) -3)
-#define HMAC_OK ((gpointer) -4)
-#define HMAC_MISMATCH ((gpointer) -5)
+#define HASH_COMPUTED ((gpointer) 10)
+#define HASH_ERROR ((gpointer) 11)
+#define MUNMAP_FAILED ((gpointer) 12)
+#define HMAC_OK ((gpointer) 13)
+#define HMAC_MISMATCH ((gpointer) 14)
 
 #define FILE_BUFFER 67108864 // 64 MiB
 

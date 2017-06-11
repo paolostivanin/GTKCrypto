@@ -294,9 +294,11 @@ entry_activated_cb (GtkWidget *entry __attribute__((__unused__)),
                 break;
             }
         }
-        prepare_encryption (gtk_widget_get_name (encrypt_widgets->radio_button_algo[i]),
-                            gtk_widget_get_name (encrypt_widgets->radio_button_algo_mode[j]),
-                            encrypt_widgets);
+        if (i >= 0 && i < AVAILABLE_ALGO && j >= 0 && j < AVAILABLE_ALGO_MODE) {
+            prepare_encryption (gtk_widget_get_name(encrypt_widgets->radio_button_algo[i]),
+                               gtk_widget_get_name(encrypt_widgets->radio_button_algo_mode[j]),
+                               encrypt_widgets);
+        }
     }
 }
 

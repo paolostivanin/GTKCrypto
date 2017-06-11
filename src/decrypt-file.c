@@ -114,6 +114,7 @@ decrypt_file (const gchar *input_file_path, const gchar *pwd)
                    (gpointer) &output_file_path,
                    (gpointer) &original_hmac,
                    (gpointer) &decryption_keys);
+    return NULL;
 }
 
 

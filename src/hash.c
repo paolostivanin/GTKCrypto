@@ -23,15 +23,12 @@ get_file_hash (const gchar *filename, gint hash_algo, gint digest_size)
     if (status == MAP_FAILED) {
         g_printerr ("mmap error\n");
         return NULL;
-    }
-    else if (status == MUNMAP_FAILED) {
+    } else if (status == MUNMAP_FAILED) {
         g_printerr ("munmap error\n");
         return NULL;
-    }
-    else if (status == HASH_ERROR) {
+    } else if (status == HASH_ERROR) {
         return NULL;
-    }
-    else {
+    } else {
         return finalize_hash (&hd, algo, digest_size);
     }
 }
@@ -69,8 +66,7 @@ compute_hash (gcry_md_hd_t *hd, const gchar *filename)
         }
         g_close (fd, NULL);
         return HASH_COMPUTED;
-    }
-    else {
+    } else {
         while (file_size > done_size) {
             addr = mmap (NULL, FILE_BUFFER, PROT_READ, MAP_FILE | MAP_SHARED, fd, offset);
             if (addr == MAP_FAILED) {
@@ -81,7 +77,7 @@ compute_hash (gcry_md_hd_t *hd, const gchar *filename)
             done_size += FILE_BUFFER;
             diff = file_size - done_size;
             offset += FILE_BUFFER;
-            if (diff < FILE_BUFFER && diff > 0) {
+            if (diff < FILE_BUFFER) {
                 addr = mmap (NULL, diff, PROT_READ, MAP_FILE | MAP_SHARED, fd, offset);
                 if (addr == MAP_FAILED) {
                     g_close (fd, NULL);
@@ -114,8 +110,9 @@ finalize_hash (gcry_md_hd_t *hd, gint algo, gint digest_size)
     gchar *finalized_hash = g_malloc ((gsize) digest_size * 2 + 1);
     guchar *hash = gcry_md_read (*hd, algo);
 
-    for (gint i = 0; i < digest_size; i++)
-        g_sprintf (finalized_hash + (i*2), "%02x", hash[i]);
+    for (gint i = 0; i < digest_size; i++) {
+        g_sprintf (finalized_hash + (i * 2), "%02x", hash[i]);
+    }
 
     finalized_hash[digest_size * 2] = '\0';
 
