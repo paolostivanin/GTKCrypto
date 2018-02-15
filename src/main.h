@@ -1,35 +1,27 @@
 #pragma once
 
-#define APP_NAME "GTKCrypto"
-#define APP_VERSION "1.0-beta2"
-#define GCRYPT_MIN_VERSION "1.7.0"
+#define APP_NAME                "GTKCrypto"
+#define APP_VERSION             "1.0.0-beta"
+#define GCRYPT_MIN_VERSION      "1.7.0"
+#define SECURE_MEMORY_POOL_SIZE 32768
 
-typedef struct widgets_t {
-    GtkWidget *main_window;
-} AppWidgets;
 
-void startup (GtkApplication *app, gpointer);
+void        activate                (GtkApplication *app, gpointer user_data);
 
-void activate (GtkApplication *app, gpointer);
+GdkPixbuf  *create_logo             (gboolean);
 
-void quit (GSimpleAction *, GVariant *, gpointer);
+GtkWidget  *create_main_window      (GtkApplication *app);
 
-void about (GSimpleAction *, GVariant *, gpointer);
+void        add_boxes_and_grid      (GtkWidget *main_window);
 
-GdkPixbuf *create_logo (gboolean);
+void        compare_files_hash_cb   (GtkWidget *button, gpointer user_data);
 
-GtkWidget *create_main_window (GtkApplication *app);
+void        compute_hash_cb         (GtkWidget *button, gpointer user_data);
 
-void add_boxes_and_grid (AppWidgets *);
+void        encrypt_file_cb         (GtkWidget *button, gpointer user_data);
 
-void compare_files_hash_cb (GtkWidget *, gpointer);
+void        decrypt_file_cb         (GtkWidget *button, gpointer user_data);
 
-void compute_hash_cb (GtkWidget *, gpointer);
+void        sign_file_cb            (GtkWidget *button, gpointer user_data);
 
-void encrypt_file_cb (GtkWidget *, gpointer);
-
-void decrypt_file_cb (GtkWidget *, gpointer);
-
-void sign_file_cb (GtkWidget *, gpointer);
-
-void verify_signature_cb (GtkWidget *, gpointer);
+void        verify_signature_cb     (GtkWidget *button, gpointer user_data);

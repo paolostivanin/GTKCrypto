@@ -9,9 +9,7 @@ create_main_window (GtkApplication *app)
     gtk_window_set_position (GTK_WINDOW (window), GTK_WIN_POS_CENTER);
     gtk_window_set_resizable (GTK_WINDOW (window), FALSE);
 
-    GdkPixbuf *logo = create_logo (FALSE);
-    if (logo != NULL)
-        gtk_window_set_icon (GTK_WINDOW (window), logo);
+    gtk_window_set_icon_name (GTK_WINDOW (window), "gtkcrypto");
 
     gtk_container_set_border_width (GTK_CONTAINER (window), 10);
 

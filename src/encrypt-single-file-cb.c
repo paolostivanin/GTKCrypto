@@ -17,8 +17,7 @@ encrypt_single_file_dialog (EncryptWidgets *encrypt_widgets)
 
     do_dialog (encrypt_widgets);
 
-    encrypt_widgets->message_label = gtk_label_new ("");
-
+    encrypt_widgets->message_label = gtk_label_new ("Encrypting file...");
     encrypt_widgets->spinner = create_spinner ();
 
     GtkWidget *grid = gtk_grid_new ();
@@ -49,6 +48,10 @@ encrypt_single_file_dialog (EncryptWidgets *encrypt_widgets)
                 if (msg != NULL) {
                     show_message_dialog (encrypt_widgets->main_window, (gchar *) msg, GTK_MESSAGE_ERROR);
                     g_free (msg);
+                } else {
+                    gchar *msg_ok = g_strconcat ("File ", encrypt_widgets->filename, " successfully encrypted.", NULL);
+                    show_message_dialog (encrypt_widgets->main_window, msg_ok, GTK_MESSAGE_INFO);
+                    g_free (msg_ok);
                 }
             }
             gtk_widget_destroy (encrypt_widgets->dialog);
@@ -67,7 +70,6 @@ prepare_single_encryption (const gchar *algo, const gchar *algo_mode, EncryptWid
 
     thread_data->dialog = data->dialog;
     thread_data->spinner = data->spinner;
-    thread_data->message_label = data->message_label;
     thread_data->algo_btn_name = algo;
     thread_data->algo_mode_btn_name = algo_mode;
     thread_data->filename = data->filename;
@@ -87,15 +89,11 @@ exec_thread (gpointer user_data)
 {
     ThreadData *data = user_data;
 
-    gchar *basename = g_path_get_basename (data->filename);
-
-    gchar *message = g_strconcat ("Encrypting <b>", basename, "</b>...", NULL);
-    set_label_message (data->message_label, message);
     gpointer msg = encrypt_file (data->filename, data->pwd, data->algo_btn_name, data->algo_mode_btn_name);
 
     gtk_dialog_response (GTK_DIALOG (data->dialog), GTK_RESPONSE_DELETE_EVENT);
 
-    multiple_free (3, (gpointer) &data, (gpointer) &basename, (gpointer) &message);
+    g_free (data);
 
     g_thread_exit (msg);
 }

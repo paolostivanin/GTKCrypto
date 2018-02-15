@@ -1,5 +1,4 @@
 #include <gtk/gtk.h>
-#include <stdarg.h>
 
 void
 change_widgets_sensitivity (gint argc, gboolean value, GtkWidget **widget, ...)

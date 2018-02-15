@@ -6,15 +6,23 @@
 #include "crypt-common.h"
 
 
-static GFile *get_g_file_with_encrypted_data (GFileInputStream *, goffset);
+static GFile    *get_g_file_with_encrypted_data (GFileInputStream  *in_stream,
+                                                 goffset            file_size);
 
-static gboolean compare_hmac (guchar *hmac_key, guchar *original_hamc, GFile *encrypted_data);
+static gboolean  compare_hmac                   (guchar            *hmac_key,
+                                                 guchar            *original_hmac,
+                                                 GFile             *encrypted_data);
 
-gpointer decrypt (Metadata *, CryptoKeys *, GFile *encrypted_data, goffset enc_data_size, GFileOutputStream *dest);
+gpointer         decrypt                        (Metadata          *header_metadata,
+                                                 CryptoKeys        *dec_keys,
+                                                 GFile             *enc_data,
+                                                 goffset            enc_data_size,
+                                                 GFileOutputStream *ostream);
 
 
 gpointer
-decrypt_file (const gchar *input_file_path, const gchar *pwd)
+decrypt_file (const gchar *input_file_path,
+              const gchar *pwd)
 {
     GError *err = NULL;
     gchar *err_msg = NULL;
@@ -118,13 +126,14 @@ decrypt_file (const gchar *input_file_path, const gchar *pwd)
 
 
 static GFile *
-get_g_file_with_encrypted_data (GFileInputStream *in_stream, goffset file_size)
+get_g_file_with_encrypted_data (GFileInputStream *in_stream,
+                                goffset           file_size)
 {
     GError *err = NULL;
     GFileIOStream *ostream;
     gssize read_len;
     guchar *buf;
-    gsize len_file_data = file_size - SHA512_DIGEST_SIZE;
+    goffset len_file_data = file_size - SHA512_DIGEST_SIZE;
     gsize done_size = 0;
 
     GFile *tmp_encrypted_file = g_file_new_tmp (NULL, &ostream, &err);
@@ -140,9 +149,9 @@ get_g_file_with_encrypted_data (GFileInputStream *in_stream, goffset file_size)
     }
 
     if (len_file_data < FILE_BUFFER) {
-        buf = g_malloc (len_file_data);
-        g_input_stream_read (G_INPUT_STREAM (in_stream), buf, len_file_data, NULL, &err);
-        g_output_stream_write (G_OUTPUT_STREAM (out_enc_stream), buf, len_file_data, NULL, &err);
+        buf = g_malloc ((gsize)len_file_data);
+        g_input_stream_read (G_INPUT_STREAM (in_stream), buf, (gsize)len_file_data, NULL, &err);
+        g_output_stream_write (G_OUTPUT_STREAM (out_enc_stream), buf, (gsize)len_file_data, NULL, &err);
     }
     else {
         buf = g_malloc (FILE_BUFFER);
@@ -157,7 +166,7 @@ get_g_file_with_encrypted_data (GFileInputStream *in_stream, goffset file_size)
                 g_printerr ("%s\n", err->message);
                 return NULL;
             }
-            g_output_stream_write (G_OUTPUT_STREAM (out_enc_stream), buf, read_len, NULL, &err);
+            g_output_stream_write (G_OUTPUT_STREAM (out_enc_stream), buf, (gsize)read_len, NULL, &err);
             done_size += read_len;
             memset (buf, 0, FILE_BUFFER);
         }
@@ -173,10 +182,10 @@ get_g_file_with_encrypted_data (GFileInputStream *in_stream, goffset file_size)
 
 
 static gboolean
-compare_hmac (guchar *hmac_key, guchar *hmac, GFile *fl) {
-    gchar *path = g_file_get_path (fl);
+compare_hmac (guchar *hmac_key, guchar *original_hmac, GFile *encrypted_data) {
+    gchar *path = g_file_get_path (encrypted_data);
 
-    if (calculate_hmac (path, hmac_key, hmac) == HMAC_MISMATCH) {
+    if (calculate_hmac (path, hmac_key, original_hmac) == HMAC_MISMATCH) {
         return FALSE;
     }
     else {
@@ -186,7 +195,11 @@ compare_hmac (guchar *hmac_key, guchar *hmac, GFile *fl) {
 
 
 gpointer
-decrypt (Metadata *header_metadata, CryptoKeys *dec_keys, GFile *enc_data, goffset enc_data_size, GFileOutputStream *ostream)
+decrypt (Metadata          *header_metadata,
+         CryptoKeys        *dec_keys,
+         GFile             *enc_data,
+         goffset            enc_data_size,
+         GFileOutputStream *ostream)
 {
     gcry_cipher_hd_t hd;
     gcry_cipher_open (&hd, header_metadata->algo, header_metadata->algo_mode, 0);
@@ -226,14 +239,14 @@ decrypt (Metadata *header_metadata, CryptoKeys *dec_keys, GFile *enc_data, goffs
 
     while (done_size < enc_data_size) {
         if ((enc_data_size - done_size) <= FILE_BUFFER) {
-            read_len = g_input_stream_read (G_INPUT_STREAM (in_stream), enc_buf, enc_data_size - done_size, NULL, &err);
-            gcry_cipher_decrypt (hd, dec_buf, read_len, enc_buf, read_len);
-            g_output_stream_write (G_OUTPUT_STREAM (ostream), dec_buf, read_len - header_metadata->padding_value, NULL, &err);
+            read_len = g_input_stream_read (G_INPUT_STREAM (in_stream), enc_buf, (gsize)enc_data_size - done_size, NULL, &err);
+            gcry_cipher_decrypt (hd, dec_buf, (gsize)read_len, enc_buf, (gsize)read_len);
+            g_output_stream_write (G_OUTPUT_STREAM (ostream), dec_buf, (gsize)read_len - header_metadata->padding_value, NULL, &err);
         }
         else {
             read_len = g_input_stream_read (G_INPUT_STREAM (in_stream), enc_buf, FILE_BUFFER, NULL, &err);
-            gcry_cipher_decrypt (hd, dec_buf, read_len, enc_buf, read_len);
-            g_output_stream_write (G_OUTPUT_STREAM (ostream), dec_buf, read_len, NULL, &err);
+            gcry_cipher_decrypt (hd, dec_buf, (gsize)read_len, enc_buf, (gsize)read_len);
+            g_output_stream_write (G_OUTPUT_STREAM (ostream), dec_buf, (gsize)read_len, NULL, &err);
         }
 
         memset (dec_buf, 0, FILE_BUFFER);

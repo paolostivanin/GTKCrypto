@@ -1,15 +1,18 @@
 #include <gtk/gtk.h>
 
 GSList *
-choose_file (GtkWidget *main_window, const gchar *title, gboolean select_multiple)
+choose_file (GtkWidget      *main_window,
+             const gchar    *title,
+             gboolean        select_multiple)
 {
     GSList *data = NULL;
-    GtkWidget *dialog = gtk_file_chooser_dialog_new (title, GTK_WINDOW (main_window), GTK_FILE_CHOOSER_ACTION_OPEN, "OK",
-                                                     GTK_RESPONSE_ACCEPT, "Cancel", GTK_RESPONSE_CANCEL, NULL);
+    GtkWidget *dialog = gtk_file_chooser_dialog_new (title, GTK_WINDOW (main_window),
+                                                     GTK_FILE_CHOOSER_ACTION_OPEN,
+                                                     "OK", GTK_RESPONSE_ACCEPT,
+                                                     "Cancel", GTK_RESPONSE_CANCEL,
+                                                     NULL);
 
-    if (select_multiple == TRUE) {
-        gtk_file_chooser_set_select_multiple (GTK_FILE_CHOOSER (dialog), TRUE);
-    }
+    gtk_file_chooser_set_select_multiple (GTK_FILE_CHOOSER (dialog), select_multiple);
 
     gint result = gtk_dialog_run (GTK_DIALOG (dialog));
     switch (result) {

@@ -19,12 +19,15 @@ typedef struct encrypt_file_widgets_t {
     GSList *files_list;
     gchar *filename;
     GThread *enc_thread;
+    GThreadPool *thread_pool;
 } EncryptWidgets;
 
 typedef struct enc_thread_data_t {
+    GMutex mutex;
     GtkWidget *dialog;
     GtkWidget *spinner;
-    GtkWidget *message_label;
+    guint current_file;
+    guint list_len;
     const gchar *algo_btn_name;
     const gchar *algo_mode_btn_name;
     const gchar *filename;

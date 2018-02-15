@@ -3,7 +3,9 @@
 #include "encrypt-cb-common.h"
 
 void
-encrypt_file_cb (GtkWidget *btn __attribute__((__unused__)), gpointer user_data) {
+encrypt_file_cb (GtkWidget *btn __attribute__((__unused__)),
+                 gpointer   user_data)
+{
     EncryptWidgets *encrypt_widgets = g_new0 (EncryptWidgets, 1);
 
     encrypt_widgets->main_window = (GtkWidget *) user_data;

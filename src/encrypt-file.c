@@ -259,7 +259,7 @@ encrypt_using_ctr_mode (Metadata *header_metadata, gcry_cipher_hd_t *hd, goffset
             read_len = g_input_stream_read (G_INPUT_STREAM (in_stream), buffer, FILE_BUFFER, NULL, &err);
         }
         else {
-            read_len = g_input_stream_read (G_INPUT_STREAM (in_stream), buffer, file_size - done_size, NULL, &err);
+            read_len = g_input_stream_read (G_INPUT_STREAM (in_stream), buffer, (gsize)file_size - done_size, NULL, &err);
         }
         if (read_len == -1) {
             multiple_free (2, (gpointer) &buffer, (gpointer) &enc_buffer);
@@ -268,8 +268,8 @@ encrypt_using_ctr_mode (Metadata *header_metadata, gcry_cipher_hd_t *hd, goffset
             return err_msg;
         }
 
-        gcry_cipher_encrypt (*hd, enc_buffer, read_len, buffer, read_len);
-        if (g_output_stream_write (G_OUTPUT_STREAM (out_stream), enc_buffer, read_len, NULL, &err) == -1) {
+        gcry_cipher_encrypt (*hd, enc_buffer, (gsize)read_len, buffer, (gsize)read_len);
+        if (g_output_stream_write (G_OUTPUT_STREAM (out_stream), enc_buffer, (gsize)read_len, NULL, &err) == -1) {
             multiple_free (2, (gpointer) &buffer, (gpointer) &enc_buffer);
             err_msg = g_strdup (err->message);
             g_clear_error (&err);

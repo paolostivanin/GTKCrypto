@@ -132,8 +132,6 @@ sign_file_cb (GtkWidget *btn __attribute__((__unused__)),
         default:
             break;
     }
-
-    return;
 }
 
 

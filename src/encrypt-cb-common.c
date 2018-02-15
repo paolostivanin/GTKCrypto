@@ -199,10 +199,10 @@ check_pwd (GtkWidget *main_window, GtkWidget *entry, GtkWidget *retype_entry)
     gint cmp_retval = g_strcmp0 (text_entry, text_retype_entry);
 
     if (cmp_retval != 0) {
-        show_message_dialog (main_window, "The passwords are different, try again...", GTK_MESSAGE_ERROR);
+        show_message_dialog (main_window, "Passwords are different, try again...", GTK_MESSAGE_ERROR);
         return FALSE;
     } else if (g_utf8_strlen (text_entry, -1) < 8) {
-        show_message_dialog (main_window, "Password is too short (< 8 chars). Please choose a stronger password.", GTK_MESSAGE_ERROR);
+        show_message_dialog (main_window, "Password is too short (less than 8 chars). Please choose a stronger password.", GTK_MESSAGE_ERROR);
         return FALSE;
     } else {
         return TRUE;
