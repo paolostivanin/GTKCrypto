@@ -29,7 +29,7 @@ typedef struct dec_thread_data_t {
 
 static void cancel_clicked_cb (GtkWidget *, gpointer user_data);
 
-static void prepare_multi_decryption_cb (DecryptWidgets *data);
+static void prepare_multi_decryption_cb (GtkWidget *widget, DecryptWidgets *data);
 
 static void exec_thread (gpointer data, gpointer user_data);
 
@@ -98,17 +98,16 @@ decrypt_files_cb (GtkWidget *btn __attribute__((__unused__)),
 
 
 void
-prepare_multi_decryption_cb (DecryptWidgets *data)
+prepare_multi_decryption_cb (GtkWidget      *widget __attribute__((unused)),
+                             DecryptWidgets *data)
 {
     ThreadData *thread_data = g_new0 (ThreadData, 1);
-
     thread_data->dialog = data->dialog;
     thread_data->spinner = data->spinner;
     thread_data->decrypted_files = 0;
     thread_data->list_len = g_slist_length (data->files_list);
     thread_data->pwd = gtk_entry_get_text (GTK_ENTRY (data->entry_pwd));
     thread_data->delete_file = gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (data->ck_btn_delete));
-
     gtk_label_set_label (GTK_LABEL (data->message_label), "Decrypting file(s)...");
     gtk_widget_show (thread_data->spinner);
     start_spinner (thread_data->spinner);
@@ -148,7 +147,7 @@ exec_thread (gpointer data, gpointer user_data)
 
 
 static void
-cancel_clicked_cb (GtkWidget *btn __attribute__((__unused__)),
+cancel_clicked_cb (GtkWidget *btn __attribute__((unused)),
                    gpointer user_data)
 {
     DecryptWidgets *decrypt_widgets = user_data;
