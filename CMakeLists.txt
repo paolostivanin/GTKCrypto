@@ -47,9 +47,8 @@ set(HEADER_FILES
         src/common-callbacks.h
         src/common-widgets.h
         src/crypt-common.h
-        src/decrypt-file-cb.h
+        src/decrypt-files-cb.h
         src/encrypt-cb-common.h
-        src/encrypt-file-cb.c
         src/gpgme-misc.h
         src/gtkcrypto.h
         src/hash.h
@@ -70,21 +69,20 @@ set(SOURCE_FILES
         src/misc-style.c
         src/get-file-size.c
         src/spinner.c
-        src/encrypt-file-cb.c
         src/common-widgets.c
         src/encrypt-file.c
         src/mcw-sensitivity.c
         src/hmac.c
         src/decrypt-file.c
         src/crypt-common.c
-        src/decrypt-file-cb.c
+        src/decrypt-files-cb.c
         src/gpgme-misc.c
         src/sign-file-cb.c
         src/verify-signature-cb.c
         src/check-file-extension.c
         src/encrypt-cb-common.c
-        src/encrypt-single-file-cb.c
-        src/encrypt-multiple-files-cb.c src/app.c)
+        src/encrypt-files-cb.c
+        src/app.c)
 
 add_executable(${PROJECT_NAME} ${SOURCE_FILES} ${HEADER_FILES})
 target_link_libraries(${PROJECT_NAME}

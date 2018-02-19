@@ -229,14 +229,9 @@ entry_activated_cb (GtkWidget *entry __attribute__((__unused__)), gpointer user_
                 break;
             }
         }
-        if (!encrypt_widgets->multi_files) {
-            prepare_single_encryption (gtk_widget_get_name(encrypt_widgets->radio_button_algo[i]),
-                                       gtk_widget_get_name(encrypt_widgets->radio_button_algo_mode[j]),
-                                       encrypt_widgets);
-        } else {
-            prepare_multi_encryption (gtk_widget_get_name(encrypt_widgets->radio_button_algo[i]),
-                                      gtk_widget_get_name(encrypt_widgets->radio_button_algo_mode[j]),
-                                      encrypt_widgets);
-        }
+        prepare_multi_encryption (gtk_widget_get_name(encrypt_widgets->radio_button_algo[i]),
+                                  gtk_widget_get_name(encrypt_widgets->radio_button_algo_mode[j]),
+                                  encrypt_widgets);
+
     }
 }

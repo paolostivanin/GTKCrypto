@@ -4,7 +4,6 @@
 #define AVAILABLE_ALGO_MODE 2   // CBC, CTR
 
 typedef struct encrypt_file_widgets_t {
-    gboolean multi_files;
     GtkWidget *main_window;
     GtkWidget *dialog;
     GtkWidget *entry_pwd;
@@ -16,9 +15,7 @@ typedef struct encrypt_file_widgets_t {
     GtkWidget *header_bar_menu;
     GtkWidget *spinner;
     GtkWidget *message_label;
-    GSList *files_list;
-    gchar *filename;
-    GThread *enc_thread;
+    GSList    *files_list;
     GThreadPool *thread_pool;
 } EncryptWidgets;
 
@@ -26,17 +23,12 @@ typedef struct enc_thread_data_t {
     GMutex mutex;
     GtkWidget *dialog;
     GtkWidget *spinner;
-    guint current_file;
+    guint encrypted_files;
     guint list_len;
     const gchar *algo_btn_name;
     const gchar *algo_mode_btn_name;
-    const gchar *filename;
     const gchar *pwd;
 } ThreadData;
-
-void encrypt_single_file_dialog (EncryptWidgets *);
-
-void encrypt_multiple_files_dialog (EncryptWidgets *);
 
 void do_dialog (EncryptWidgets *);
 
@@ -53,8 +45,6 @@ GtkWidget *get_final_box_layout (EncryptWidgets *);
 gboolean check_pwd (GtkWidget *main_window, GtkWidget *entry, GtkWidget *retype_entry);
 
 void entry_activated_cb (GtkWidget *entry, gpointer user_data);
-
-void prepare_single_encryption (const gchar *algo, const gchar *algo_mode, EncryptWidgets *);
 
 void prepare_multi_encryption (const gchar *algo, const gchar *algo_mode, EncryptWidgets *);
 

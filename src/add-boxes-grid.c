@@ -52,8 +52,8 @@ add_boxes_and_grid (GtkWidget *main_window)
         }
     }
 
-    g_signal_connect (button[0], "clicked", G_CALLBACK (encrypt_file_cb), main_window);
-    g_signal_connect (button[1], "clicked", G_CALLBACK (decrypt_file_cb), main_window);
+    g_signal_connect (button[0], "clicked", G_CALLBACK (encrypt_files_cb), main_window);
+    g_signal_connect (button[1], "clicked", G_CALLBACK (decrypt_files_cb), main_window);
     g_signal_connect (button[2], "clicked", G_CALLBACK (sign_file_cb), main_window);
     g_signal_connect (button[3], "clicked", G_CALLBACK (verify_signature_cb), main_window);
     gtk_widget_set_sensitive (button[4], FALSE);

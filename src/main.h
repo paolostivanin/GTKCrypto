@@ -18,9 +18,9 @@ void        compare_files_hash_cb   (GtkWidget *button, gpointer user_data);
 
 void        compute_hash_cb         (GtkWidget *button, gpointer user_data);
 
-void        encrypt_file_cb         (GtkWidget *button, gpointer user_data);
+void        encrypt_files_cb        (GtkWidget *button, gpointer user_data);
 
-void        decrypt_file_cb         (GtkWidget *button, gpointer user_data);
+void        decrypt_files_cb        (GtkWidget *button, gpointer user_data);
 
 void        sign_file_cb            (GtkWidget *button, gpointer user_data);
 
