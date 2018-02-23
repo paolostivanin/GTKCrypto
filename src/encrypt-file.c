@@ -75,8 +75,7 @@ encrypt_file (const gchar *input_file_path, const gchar *pwd, const gchar *algo,
         set_number_of_blocks_and_padding_bytes (filesize, algo_blk_len, &number_of_blocks, &number_of_padding_bytes);
         gcry_cipher_setiv (hd, header_metadata->iv, header_metadata->iv_size);
         ret_msg = encrypt_using_cbc_mode (header_metadata, &hd, number_of_blocks, number_of_padding_bytes, algo_blk_len, in_stream, out_stream);
-    }
-    else {
+    } else {
         gcry_cipher_setctr (hd, header_metadata->iv, header_metadata->iv_size);
         ret_msg = encrypt_using_ctr_mode (header_metadata, &hd, filesize, in_stream, out_stream);
     }
@@ -131,27 +130,21 @@ set_algo_and_mode (Metadata *header_metadata, const gchar *algo, const gchar *al
 {
     if (g_strcmp0 (algo, "AES256") == 0) {
         header_metadata->algo = GCRY_CIPHER_AES256;
-    }
-    else if (g_strcmp0 (algo, "BLOWFISH") == 0) {
+    } else if (g_strcmp0 (algo, "BLOWFISH") == 0) {
         header_metadata->algo = GCRY_CIPHER_BLOWFISH;
-    }
-    else if (g_strcmp0 (algo, "CAMELLIA256") == 0) {
+    } else if (g_strcmp0 (algo, "CAMELLIA256") == 0) {
         header_metadata->algo = GCRY_CIPHER_CAMELLIA256;
-    }
-    else if (g_strcmp0 (algo, "CAST5") == 0) {
+    } else if (g_strcmp0 (algo, "CAST5") == 0) {
         header_metadata->algo = GCRY_CIPHER_CAST5;
-    }
-    else if (g_strcmp0 (algo, "SERPENT256") == 0) {
+    } else if (g_strcmp0 (algo, "SERPENT256") == 0) {
         header_metadata->algo = GCRY_CIPHER_SERPENT256;
-    }
-    else {
+    } else {
         header_metadata->algo = GCRY_CIPHER_TWOFISH;
     }
 
     if (g_strcmp0 (algo_mode, "CBC") == 0) {
         header_metadata->algo_mode = GCRY_CIPHER_MODE_CBC;
-    }
-    else {
+    } else {
         header_metadata->algo_mode = GCRY_CIPHER_MODE_CTR;
     }
 }
@@ -167,8 +160,7 @@ set_number_of_blocks_and_padding_bytes (goffset file_size, gsize block_length, g
     if (spare_bytes > 0) {
         *num_of_blocks = file_blocks + 1;
         *num_of_padding_bytes = (gint) (block_length - spare_bytes);
-    }
-    else {
+    } else {
         *num_of_blocks = file_blocks;
         *num_of_padding_bytes = spare_bytes;
     }
@@ -245,8 +237,8 @@ encrypt_using_ctr_mode (Metadata *header_metadata, gcry_cipher_hd_t *hd, goffset
         return err_msg;
     }
 
-    guchar *buffer = g_try_malloc0 (FILE_BUFFER);
-    guchar *enc_buffer = g_try_malloc0 (FILE_BUFFER);
+    guchar *buffer = g_try_malloc0 ((gsize)(file_size < FILE_BUFFER ? file_size : FILE_BUFFER));
+    guchar *enc_buffer = g_try_malloc0 ((gsize)(file_size < FILE_BUFFER ? file_size : FILE_BUFFER));
 
     if (buffer == NULL || enc_buffer == NULL) {
         return g_strdup ("Couldn't allocate memory");
@@ -258,8 +250,7 @@ encrypt_using_ctr_mode (Metadata *header_metadata, gcry_cipher_hd_t *hd, goffset
     while (done_size < file_size) {
         if ((file_size - done_size) > FILE_BUFFER) {
             read_len = g_input_stream_read (G_INPUT_STREAM (in_stream), buffer, FILE_BUFFER, NULL, &err);
-        }
-        else {
+        } else {
             read_len = g_input_stream_read (G_INPUT_STREAM (in_stream), buffer, (gsize)file_size - done_size, NULL, &err);
         }
         if (read_len == -1) {
@@ -277,8 +268,8 @@ encrypt_using_ctr_mode (Metadata *header_metadata, gcry_cipher_hd_t *hd, goffset
             return err_msg;
         }
 
-        memset (buffer, 0, FILE_BUFFER);
-        memset (enc_buffer, 0, FILE_BUFFER);
+        memset (buffer, 0, (gsize)(file_size < FILE_BUFFER ? file_size : FILE_BUFFER));
+        memset (enc_buffer, 0, (gsize)(file_size < FILE_BUFFER ? file_size : FILE_BUFFER));
 
         done_size += read_len;
     }
