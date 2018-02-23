@@ -22,9 +22,9 @@ toggle_active_cb (gpointer user_data)
 
 void
 copy_to_clipboard_cb (GtkEntry              *entry,
-                      GtkEntryIconPosition   icon_pos   __attribute__((__unused__)),
-                      GdkEvent              *event      __attribute__((__unused__)),
-                      gpointer               user_data  __attribute__((__unused__)))
+                      GtkEntryIconPosition   icon_pos   __attribute__((unused)),
+                      GdkEvent              *event      __attribute__((unused)),
+                      gpointer               user_data  __attribute__((unused)))
 {
     gtk_editable_select_region (GTK_EDITABLE (entry), 0, -1);
     gtk_editable_copy_clipboard (GTK_EDITABLE (entry));

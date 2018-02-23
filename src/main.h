@@ -8,10 +8,6 @@
 
 void        activate                (GtkApplication *app, gpointer user_data);
 
-GdkPixbuf  *create_logo             (gboolean);
-
-GtkWidget  *create_main_window      (GtkApplication *app);
-
 void        add_boxes_and_grid      (GtkWidget *main_window);
 
 void        compare_files_hash_cb   (GtkWidget *button, gpointer user_data);

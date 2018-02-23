@@ -27,7 +27,7 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
 endif()
 
 find_package(PkgConfig REQUIRED)
-find_package(Gcrypt 1.6.0 REQUIRED)
+find_package(Gcrypt 1.7.0 REQUIRED)
 find_package(Gpgme 1.8.0 REQUIRED)
 pkg_check_modules(GTK3 REQUIRED gtk+-3.0)
 
@@ -48,7 +48,7 @@ set(HEADER_FILES
         src/common-widgets.h
         src/crypt-common.h
         src/decrypt-files-cb.h
-        src/encrypt-cb-common.h
+        src/encrypt-cb-ui.h
         src/gpgme-misc.h
         src/gtkcrypto.h
         src/hash.h
@@ -58,7 +58,6 @@ set(HEADER_FILES
 set(SOURCE_FILES
         src/main.c
         src/message-dialog.c
-        src/create-mainwin.c
         src/add-boxes-grid.c
         src/compare-file-hash-cb.c
         src/compute-hash-cb.c
@@ -79,8 +78,7 @@ set(SOURCE_FILES
         src/gpgme-misc.c
         src/sign-file-cb.c
         src/verify-signature-cb.c
-        src/check-file-extension.c
-        src/encrypt-cb-common.c
+        src/encrypt-cb-ui.c
         src/encrypt-files-cb.c
         src/app.c)
 

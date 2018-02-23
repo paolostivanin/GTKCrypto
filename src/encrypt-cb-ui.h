@@ -17,17 +17,19 @@ typedef struct encrypt_file_widgets_t {
     GtkWidget *message_label;
     GSList    *files_list;
     GThreadPool *thread_pool;
+    guint running_threads;
+    gboolean first_run;
 } EncryptWidgets;
 
 typedef struct enc_thread_data_t {
     GMutex mutex;
     GtkWidget *dialog;
     GtkWidget *spinner;
-    guint encrypted_files;
     guint list_len;
     const gchar *algo_btn_name;
     const gchar *algo_mode_btn_name;
     const gchar *pwd;
+    EncryptWidgets *widgets;
 } ThreadData;
 
 void do_dialog (EncryptWidgets *);
@@ -41,11 +43,5 @@ GtkWidget *create_hbox (EncryptWidgets *);
 GtkWidget *create_popover (GtkWidget *parent, GtkPositionType pos, gpointer user_data);
 
 GtkWidget *get_final_box_layout (EncryptWidgets *);
-
-gboolean check_pwd (GtkWidget *main_window, GtkWidget *entry, GtkWidget *retype_entry);
-
-void entry_activated_cb (GtkWidget *entry, gpointer user_data);
-
-void prepare_multi_encryption (const gchar *algo, const gchar *algo_mode, EncryptWidgets *);
 
 gpointer encrypt_file (const gchar *input_file_path, const gchar *pwd, const gchar *algo, const gchar *algo_mode);

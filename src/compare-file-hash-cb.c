@@ -28,23 +28,30 @@ typedef struct compare_hash_thread_data_t {
     HashWidgets *widgets_data;
 } ThreadData;
 
-static void select_file_cb (GtkEntry *, GtkEntryIconPosition, GdkEvent *, gpointer);
+static void       select_file_cb    (GtkEntry             *entry,
+                                     GtkEntryIconPosition  icon_pos,
+                                     GdkEvent             *event,
+                                     gpointer              user_data);
 
-static void do_header_bar (GtkWidget *, HashWidgets *);
+static void       do_header_bar     (GtkWidget   *dialog,
+                                     HashWidgets *widgets);
 
-static GtkWidget *create_popover (GtkWidget *, GtkPositionType, HashWidgets *);
+static GtkWidget *create_popover    (GtkWidget       *parent,
+                                     GtkPositionType  pos,
+                                     HashWidgets     *widgets);
 
-static void entry_changed_cb (GtkWidget *, gpointer);
+static void       entry_changed_cb  (GtkWidget *btn,
+                                     gpointer   user_data);
 
-static gpointer exec_thread (gpointer);
+static gpointer   exec_thread       (gpointer);
 
 
 void
-compare_files_hash_cb (GtkWidget *button  __attribute__((__unused__)),
-                       gpointer user_data)
+compare_files_hash_cb (GtkWidget *button  __attribute__((unused)),
+                       gpointer   user_data)
 {
     HashWidgets *hash_widgets = g_new0 (HashWidgets, 1);
-    hash_widgets->main_window = (GtkWidget *) user_data;
+    hash_widgets->main_window = (GtkWidget *)user_data;
     hash_widgets->entry1_changed = FALSE;
     hash_widgets->entry2_changed = FALSE;
 
@@ -108,10 +115,10 @@ compare_files_hash_cb (GtkWidget *button  __attribute__((__unused__)),
 
 
 static void
-select_file_cb (GtkEntry *entry,
-                GtkEntryIconPosition icon_pos  __attribute__((__unused__)),
-                GdkEvent *event __attribute__((__unused__)),
-                gpointer user_data)
+select_file_cb (GtkEntry             *entry,
+                GtkEntryIconPosition  icon_pos  __attribute__((unused)),
+                GdkEvent             *event     __attribute__((unused)),
+                gpointer              user_data)
 {
     ThreadData *thread_data = g_new0 (ThreadData, 1);
     HashWidgets *hash_widgets = user_data;
@@ -208,7 +215,8 @@ exec_thread (gpointer user_data)
 
 
 static void
-do_header_bar (GtkWidget *dialog, HashWidgets *widgets)
+do_header_bar (GtkWidget   *dialog,
+               HashWidgets *widgets)
 {
     GtkWidget *header_bar = create_header_bar (dialog, "Compare Hash");
 
@@ -231,7 +239,9 @@ do_header_bar (GtkWidget *dialog, HashWidgets *widgets)
 
 
 static GtkWidget *
-create_popover (GtkWidget *parent, GtkPositionType pos, HashWidgets *widgets)
+create_popover (GtkWidget       *parent,
+                GtkPositionType  pos,
+                HashWidgets     *widgets)
 {
     const gchar *algo[] = {"MD5", "SHA1", "SHA2-256", "SHA2-512", "SHA3-256", "SHA3-512"};
 
@@ -293,7 +303,8 @@ create_popover (GtkWidget *parent, GtkPositionType pos, HashWidgets *widgets)
 
 
 static void
-entry_changed_cb (GtkWidget *btn, gpointer user_data)
+entry_changed_cb (GtkWidget *btn,
+                  gpointer   user_data)
 {
     HashWidgets *data = user_data;
 

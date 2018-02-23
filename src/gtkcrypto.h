@@ -23,5 +23,3 @@ void       start_spinner                (GtkWidget *spinner);
 void       stop_spinner                 (GtkWidget *spinner);
 
 void       change_widgets_sensitivity   (gint number_of_widgets, gboolean value, GtkWidget **widget, ...);
-
-gboolean   file_has_extension           (const gchar *file_path, const gchar *ext);

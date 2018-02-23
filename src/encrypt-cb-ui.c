@@ -1,7 +1,7 @@
 #include <gtk/gtk.h>
 #include "gtkcrypto.h"
 #include "common-widgets.h"
-#include "encrypt-cb-common.h"
+#include "encrypt-cb-ui.h"
 #include "common-callbacks.h"
 
 void
@@ -187,51 +187,4 @@ get_final_box_layout (EncryptWidgets *encrypt_widgets)
     gtk_box_pack_start (GTK_BOX (h_box[1]), v_box[4], FALSE, TRUE, 0);
 
     return h_box[1];
-}
-
-
-gboolean
-check_pwd (GtkWidget *main_window, GtkWidget *entry, GtkWidget *retype_entry)
-{
-    const gchar *text_entry = gtk_entry_get_text (GTK_ENTRY (entry));
-    const gchar *text_retype_entry = gtk_entry_get_text (GTK_ENTRY (retype_entry));
-
-    gint cmp_retval = g_strcmp0 (text_entry, text_retype_entry);
-
-    if (cmp_retval != 0) {
-        show_message_dialog (main_window, "Passwords are different, try again...", GTK_MESSAGE_ERROR);
-        return FALSE;
-    } else if (g_utf8_strlen (text_entry, -1) < 8) {
-        show_message_dialog (main_window, "Password is too short (less than 8 chars). Please choose a stronger password.", GTK_MESSAGE_ERROR);
-        return FALSE;
-    } else {
-        return TRUE;
-    }
-}
-
-
-void
-entry_activated_cb (GtkWidget *entry __attribute__((__unused__)), gpointer user_data)
-{
-    EncryptWidgets *encrypt_widgets = user_data;
-    gint i, j;
-
-    if (!check_pwd (encrypt_widgets->main_window, encrypt_widgets->entry_pwd, encrypt_widgets->entry_pwd_retype)) {
-        return;
-    } else {
-        for (i = 0; i < AVAILABLE_ALGO; i++) {
-            if (gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (encrypt_widgets->radio_button_algo[i]))) {
-                break;
-            }
-        }
-        for (j = 0; j < AVAILABLE_ALGO_MODE; j++) {
-            if (gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (encrypt_widgets->radio_button_algo_mode[j]))) {
-                break;
-            }
-        }
-        prepare_multi_encryption (gtk_widget_get_name(encrypt_widgets->radio_button_algo[i]),
-                                  gtk_widget_get_name(encrypt_widgets->radio_button_algo_mode[j]),
-                                  encrypt_widgets);
-
-    }
 }

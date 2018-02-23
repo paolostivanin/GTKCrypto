@@ -201,6 +201,7 @@ encrypt_using_cbc_mode (Metadata *header_metadata, gcry_cipher_hd_t *hd, gint64 
     gssize read_len;
     gint64 done_blocks = 0;
 
+    // TODO this is super slow with big files
     while (done_blocks < num_of_blocks) {
         read_len = g_input_stream_read (G_INPUT_STREAM (in_stream), buffer, block_length, NULL, &err);
         if (read_len == -1) {

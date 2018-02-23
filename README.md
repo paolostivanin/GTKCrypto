@@ -1,24 +1,23 @@
 # GTKCrypto (Beta)
-
 * Encrypt and decrypt files using AES-256, Twofish-256, Serpent-256, Camellia-256, CAST-128 or Blowfish-128 using either CBC or CTR mode;
 * Encrypt and decrypt text using one of the aforementioned algorithms;
 * Compute hashes of a chosen file (MD5, GOST94, SHA1, SHA-256, SHA-384, SHA-512, SHA3-256, SHA3-384, SHA3-512 and Whirlpool);
 
 ## Security
-
 * Encrypt-then-MAC. The plain text is encrypted and then the MAC of the encrypted text is computed and appended to the cipher text.
 * Confidentiality is given by AES/Twofish/Serpent/Camellia/CAST5/Blowfish;
 * Integrity is given by the MAC calculation (MAC = HMAC+SHA512);
 * The input key is derived using PBKDF2 with 100'000 iterations and using SHA512 as hash algo;
-* The key is temporarly stored inside a portion of secure memory which is erased before the program exits;
+* The key is temporarily stored inside a portion of secure memory which is erased before the program exits;
 
 
 ## Requirements
-
-* GCC or Clang
-* Gcrypt: **required** version **>=1.7**;
-* GTK+: **required** version **>=3.18**, *suggested* version *3.22*;
-* Glib: **required** version **>=2.46**, *suggested* version *2.50*;
+|Name|Min Version|
+|----|-----------|
+|GTK+|3.18|
+|Glib|2.46.0|
+|libgcrypt|1.7.0|
+|gpgme|1.8.0|
 
 
 How to compile
@@ -26,7 +25,7 @@ How to compile
 * `git clone https://github.com/paolostivanin/GTKCrypto.git`
 * `cd GTKCrypto`
 * `mkdir build && cd build`
-* `cmake ../ && make`
+* `cmake .. && make`
 
 
 How can I trust your program?

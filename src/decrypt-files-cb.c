@@ -15,32 +15,41 @@ typedef struct decrypt_file_widgets_t {
     GtkWidget *message_label;
     GSList    *files_list;
     GThreadPool *thread_pool;
+    guint running_threads;
+    gboolean first_run;
 } DecryptWidgets;
 
 typedef struct dec_thread_data_t {
     GMutex mutex;
     GtkWidget *dialog;
     GtkWidget *spinner;
-    guint decrypted_files;
     guint list_len;
     const gchar *pwd;
     gboolean delete_file;
+    DecryptWidgets *widgets;
 } ThreadData;
 
-static void cancel_clicked_cb (GtkWidget *, gpointer user_data);
+static void     cancel_clicked_cb           (GtkWidget *btn,
+                                             gpointer   user_data);
 
-static void prepare_multi_decryption_cb (GtkWidget *widget, DecryptWidgets *data);
+static gboolean check_tp                    (gpointer data);
 
-static void exec_thread (gpointer data, gpointer user_data);
+static void     prepare_multi_decryption_cb (GtkWidget      *widget,
+                                             DecryptWidgets *data);
+
+static void     exec_thread                 (gpointer data,
+                                             gpointer user_data);
 
 
 void
-decrypt_files_cb (GtkWidget *btn __attribute__((__unused__)),
+decrypt_files_cb (GtkWidget *btn __attribute__((unused)),
                   gpointer   user_data)
 {
     DecryptWidgets *decrypt_widgets = g_new0 (DecryptWidgets, 1);
 
-    decrypt_widgets->main_window = user_data;
+    decrypt_widgets->main_window = (GtkWidget *)user_data;
+    decrypt_widgets->running_threads = 0;
+    decrypt_widgets->first_run = TRUE;
 
     decrypt_widgets->files_list = choose_file (decrypt_widgets->main_window, "Choose file(s) to decrypt", TRUE);
     if (decrypt_widgets->files_list == NULL) {
@@ -86,13 +95,23 @@ decrypt_files_cb (GtkWidget *btn __attribute__((__unused__)),
     g_signal_connect (decrypt_widgets->ok_btn, "clicked", G_CALLBACK (prepare_multi_decryption_cb), decrypt_widgets);
     g_signal_connect (decrypt_widgets->cancel_btn, "clicked", G_CALLBACK (cancel_clicked_cb), decrypt_widgets);
 
-    gint result = gtk_dialog_run (GTK_DIALOG (decrypt_widgets->dialog));
-    switch (result) {
-        case GTK_RESPONSE_DELETE_EVENT:
-            cancel_clicked_cb (NULL, decrypt_widgets);
-            break;
-        default:
-            break;
+    g_timeout_add (500, check_tp, decrypt_widgets);
+
+    gtk_dialog_run (GTK_DIALOG (decrypt_widgets->dialog));
+}
+
+
+static gboolean
+check_tp (gpointer data)
+{
+    DecryptWidgets *widgets = (DecryptWidgets *)data;
+    if (widgets->running_threads == 0 && widgets->first_run == FALSE) {
+        g_thread_pool_free (widgets->thread_pool, FALSE, TRUE);
+        show_message_dialog (widgets->main_window, "File(s) successfully decrypted.", GTK_MESSAGE_INFO);
+        cancel_clicked_cb (NULL, widgets);
+        return FALSE;
+    } else {
+        return TRUE;
     }
 }
 
@@ -104,10 +123,11 @@ prepare_multi_decryption_cb (GtkWidget      *widget __attribute__((unused)),
     ThreadData *thread_data = g_new0 (ThreadData, 1);
     thread_data->dialog = data->dialog;
     thread_data->spinner = data->spinner;
-    thread_data->decrypted_files = 0;
     thread_data->list_len = g_slist_length (data->files_list);
     thread_data->pwd = gtk_entry_get_text (GTK_ENTRY (data->entry_pwd));
     thread_data->delete_file = gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (data->ck_btn_delete));
+    thread_data->widgets = data;
+
     gtk_label_set_label (GTK_LABEL (data->message_label), "Decrypting file(s)...");
     gtk_widget_show (thread_data->spinner);
     start_spinner (thread_data->spinner);
@@ -120,22 +140,19 @@ prepare_multi_decryption_cb (GtkWidget      *widget __attribute__((unused)),
     for (guint i = 0; i < thread_data->list_len; i++) {
         g_thread_pool_push (data->thread_pool, g_slist_nth_data (data->files_list, i), NULL);
     }
-    g_thread_pool_free (data->thread_pool, FALSE, TRUE);
-    gchar *msg = g_strdup_printf ("Successfully decrypted %d files.", thread_data->decrypted_files);
-    show_message_dialog (data->main_window, msg, GTK_MESSAGE_INFO);
-    g_free (msg);
     gtk_dialog_response (GTK_DIALOG (data->dialog), GTK_RESPONSE_DELETE_EVENT);
 }
 
 
 static void
-exec_thread (gpointer data, gpointer user_data)
+exec_thread (gpointer data,
+             gpointer user_data)
 {
     const gchar *filename = (gchar *)data;
     ThreadData *thread_data = user_data;
 
     g_mutex_lock (&thread_data->mutex);
-    thread_data->decrypted_files += 1;
+    thread_data->widgets->running_threads++;
     g_mutex_unlock (&thread_data->mutex);
 
     // TODO log to file (filename OK, filename NOT OK, ecc) instead and display it at the end
@@ -143,6 +160,11 @@ exec_thread (gpointer data, gpointer user_data)
     if (thread_data->delete_file) {
         g_unlink (filename);
     }
+
+    g_mutex_lock (&thread_data->mutex);
+    thread_data->widgets->running_threads--;
+    thread_data->widgets->first_run = FALSE;
+    g_mutex_unlock (&thread_data->mutex);
 }
 
 
