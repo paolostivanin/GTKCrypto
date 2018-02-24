@@ -242,8 +242,7 @@ decrypt (Metadata          *header_metadata,
             read_len = g_input_stream_read (G_INPUT_STREAM (in_stream), enc_buf, (gsize)enc_data_size - done_size, NULL, &err);
             gcry_cipher_decrypt (hd, dec_buf, (gsize)read_len, enc_buf, (gsize)read_len);
             g_output_stream_write (G_OUTPUT_STREAM (ostream), dec_buf, (gsize)read_len - header_metadata->padding_value, NULL, &err);
-        }
-        else {
+        } else {
             read_len = g_input_stream_read (G_INPUT_STREAM (in_stream), enc_buf, FILE_BUFFER, NULL, &err);
             gcry_cipher_decrypt (hd, dec_buf, (gsize)read_len, enc_buf, (gsize)read_len);
             g_output_stream_write (G_OUTPUT_STREAM (ostream), dec_buf, (gsize)read_len, NULL, &err);

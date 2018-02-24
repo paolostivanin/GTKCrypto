@@ -4,13 +4,13 @@
 #include "hash.h"
 #include "crypt-common.h"
 
-static void set_algo_and_mode (Metadata *, const gchar *, const gchar *);
+static void set_algo_and_mode (Metadata *header_metadata, const gchar *, const gchar *);
 
 static void set_number_of_blocks_and_padding_bytes (goffset, gsize, gint64 *, gint *);
 
-static gchar *encrypt_using_cbc_mode (Metadata *, gcry_cipher_hd_t *, gint64 num_of_blocks, gint num_of_padding_bytes, gsize block_length, GFileInputStream *, GFileOutputStream *);
+static gchar *encrypt_using_cbc_mode (Metadata *metadata, gcry_cipher_hd_t *, goffset filesize, gint64 num_of_blocks, gint num_of_padding_bytes, gsize block_length, GFileInputStream *, GFileOutputStream *);
 
-static gchar *encrypt_using_ctr_mode (Metadata *, gcry_cipher_hd_t *, goffset file_size, GFileInputStream *, GFileOutputStream *);
+static gchar *encrypt_using_ctr_mode (Metadata *header_metadata, gcry_cipher_hd_t *, goffset file_size, GFileInputStream *, GFileOutputStream *);
 
 
 gpointer
@@ -74,7 +74,7 @@ encrypt_file (const gchar *input_file_path, const gchar *pwd, const gchar *algo,
     if (header_metadata->algo_mode == GCRY_CIPHER_MODE_CBC) {
         set_number_of_blocks_and_padding_bytes (filesize, algo_blk_len, &number_of_blocks, &number_of_padding_bytes);
         gcry_cipher_setiv (hd, header_metadata->iv, header_metadata->iv_size);
-        ret_msg = encrypt_using_cbc_mode (header_metadata, &hd, number_of_blocks, number_of_padding_bytes, algo_blk_len, in_stream, out_stream);
+        ret_msg = encrypt_using_cbc_mode (header_metadata, &hd, filesize, number_of_blocks, number_of_padding_bytes, algo_blk_len, in_stream, out_stream);
     } else {
         gcry_cipher_setctr (hd, header_metadata->iv, header_metadata->iv_size);
         ret_msg = encrypt_using_ctr_mode (header_metadata, &hd, filesize, in_stream, out_stream);
@@ -168,16 +168,16 @@ set_number_of_blocks_and_padding_bytes (goffset file_size, gsize block_length, g
 
 
 static gchar *
-encrypt_using_cbc_mode (Metadata *header_metadata, gcry_cipher_hd_t *hd, gint64 num_of_blocks, gint num_of_padding_bytes,
+encrypt_using_cbc_mode (Metadata *header_metadata, gcry_cipher_hd_t *hd, goffset file_size, gint64 num_of_blocks, gint num_of_padding_bytes,
                         gsize block_length, GFileInputStream *in_stream, GFileOutputStream *out_stream)
 {
     GError *err = NULL;
     gchar *err_msg = NULL;
-    guchar *buffer = g_try_malloc0 (block_length);
-    guchar *enc_buffer = g_try_malloc0 (block_length);
     guchar padding[16] = {0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F};
     header_metadata->padding_value = padding[num_of_padding_bytes];
 
+    guchar *buffer = g_try_malloc0 ((gsize)(file_size < FILE_BUFFER ? file_size : FILE_BUFFER));
+    guchar *enc_buffer = g_try_malloc0 ((gsize)(file_size < FILE_BUFFER ? file_size : FILE_BUFFER));
     if (buffer == NULL || enc_buffer == NULL) {
         return g_strdup ("Couldn't allocate memory");
     }
@@ -189,33 +189,38 @@ encrypt_using_cbc_mode (Metadata *header_metadata, gcry_cipher_hd_t *hd, gint64 
         return err_msg;
     }
 
-    gsize i;
     gssize read_len;
     gint64 done_blocks = 0;
 
-    // TODO this is super slow with big files
     while (done_blocks < num_of_blocks) {
-        read_len = g_input_stream_read (G_INPUT_STREAM (in_stream), buffer, block_length, NULL, &err);
+        goffset remaining_bytes = ((num_of_blocks - done_blocks) * block_length);
+        if (remaining_bytes > FILE_BUFFER) {
+            read_len = g_input_stream_read (G_INPUT_STREAM (in_stream), buffer, FILE_BUFFER, NULL, &err);
+            done_blocks += (read_len / block_length);
+        } else {
+            read_len = g_input_stream_read (G_INPUT_STREAM (in_stream), buffer, (gsize)remaining_bytes, NULL, &err);
+            for (gsize j = (gsize)read_len, i = (block_length - num_of_padding_bytes); i < block_length; i++) {
+                buffer[j] = header_metadata->padding_value;
+                j++;
+            }
+            done_blocks += ((read_len + num_of_padding_bytes) / block_length);
+        }
         if (read_len == -1) {
             multiple_free (2, (gpointer) &buffer, (gpointer) &enc_buffer);
             err_msg = g_strdup (err->message);
             g_clear_error (&err);
             return err_msg;
         }
-        if (read_len < block_length) {
-            for (i = (block_length - num_of_padding_bytes); i < block_length; i++) {
-                buffer[i] = header_metadata->padding_value;
-            }
-        }
-        gcry_cipher_encrypt (*hd, enc_buffer, block_length, buffer, block_length);
-        if (g_output_stream_write (G_OUTPUT_STREAM (out_stream), enc_buffer, block_length, NULL, &err) != block_length) {
+
+        gsize num_of_bytes_to_encrypt = (gsize)(remaining_bytes < FILE_BUFFER ? remaining_bytes : FILE_BUFFER);
+        gcry_cipher_encrypt (*hd, enc_buffer, num_of_bytes_to_encrypt, buffer, num_of_bytes_to_encrypt);
+        if (g_output_stream_write (G_OUTPUT_STREAM (out_stream), enc_buffer, num_of_bytes_to_encrypt, NULL, &err) != num_of_bytes_to_encrypt) {
             multiple_free (2, (gpointer) &buffer, (gpointer) &enc_buffer);
             return g_strdup ("Error while trying to write encrypted data to the output file");
         }
-        memset (buffer, 0, block_length);
-        memset (enc_buffer, 0, block_length);
 
-        done_blocks++;
+        memset (buffer, 0, num_of_bytes_to_encrypt);
+        memset (enc_buffer, 0, num_of_bytes_to_encrypt);
     }
 
     multiple_free (2, (gpointer) &buffer, (gpointer) &enc_buffer);
