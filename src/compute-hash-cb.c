@@ -234,4 +234,5 @@ get_entry_from_check_btn (GtkWidget       *ck_btn,
             return data->hash_entry[i];
         }
     }
+    return NULL;
 }
