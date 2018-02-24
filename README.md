@@ -1,4 +1,11 @@
 # GTKCrypto (Beta)
+
+<a href="https://scan.coverity.com/projects/paolostivanin-gtkcrypto">
+  <img alt="Coverity Scan Build Status"
+       src="https://scan.coverity.com/projects/12746/badge.svg"/>
+</a>
+
+
 * Encrypt and decrypt files using AES-256, Twofish-256, Serpent-256, Camellia-256, CAST-128 or Blowfish-128 using either CBC or CTR mode;
 * Encrypt and decrypt text using one of the aforementioned algorithms;
 * Compute hashes of a chosen file (MD5, GOST94, SHA1, SHA-256, SHA-384, SHA-512, SHA3-256, SHA3-384, SHA3-512 and Whirlpool);
