@@ -147,8 +147,8 @@ select_file_cb (GtkEntry *entry,
                 gpointer user_data)
 {
     VerifyWidgets *verify_widgets = user_data;
-
-    gchar *filename = choose_file (verify_widgets->main_window, "Choose file");
+    GSList *list = choose_file (verify_widgets->main_window, "Choose file", FALSE);
+    gchar *filename = get_filename_from_list (list);
     if (filename == NULL) {
         return;
     }

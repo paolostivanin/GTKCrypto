@@ -1,17 +1,40 @@
 #include <gtk/gtk.h>
-#include <string.h>
+#include <gcrypt.h>
 #include "main.h"
+#include "gtkcrypto.h"
 
-GtkWidget *
+static GtkWidget *create_main_window (GtkApplication *app);
+
+
+void
+activate (GtkApplication *app,
+          gpointer        user_data __attribute__((unused)))
+{
+    GtkWidget *main_window = create_main_window (app);
+    gtk_application_add_window (GTK_APPLICATION (app), GTK_WINDOW (main_window));
+
+    if (!gcry_check_version (GCRYPT_MIN_VERSION)) {
+        show_message_dialog (main_window, "The required version of GCrypt is 1.7.0 or greater.", GTK_MESSAGE_ERROR);
+        return;
+    }
+
+    gcry_control (GCRYCTL_INIT_SECMEM, SECURE_MEMORY_POOL_SIZE, 0);
+    gcry_control (GCRYCTL_INITIALIZATION_FINISHED, 0);
+
+    add_boxes_and_grid (main_window);
+
+    gtk_widget_show_all (main_window);
+}
+
+
+static GtkWidget *
 create_main_window (GtkApplication *app)
 {
     GtkWidget *window = gtk_application_window_new (app);
     gtk_window_set_position (GTK_WINDOW (window), GTK_WIN_POS_CENTER);
     gtk_window_set_resizable (GTK_WINDOW (window), FALSE);
 
-    GdkPixbuf *logo = create_logo (FALSE);
-    if (logo != NULL)
-        gtk_window_set_icon (GTK_WINDOW (window), logo);
+    gtk_window_set_icon_name (GTK_WINDOW (window), "gtkcrypto");
 
     gtk_container_set_border_width (GTK_CONTAINER (window), 10);
 
@@ -28,7 +51,7 @@ create_main_window (GtkApplication *app)
     gtk_header_bar_set_has_subtitle (GTK_HEADER_BAR (header_bar), FALSE);
 
     GtkWidget *box = gtk_box_new (GTK_ORIENTATION_HORIZONTAL, 0);
-    gtk_style_context_add_class (gtk_widget_get_style_context(box), "linked");
+    gtk_style_context_add_class (gtk_widget_get_style_context (box), "linked");
 
     gtk_window_set_titlebar (GTK_WINDOW (window), header_bar);
 

@@ -2,30 +2,63 @@ cmake_minimum_required(VERSION 3.5)
 
 project(GTKCrypto)
 
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall -Wextra -std=c11 -O3 -Wformat=2 -fstack-protector-all -fstack-protector-strong")
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -pie -fpie -fdiagnostics-color=always -Wstrict-prototypes -Wunreachable-code  -Wwrite-strings")
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wpointer-arith -Wbad-function-cast -Wcast-align -Wno-missing-field-initializers")
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wno-return-type -Wno-cast-qual -Wno-sign-compare -Wl,--sort-common,--as-needed,-z,relro")
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -D_FILE_OFFSET_BITS=64 -U_FORTIFY_SOURCE -D_FORTIFY_SOURCE=3")
+set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
+
+set(GTKCRYPTO_VERSION_MAJOR "1")
+set(GTKCRYPTO_VERSION_MINOR "0")
+set(GTKCRYPTO_VERSION_PATCH "0")
+set(GTKCRYPTO_VERSION "${GTKCRYPTO_VERSION_MAJOR}.${GTKCRYPTO_VERSION_MINOR}.${GTKCRYPTO_VERSION_PATCH}")
+
+set(CMAKE_C_STANDARD 11)
+set(CMAKE_C_FLAGS "-Wall -Wextra -O3 -Wformat=2 -Wmissing-format-attribute -fstack-protector-strong -Wundef -Wmissing-format-attribute")
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fdiagnostics-color=always -Wstrict-prototypes -Wunreachable-code")
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wchar-subscripts -Wwrite-strings -Wpointer-arith -Wbad-function-cast -Wcast-align")
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Werror=format-security -Werror=implicit-function-declaration -Wno-sign-compare")
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -U_FORTIFY_SOURCE -D_FORTIFY_SOURCE=3")
+if(CMAKE_COMPILER_IS_GNUCC)
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -pie -fPIE")
+endif()
+
+if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -Wl,--no-add-needed -Wl,--as-needed -Wl,--no-undefined")
+    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -Wl,-z,relro,-z,now")
+    set(CMAKE_MODULE_LINKER_FLAGS "${CMAKE_MODULE_LINKER_FLAGS} -Wl,--no-add-needed -Wl,--as-needed")
+    set(CMAKE_MODULE_LINKER_FLAGS "${CMAKE_MODULE_LINKER_FLAGS} -Wl,-z,relro,-z,now")
+endif()
 
 find_package(PkgConfig REQUIRED)
+find_package(Gcrypt 1.7.0 REQUIRED)
+find_package(Gpgme 1.8.0 REQUIRED)
 pkg_check_modules(GTK3 REQUIRED gtk+-3.0)
 
-include_directories(${GTK3_INCLUDE_DIRS})
-link_directories(${GTK3_LIBRARY_DIRS})
+include_directories(${GTK3_INCLUDE_DIRS}
+        ${GCRYPT_INCLUDE_DIR}
+        ${GPGME_INCLUDE_DIR})
 
-add_definitions(${GTK3_CFLAGS_OTHER})
+link_directories(${GTK3_LIBRARY_DIRS}
+        ${GCRYPT_LIBRARY_DIR}
+        ${GPGME_LIBRARY_DIR})
+
+add_definitions(${GTK3_CFLAGS_OTHER}
+        ${GCRYPT_CFLAGS_OTHER}
+        ${GPGME_CFLAGS_OTHER})
+
+set(HEADER_FILES
+        src/common-callbacks.h
+        src/common-widgets.h
+        src/crypt-common.h
+        src/decrypt-files-cb.h
+        src/encrypt-cb-ui.h
+        src/gpgme-misc.h
+        src/gtkcrypto.h
+        src/hash.h
+        src/main.h
+        src/misc-style.h)
 
 set(SOURCE_FILES
         src/main.c
-        src/create-logo.c
         src/message-dialog.c
-        src/app-startup.c
-        src/app-activate.c
-        src/create-mainwin.c
         src/add-boxes-grid.c
-        src/app-quit.c
-        src/app-about.c
         src/compare-file-hash-cb.c
         src/compute-hash-cb.c
         src/choose-file.c
@@ -35,18 +68,26 @@ set(SOURCE_FILES
         src/misc-style.c
         src/get-file-size.c
         src/spinner.c
-        src/encrypt-file-cb.c
         src/common-widgets.c
         src/encrypt-file.c
         src/mcw-sensitivity.c
         src/hmac.c
         src/decrypt-file.c
         src/crypt-common.c
-        src/decrypt-file-cb.c
+        src/decrypt-files-cb.c
         src/gpgme-misc.c
         src/sign-file-cb.c
         src/verify-signature-cb.c
-        src/check-file-extension.c)
+        src/encrypt-cb-ui.c
+        src/encrypt-files-cb.c
+        src/app.c)
 
-add_executable(GTKCrypto ${SOURCE_FILES})
-target_link_libraries(GTKCrypto ${GTK3_LIBRARIES} -lgcrypt -lgpgme)
+add_executable(${PROJECT_NAME} ${SOURCE_FILES} ${HEADER_FILES})
+target_link_libraries(${PROJECT_NAME}
+        ${GTK3_LIBRARIES}
+        ${GCRYPT_LIBRARIES}
+        ${GPGME_LIBRARIES})
+
+set_target_properties(${PROJECT_NAME} PROPERTIES OUTPUT_NAME "gtkcrypto")
+
+install(TARGETS ${PROJECT_NAME} DESTINATION bin)

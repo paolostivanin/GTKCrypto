@@ -1,25 +1,25 @@
 #pragma once
 
-void show_message_dialog (GtkWidget *parent, const gchar *message, GtkMessageType);
+void       show_message_dialog          (GtkWidget *parent, const gchar *message, GtkMessageType);
 
-gchar *choose_file (GtkWidget *parent, const gchar *title);
+GSList    *choose_file                  (GtkWidget *parent, const gchar *title, gboolean select_multiple);
 
-void multiple_free (gint, gpointer *, ...);
+gchar     *get_filename_from_list       (GSList *list);
 
-void multiple_gcry_free (gint, gpointer *, ...);
+void       multiple_free                (gint, gpointer *, ...);
 
-void multiple_unref (gint, gpointer *, ...);
+void       multiple_gcry_free           (gint, gpointer *, ...);
 
-gchar *get_file_hash (const gchar *file_path, gint hash_algo, gint digest_size);
+void       multiple_unref               (gint, gpointer *, ...);
 
-goffset get_file_size (const gchar *file_path);
+gchar     *get_file_hash                (const gchar *file_path, gint hash_algo, gint digest_size);
 
-GtkWidget *create_spinner (void);
+goffset    get_file_size                (const gchar *file_path);
 
-void start_spinner (GtkWidget *spinner);
+GtkWidget *create_spinner               (void);
 
-void stop_spinner (GtkWidget *spinner);
+void       start_spinner                (GtkWidget *spinner);
 
-void change_widgets_sensitivity (gint number_of_widgets, gboolean value, GtkWidget **widget, ...);
+void       stop_spinner                 (GtkWidget *spinner);
 
-gboolean file_has_extension (const gchar *file_path, const gchar *ext);
+void       change_widgets_sensitivity   (gint number_of_widgets, gboolean value, GtkWidget **widget, ...);

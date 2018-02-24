@@ -4,7 +4,10 @@
 
 
 gboolean
-setup_keys (const gchar *pwd, gsize algo_key_len, Metadata *header_metadata, CryptoKeys *keys)
+setup_keys (const gchar *pwd,
+            gsize        algo_key_len,
+            Metadata    *header_metadata,
+            CryptoKeys  *keys)
 {
     keys->derived_key = gcry_malloc_secure (algo_key_len + HMAC_KEY_SIZE);
     if (keys->derived_key == NULL) {

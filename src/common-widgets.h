@@ -2,8 +2,16 @@
 
 #include <gtk/gtk.h>
 
-GtkWidget *create_header_bar (GtkWidget *dialog, const gchar *title);
+G_BEGIN_DECLS
 
-GtkWidget *create_dialog (GtkWidget *main_window, const gchar *widget_name, const gchar *title);
+GtkWidget *create_header_bar (GtkWidget   *dialog,
+                              const gchar *title);
 
-void set_label_message (GtkWidget *message_label, const gchar *message);
+GtkWidget *create_dialog     (GtkWidget   *main_window,
+                              const gchar *widget_name,
+                              const gchar *title);
+
+void       set_label_message (GtkWidget   *message_label,
+                              const gchar *message);
+
+G_END_DECLS

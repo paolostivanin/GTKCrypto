@@ -2,7 +2,8 @@
 #include "common-callbacks.h"
 
 void
-toggle_changed_cb (GtkToggleButton *button, gpointer user_data)
+toggle_changed_cb (GtkToggleButton *button,
+                   gpointer         user_data)
 {
     GtkWidget *popover = user_data;
     gtk_widget_set_visible (popover, gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (button)));
@@ -20,10 +21,10 @@ toggle_active_cb (gpointer user_data)
 
 
 void
-copy_to_clipboard_cb (GtkEntry *entry,
-                      GtkEntryIconPosition icon_pos  __attribute__((__unused__)),
-                      GdkEvent *event __attribute__((__unused__)),
-                      gpointer user_data __attribute__((__unused__)))
+copy_to_clipboard_cb (GtkEntry              *entry,
+                      GtkEntryIconPosition   icon_pos   __attribute__((unused)),
+                      GdkEvent              *event      __attribute__((unused)),
+                      gpointer               user_data  __attribute__((unused)))
 {
     gtk_editable_select_region (GTK_EDITABLE (entry), 0, -1);
     gtk_editable_copy_clipboard (GTK_EDITABLE (entry));

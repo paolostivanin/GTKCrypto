@@ -2,7 +2,9 @@
 
 
 GtkWidget *
-create_dialog (GtkWidget *main_window, const gchar *widget_name, const gchar *title)
+create_dialog (GtkWidget    *main_window,
+               const gchar  *widget_name,
+               const gchar  *title)
 {
     static GtkWidget *dialog = NULL;
     dialog = gtk_dialog_new ();
@@ -19,7 +21,8 @@ create_dialog (GtkWidget *main_window, const gchar *widget_name, const gchar *ti
 
 
 GtkWidget *
-create_header_bar (GtkWidget *dialog, const gchar *title)
+create_header_bar (GtkWidget    *dialog,
+                   const gchar  *title)
 {
     static GtkWidget *header_bar = NULL;
     header_bar = gtk_header_bar_new();
@@ -33,7 +36,8 @@ create_header_bar (GtkWidget *dialog, const gchar *title)
 
 
 void
-set_label_message (GtkWidget *message_label, const gchar *message)
+set_label_message (GtkWidget    *message_label,
+                   const gchar  *message)
 {
     gtk_label_set_markup (GTK_LABEL (message_label), message);
 }

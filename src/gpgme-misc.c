@@ -203,7 +203,7 @@ get_available_keys ()
 
 
 gpointer
-verify_signature (const gchar *detached_signature_path, const gchar *signed_file_path)
+verify_signature (const gchar *signed_file_path, const gchar *detached_signature_path)
 {
     init_gpgme ();
     gpgme_ctx_t ctx;
@@ -234,10 +234,17 @@ verify_signature (const gchar *detached_signature_path, const gchar *signed_file
     }
 
     FILE *sig_fp = g_fopen (detached_signature_path, "r");
-    FILE *sig_data_fp = g_fopen (signed_file_path, "r");
-    if (sig_fp == NULL || sig_data_fp == NULL) {
-        g_printerr ("Couldn't open input file\n");
+    if (sig_fp == NULL) {
+        g_printerr ("Couldn't open detached signature file\n");
         gpgme_release (ctx);
+        return FILE_OPEN_ERROR;
+    }
+
+    FILE *sig_data_fp = g_fopen (signed_file_path, "r");
+    if (sig_data_fp == NULL) {
+        g_printerr ("Couldn't open signed file\n");
+        gpgme_release (ctx);
+        fclose (sig_fp);
         return FILE_OPEN_ERROR;
     }
 
