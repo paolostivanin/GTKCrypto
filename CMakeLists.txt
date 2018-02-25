@@ -58,7 +58,6 @@ set(HEADER_FILES
 set(SOURCE_FILES
         src/main.c
         src/message-dialog.c
-        src/add-boxes-grid.c
         src/compare-file-hash-cb.c
         src/compute-hash-cb.c
         src/choose-file.c
