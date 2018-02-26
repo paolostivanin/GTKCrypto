@@ -41,6 +41,7 @@
             <child>
               <object class="GtkRadioButton" id="aes_rbtn">
                 <property name="label" translatable="yes">AES256</property>
+                <property name="name">aes256_rbtn_widget</property>
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
                 <property name="receives_default">False</property>
@@ -56,6 +57,7 @@
             <child>
               <object class="GtkRadioButton" id="twofish_rbtn">
                 <property name="label" translatable="yes">Twofish</property>
+                <property name="name">twofish_rbtn_widget</property>
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
                 <property name="receives_default">False</property>
@@ -71,6 +73,7 @@
             <child>
               <object class="GtkRadioButton" id="serpent_rbtn">
                 <property name="label" translatable="yes">Serpent</property>
+                <property name="name">serpent_rbtn_widget</property>
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
                 <property name="receives_default">False</property>
@@ -86,6 +89,7 @@
             <child>
               <object class="GtkRadioButton" id="camellia_rbtn">
                 <property name="label" translatable="yes">Camellia</property>
+                <property name="name">camellia_rbtn_widget</property>
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
                 <property name="receives_default">False</property>
@@ -149,6 +153,7 @@
             <child>
               <object class="GtkRadioButton" id="ctr_rbtn">
                 <property name="label" translatable="yes">CTR</property>
+                <property name="name">ctr_rbtn_widget</property>
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
                 <property name="receives_default">False</property>
@@ -164,6 +169,7 @@
             <child>
               <object class="GtkRadioButton" id="cbc_rbtn">
                 <property name="label" translatable="yes">CBC</property>
+                <property name="name">cbc_rbtn_widget</property>
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
                 <property name="receives_default">False</property>
@@ -815,6 +821,39 @@ Please note that the password &lt;b&gt;can't&lt;/b&gt; be recovered.</property>
                 <property name="position">1</property>
               </packing>
             </child>
+            <child>
+              <object class="GtkBox">
+                <property name="visible">True</property>
+                <property name="can_focus">False</property>
+                <child>
+                  <object class="GtkLabel" id="enc_label">
+                    <property name="visible">True</property>
+                    <property name="can_focus">False</property>
+                  </object>
+                  <packing>
+                    <property name="expand">True</property>
+                    <property name="fill">True</property>
+                    <property name="position">0</property>
+                  </packing>
+                </child>
+                <child>
+                  <object class="GtkSpinner" id="enc_spinner">
+                    <property name="visible">True</property>
+                    <property name="can_focus">False</property>
+                  </object>
+                  <packing>
+                    <property name="expand">False</property>
+                    <property name="fill">True</property>
+                    <property name="position">1</property>
+                  </packing>
+                </child>
+              </object>
+              <packing>
+                <property name="expand">False</property>
+                <property name="fill">True</property>
+                <property name="position">2</property>
+              </packing>
+            </child>
           </object>
           <packing>
             <property name="expand">True</property>
@@ -831,7 +870,7 @@ Please note that the password &lt;b&gt;can't&lt;/b&gt; be recovered.</property>
         <property name="title">Encryption Password</property>
         <property name="has_subtitle">False</property>
         <child>
-          <object class="GtkMenuButton" id="menu_btn">
+          <object class="GtkMenuButton" id="enc_menu_btn">
             <property name="visible">True</property>
             <property name="can_focus">True</property>
             <property name="receives_default">True</property>

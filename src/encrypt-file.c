@@ -130,12 +130,8 @@ set_algo_and_mode (Metadata *header_metadata, const gchar *algo, const gchar *al
 {
     if (g_strcmp0 (algo, "AES256") == 0) {
         header_metadata->algo = GCRY_CIPHER_AES256;
-    } else if (g_strcmp0 (algo, "BLOWFISH") == 0) {
-        header_metadata->algo = GCRY_CIPHER_BLOWFISH;
     } else if (g_strcmp0 (algo, "CAMELLIA256") == 0) {
         header_metadata->algo = GCRY_CIPHER_CAMELLIA256;
-    } else if (g_strcmp0 (algo, "CAST5") == 0) {
-        header_metadata->algo = GCRY_CIPHER_CAST5;
     } else if (g_strcmp0 (algo, "SERPENT256") == 0) {
         header_metadata->algo = GCRY_CIPHER_SERPENT256;
     } else {

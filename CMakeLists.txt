@@ -48,7 +48,7 @@ set(HEADER_FILES
         src/common-widgets.h
         src/crypt-common.h
         src/decrypt-files-cb.h
-        src/encrypt-cb-ui.h
+        src/encrypt-files-cb.h
         src/gpgme-misc.h
         src/gtkcrypto.h
         src/hash.h
@@ -77,7 +77,6 @@ set(SOURCE_FILES
         src/gpgme-misc.c
         src/sign-file-cb.c
         src/verify-signature-cb.c
-        src/encrypt-cb-ui.c
         src/encrypt-files-cb.c
         src/app.c)
 
