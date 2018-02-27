@@ -57,38 +57,17 @@ decrypt_files_cb (GtkWidget *btn __attribute__((unused)),
         return;
     }
 
-    decrypt_widgets->dialog = create_dialog (decrypt_widgets->main_window, "dec_dialog", "Decrypt file");
-    decrypt_widgets->cancel_btn = gtk_button_new_with_label ("Cancel");
-    decrypt_widgets->ok_btn = gtk_button_new_with_label ("OK");
-    gtk_widget_set_size_request (decrypt_widgets->dialog, 600, -1);
-
-    decrypt_widgets->entry_pwd = gtk_entry_new ();
-    gtk_entry_set_placeholder_text (GTK_ENTRY (decrypt_widgets->entry_pwd), "Type password...");
-    gtk_entry_set_visibility (GTK_ENTRY (decrypt_widgets->entry_pwd), FALSE);
-    gtk_widget_set_hexpand (decrypt_widgets->entry_pwd, TRUE);
-
-    decrypt_widgets->ck_btn_delete = gtk_check_button_new_with_label ("Delete encrypted file");
-
-    decrypt_widgets->message_label = gtk_label_new ("");
-
-    decrypt_widgets->spinner = create_spinner ();
-
-    GtkWidget *grid = gtk_grid_new ();
-    gtk_grid_set_row_spacing (GTK_GRID (grid), 10);
-    gtk_grid_attach (GTK_GRID (grid), decrypt_widgets->entry_pwd, 0, 0, 2, 1);
-    gtk_grid_attach (GTK_GRID (grid), decrypt_widgets->ck_btn_delete, 0, 1, 2, 1);
-    gtk_grid_attach (GTK_GRID (grid), decrypt_widgets->message_label, 0, 2, 2, 1);
-    gtk_grid_attach_next_to (GTK_GRID (grid), decrypt_widgets->spinner, decrypt_widgets->message_label, GTK_POS_RIGHT, 1, 1);
-
-    GtkWidget *hbox = gtk_box_new (GTK_ORIENTATION_HORIZONTAL, 5);
-    gtk_box_pack_end (GTK_BOX(hbox), decrypt_widgets->ok_btn, TRUE, TRUE, 0);
-    gtk_box_pack_end (GTK_BOX(hbox), decrypt_widgets->cancel_btn, TRUE, TRUE, 0);
-    gtk_grid_attach (GTK_GRID (grid), hbox, 1, 4, 1, 1);
-
-    gtk_container_add (GTK_CONTAINER (gtk_dialog_get_content_area (GTK_DIALOG (decrypt_widgets->dialog))), grid);
+    GtkBuilder *builder = gtk_builder_new_from_file ("../src/ui/widgets.ui");
+    decrypt_widgets->dialog = GTK_WIDGET (gtk_builder_get_object (builder, "dec_pwd_diag"));
+    decrypt_widgets->ok_btn = GTK_WIDGET (gtk_builder_get_object (builder, "ok_btn_dec_pwd_diag"));
+    decrypt_widgets->cancel_btn = GTK_WIDGET (gtk_builder_get_object (builder, "cancel_btn_dec_pwd_diag"));
+    decrypt_widgets->entry_pwd = GTK_WIDGET (gtk_builder_get_object (builder, "dec_pwd_entry"));
+    decrypt_widgets->message_label = GTK_WIDGET (gtk_builder_get_object (builder, "dec_label"));
+    decrypt_widgets->spinner = GTK_WIDGET (gtk_builder_get_object (builder, "dec_spinner"));
+    decrypt_widgets->ck_btn_delete = GTK_WIDGET (gtk_builder_get_object (builder, "check_btn_delfile"));
+    g_object_unref (builder);
 
     gtk_widget_show_all (decrypt_widgets->dialog);
-
     gtk_widget_hide (decrypt_widgets->spinner);
 
     g_signal_connect (decrypt_widgets->entry_pwd, "activate", G_CALLBACK (prepare_multi_decryption_cb), decrypt_widgets);
@@ -156,7 +135,9 @@ exec_thread (gpointer data,
     g_mutex_unlock (&thread_data->mutex);
 
     // TODO log to file (filename OK, filename NOT OK, ecc) instead and display it at the end
-    decrypt_file (filename, thread_data->pwd);
+    if (decrypt_file (filename, thread_data->pwd) != NULL) {
+        // TODO deal with error
+    }
     if (thread_data->delete_file) {
         g_unlink (filename);
     }

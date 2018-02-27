@@ -128,17 +128,17 @@ encrypt_file (const gchar *input_file_path, const gchar *pwd, const gchar *algo,
 static void
 set_algo_and_mode (Metadata *header_metadata, const gchar *algo, const gchar *algo_mode)
 {
-    if (g_strcmp0 (algo, "AES256") == 0) {
+    if (g_strcmp0 (algo, "aes_rbtn_widget") == 0) {
         header_metadata->algo = GCRY_CIPHER_AES256;
-    } else if (g_strcmp0 (algo, "CAMELLIA256") == 0) {
+    } else if (g_strcmp0 (algo, "camellia_rbtn_widget") == 0) {
         header_metadata->algo = GCRY_CIPHER_CAMELLIA256;
-    } else if (g_strcmp0 (algo, "SERPENT256") == 0) {
+    } else if (g_strcmp0 (algo, "serpent_rbtn_widget") == 0) {
         header_metadata->algo = GCRY_CIPHER_SERPENT256;
     } else {
         header_metadata->algo = GCRY_CIPHER_TWOFISH;
     }
 
-    if (g_strcmp0 (algo_mode, "CBC") == 0) {
+    if (g_strcmp0 (algo_mode, "cbc_rbtn_widget") == 0) {
         header_metadata->algo_mode = GCRY_CIPHER_MODE_CBC;
     } else {
         header_metadata->algo_mode = GCRY_CIPHER_MODE_CTR;
@@ -172,8 +172,8 @@ encrypt_using_cbc_mode (Metadata *header_metadata, gcry_cipher_hd_t *hd, goffset
     guchar padding[16] = {0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F};
     header_metadata->padding_value = padding[num_of_padding_bytes];
 
-    guchar *buffer = g_try_malloc0 ((gsize)(file_size < FILE_BUFFER ? file_size : FILE_BUFFER));
-    guchar *enc_buffer = g_try_malloc0 ((gsize)(file_size < FILE_BUFFER ? file_size : FILE_BUFFER));
+    guchar *buffer = g_try_malloc0 ((gsize)(file_size < FILE_BUFFER ? (num_of_blocks * block_length) : FILE_BUFFER));
+    guchar *enc_buffer = g_try_malloc0 ((gsize)(file_size < FILE_BUFFER ? (num_of_blocks * block_length) : FILE_BUFFER));
     if (buffer == NULL || enc_buffer == NULL) {
         return g_strdup ("Couldn't allocate memory");
     }
@@ -199,7 +199,8 @@ encrypt_using_cbc_mode (Metadata *header_metadata, gcry_cipher_hd_t *hd, goffset
                 buffer[j] = header_metadata->padding_value;
                 j++;
             }
-            done_blocks += ((read_len + num_of_padding_bytes) / block_length);
+            read_len += num_of_padding_bytes;
+            done_blocks += (read_len / block_length);
         }
         if (read_len == -1) {
             multiple_free (2, (gpointer) &buffer, (gpointer) &enc_buffer);
@@ -208,18 +209,18 @@ encrypt_using_cbc_mode (Metadata *header_metadata, gcry_cipher_hd_t *hd, goffset
             return err_msg;
         }
 
-        gsize num_of_bytes_to_encrypt = (gsize)(remaining_bytes < FILE_BUFFER ? remaining_bytes : FILE_BUFFER);
-        gcry_cipher_encrypt (*hd, enc_buffer, num_of_bytes_to_encrypt, buffer, num_of_bytes_to_encrypt);
-        if (g_output_stream_write (G_OUTPUT_STREAM (out_stream), enc_buffer, num_of_bytes_to_encrypt, NULL, &err) != num_of_bytes_to_encrypt) {
+        gcry_cipher_encrypt (*hd, enc_buffer, (gsize)read_len, buffer, (gsize)read_len);
+        if (g_output_stream_write (G_OUTPUT_STREAM (out_stream), enc_buffer, (gsize)read_len, NULL, &err) != read_len) {
             multiple_free (2, (gpointer) &buffer, (gpointer) &enc_buffer);
             return g_strdup ("Error while trying to write encrypted data to the output file");
         }
 
-        memset (buffer, 0, num_of_bytes_to_encrypt);
-        memset (enc_buffer, 0, num_of_bytes_to_encrypt);
+        memset (buffer, 0, (gsize)read_len);
+        memset (enc_buffer, 0, (gsize)read_len);
     }
 
-    multiple_free (2, (gpointer) &buffer, (gpointer) &enc_buffer);
+    g_free (buffer);
+    g_free (enc_buffer);
 
     return NULL;
 }
@@ -269,13 +270,14 @@ encrypt_using_ctr_mode (Metadata *header_metadata, gcry_cipher_hd_t *hd, goffset
             return err_msg;
         }
 
-        memset (buffer, 0, (gsize)(file_size < FILE_BUFFER ? file_size : FILE_BUFFER));
-        memset (enc_buffer, 0, (gsize)(file_size < FILE_BUFFER ? file_size : FILE_BUFFER));
+        memset (buffer, 0, (gsize)read_len);
+        memset (enc_buffer, 0, (gsize)read_len);
 
         done_size += read_len;
     }
 
-    multiple_free (2, (gpointer) &buffer, (gpointer) &enc_buffer);
+    g_free (buffer);
+    g_free (enc_buffer);
 
     return NULL;
 }

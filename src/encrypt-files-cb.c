@@ -170,7 +170,9 @@ exec_thread (gpointer data,
     g_mutex_unlock (&thread_data->mutex);
 
     // TODO log to file (filename OK, filename NOT OK, ecc) instead and display it at the end
-    encrypt_file (filename, thread_data->pwd, thread_data->algo_btn_name, thread_data->algo_mode_btn_name);
+    if (encrypt_file (filename, thread_data->pwd, thread_data->algo_btn_name, thread_data->algo_mode_btn_name) != NULL) {
+        // TODO deal with error
+    }
 
     g_mutex_lock (&thread_data->mutex);
     thread_data->widgets->running_threads--;
