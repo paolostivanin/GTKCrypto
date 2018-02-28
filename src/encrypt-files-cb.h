@@ -15,6 +15,8 @@ typedef struct encrypt_file_widgets_t {
     GSList    *files_list;
     GThreadPool *thread_pool;
     guint running_threads;
+    guint files_not_encrypted;
+    guint source_id;
     gboolean first_run;
 } EncryptWidgets;
 

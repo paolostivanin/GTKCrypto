@@ -16,6 +16,8 @@ typedef struct decrypt_file_widgets_t {
     GSList    *files_list;
     GThreadPool *thread_pool;
     guint running_threads;
+    guint files_not_decrypted;
+    guint source_id;
     gboolean first_run;
 } DecryptWidgets;
 
@@ -49,6 +51,7 @@ decrypt_files_cb (GtkWidget *btn __attribute__((unused)),
 
     decrypt_widgets->main_window = (GtkWidget *)user_data;
     decrypt_widgets->running_threads = 0;
+    decrypt_widgets->files_not_decrypted = 0;
     decrypt_widgets->first_run = TRUE;
 
     decrypt_widgets->files_list = choose_file (decrypt_widgets->main_window, "Choose file(s) to decrypt", TRUE);
@@ -74,7 +77,7 @@ decrypt_files_cb (GtkWidget *btn __attribute__((unused)),
     g_signal_connect (decrypt_widgets->ok_btn, "clicked", G_CALLBACK (prepare_multi_decryption_cb), decrypt_widgets);
     g_signal_connect (decrypt_widgets->cancel_btn, "clicked", G_CALLBACK (cancel_clicked_cb), decrypt_widgets);
 
-    g_timeout_add (500, check_tp, decrypt_widgets);
+    decrypt_widgets->source_id = g_timeout_add (500, check_tp, decrypt_widgets);
 
     gtk_dialog_run (GTK_DIALOG (decrypt_widgets->dialog));
 }
@@ -86,7 +89,11 @@ check_tp (gpointer data)
     DecryptWidgets *widgets = (DecryptWidgets *)data;
     if (widgets->running_threads == 0 && widgets->first_run == FALSE) {
         g_thread_pool_free (widgets->thread_pool, FALSE, TRUE);
-        show_message_dialog (widgets->main_window, "File(s) successfully decrypted.", GTK_MESSAGE_INFO);
+        guint list_len = g_slist_length (widgets->files_list);
+        // TODO show failed files
+        gchar *msg = g_strdup_printf ("%u/%u file(s) successfully decrypted.", list_len - widgets->files_not_decrypted, list_len);
+        show_message_dialog (widgets->main_window, msg, GTK_MESSAGE_INFO);
+        g_free (msg);
         cancel_clicked_cb (NULL, widgets);
         return FALSE;
     } else {
@@ -135,7 +142,11 @@ exec_thread (gpointer data,
     g_mutex_unlock (&thread_data->mutex);
 
     // TODO log to file (filename OK, filename NOT OK, ecc) instead and display it at the end
-    if (decrypt_file (filename, thread_data->pwd) != NULL) {
+    gpointer ret = decrypt_file (filename, thread_data->pwd);
+    if (ret != NULL) {
+        g_mutex_lock (&thread_data->mutex);
+        thread_data->widgets->files_not_decrypted++;
+        g_mutex_unlock (&thread_data->mutex);
         // TODO deal with error
     }
     if (thread_data->delete_file) {
@@ -154,6 +165,8 @@ cancel_clicked_cb (GtkWidget *btn __attribute__((unused)),
                    gpointer user_data)
 {
     DecryptWidgets *decrypt_widgets = user_data;
+
+    g_source_remove (decrypt_widgets->source_id);
 
     gtk_widget_destroy (decrypt_widgets->dialog);
 

@@ -24,6 +24,7 @@ encrypt_files_cb (GtkWidget *btn __attribute__((__unused__)),
 
     encrypt_widgets->main_window = (GtkWidget *)user_data;
     encrypt_widgets->running_threads = 0;
+    encrypt_widgets->files_not_encrypted = 0;
     encrypt_widgets->first_run = TRUE;
 
     encrypt_widgets->files_list = choose_file (encrypt_widgets->main_window, "Choose file(s) to encrypt", TRUE);
@@ -56,7 +57,7 @@ encrypt_files_cb (GtkWidget *btn __attribute__((__unused__)),
     g_signal_connect (encrypt_widgets->header_bar_menu, "toggled", G_CALLBACK (toggle_changed_cb), popover_menu);
     g_signal_connect_swapped (encrypt_widgets->dialog, "button-press-event", G_CALLBACK (toggle_active_cb), encrypt_widgets->header_bar_menu);
 
-    g_timeout_add (500, check_tp, encrypt_widgets);
+    encrypt_widgets->source_id = g_timeout_add (500, check_tp, encrypt_widgets);
 
     gtk_dialog_run (GTK_DIALOG (encrypt_widgets->dialog));
 }
@@ -68,7 +69,11 @@ check_tp (gpointer data)
     EncryptWidgets *widgets = (EncryptWidgets *)data;
     if (widgets->running_threads == 0 && widgets->first_run == FALSE) {
         g_thread_pool_free (widgets->thread_pool, FALSE, TRUE);
-        show_message_dialog (widgets->main_window, "File(s) successfully encrypted.", GTK_MESSAGE_INFO);
+        guint list_len = g_slist_length (widgets->files_list);
+        // TODO show failed files
+        gchar *msg = g_strdup_printf ("%u/%u file(s) successfully encrypted.", list_len - widgets->files_not_encrypted, list_len);
+        show_message_dialog (widgets->main_window, msg, GTK_MESSAGE_INFO);
+        g_free (msg);
         cancel_clicked_cb (NULL, widgets);
         return FALSE;
     } else {
@@ -170,7 +175,11 @@ exec_thread (gpointer data,
     g_mutex_unlock (&thread_data->mutex);
 
     // TODO log to file (filename OK, filename NOT OK, ecc) instead and display it at the end
-    if (encrypt_file (filename, thread_data->pwd, thread_data->algo_btn_name, thread_data->algo_mode_btn_name) != NULL) {
+    gpointer ret = encrypt_file (filename, thread_data->pwd, thread_data->algo_btn_name, thread_data->algo_mode_btn_name);
+    if (ret != NULL) {
+        g_mutex_lock (&thread_data->mutex);
+        thread_data->widgets->files_not_encrypted++;
+        g_mutex_unlock (&thread_data->mutex);
         // TODO deal with error
     }
 
@@ -186,6 +195,8 @@ cancel_clicked_cb (GtkWidget *btn __attribute__((__unused__)),
                    gpointer   user_data)
 {
     EncryptWidgets *encrypt_widgets = user_data;
+
+    g_source_remove (encrypt_widgets->source_id);
 
     gtk_widget_destroy (encrypt_widgets->dialog);
 
