@@ -1,38 +1,7 @@
 #include <gtk/gtk.h>
 #include <glib/gstdio.h>
 #include "gtkcrypto.h"
-#include "common-widgets.h"
 #include "decrypt-files-cb.h"
-
-typedef struct decrypt_file_widgets_t {
-    GtkWidget *main_window;
-    GtkWidget *dialog;
-    GtkWidget *entry_pwd;
-    GtkWidget *ck_btn_delete;
-    GtkWidget *cancel_btn;
-    GtkWidget *ok_btn;
-    GtkWidget *spinner;
-    GtkWidget *message_label;
-    GSList    *files_list;
-    GThreadPool *thread_pool;
-    guint running_threads;
-    guint files_not_decrypted;
-    guint source_id;
-    gboolean first_run;
-} DecryptWidgets;
-
-typedef struct dec_thread_data_t {
-    GMutex mutex;
-    GtkWidget *dialog;
-    GtkWidget *spinner;
-    guint list_len;
-    const gchar *pwd;
-    gboolean delete_file;
-    DecryptWidgets *widgets;
-} ThreadData;
-
-static void     cancel_clicked_cb           (GtkWidget *btn,
-                                             gpointer   user_data);
 
 static gboolean check_tp                    (gpointer data);
 
@@ -41,6 +10,9 @@ static void     prepare_multi_decryption_cb (GtkWidget      *widget,
 
 static void     exec_thread                 (gpointer data,
                                              gpointer user_data);
+
+static void     cancel_clicked_cb           (GtkWidget *btn,
+                                             gpointer   user_data);
 
 
 void
@@ -60,7 +32,7 @@ decrypt_files_cb (GtkWidget *btn __attribute__((unused)),
         return;
     }
 
-    GtkBuilder *builder = gtk_builder_new_from_file ("../src/ui/widgets.ui");
+    GtkBuilder *builder = gtk_builder_new_from_file (PATH_TO_UI_FILE);
     decrypt_widgets->dialog = GTK_WIDGET (gtk_builder_get_object (builder, "dec_pwd_diag"));
     decrypt_widgets->ok_btn = GTK_WIDGET (gtk_builder_get_object (builder, "ok_btn_dec_pwd_diag"));
     decrypt_widgets->cancel_btn = GTK_WIDGET (gtk_builder_get_object (builder, "cancel_btn_dec_pwd_diag"));
@@ -141,7 +113,6 @@ exec_thread (gpointer data,
     thread_data->widgets->running_threads++;
     g_mutex_unlock (&thread_data->mutex);
 
-    // TODO log to file (filename OK, filename NOT OK, ecc) instead and display it at the end
     gpointer ret = decrypt_file (filename, thread_data->pwd);
     if (ret != NULL) {
         g_mutex_lock (&thread_data->mutex);

@@ -11,7 +11,7 @@ activate (GtkApplication *app,
           gpointer        user_data __attribute__((unused)))
 {
     // TODO change me
-    GtkBuilder *builder = gtk_builder_new_from_file ("../src/ui/widgets.ui");
+    GtkBuilder *builder = gtk_builder_new_from_file (PATH_TO_UI_FILE);
 
     GtkWidget *main_window = get_main_window (builder);
     gtk_application_add_window (GTK_APPLICATION (app), GTK_WINDOW (main_window));

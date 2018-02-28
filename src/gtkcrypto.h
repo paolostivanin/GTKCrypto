@@ -1,5 +1,7 @@
 #pragma once
 
+#define PATH_TO_UI_FILE "../src/ui/widgets.ui"
+
 void       show_message_dialog          (GtkWidget *parent, const gchar *message, GtkMessageType);
 
 GSList    *choose_file                  (GtkWidget *parent, const gchar *title, gboolean select_multiple);

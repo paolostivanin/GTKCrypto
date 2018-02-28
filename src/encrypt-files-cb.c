@@ -3,17 +3,24 @@
 #include "encrypt-files-cb.h"
 #include "common-callbacks.h"
 
-static gboolean check_tp (gpointer data);
+static gboolean check_tp                    (gpointer data);
 
-static void entry_activated_cb (GtkWidget *entry, gpointer user_data);
+static void     entry_activated_cb          (GtkWidget *entry,
+                                             gpointer   user_data);
 
-static gboolean check_pwd (GtkWidget *main_window, GtkWidget *entry, GtkWidget *retype_entry);
+static gboolean check_pwd                   (GtkWidget *main_window,
+                                             GtkWidget *entry,
+                                             GtkWidget *retype_entry);
 
-static void prepare_multi_encryption (const gchar *algo, const gchar *algo_mode, EncryptWidgets *);
+static void     prepare_multi_encryption    (const gchar    *algo,
+                                             const gchar    *algo_mode,
+                                             EncryptWidgets *data);
 
-static void exec_thread (gpointer data, gpointer user_data);
+static void     exec_thread                 (gpointer data,
+                                             gpointer user_data);
 
-static void cancel_clicked_cb (GtkWidget *, gpointer);
+static void     cancel_clicked_cb           (GtkWidget *btn,
+                                             gpointer   user_data);
 
 
 void
@@ -33,7 +40,7 @@ encrypt_files_cb (GtkWidget *btn __attribute__((__unused__)),
         return;
     }
 
-    GtkBuilder *builder = gtk_builder_new_from_file ("../src/ui/widgets.ui");
+    GtkBuilder *builder = gtk_builder_new_from_file (PATH_TO_UI_FILE);
     encrypt_widgets->dialog = GTK_WIDGET (gtk_builder_get_object (builder, "enc_pwd_diag"));
     encrypt_widgets->ok_btn = GTK_WIDGET (gtk_builder_get_object (builder, "ok_btn_pwd_diag"));
     encrypt_widgets->cancel_btn = GTK_WIDGET (gtk_builder_get_object (builder, "cancel_btn_pwd_diag"));
@@ -174,7 +181,6 @@ exec_thread (gpointer data,
     thread_data->widgets->running_threads++;
     g_mutex_unlock (&thread_data->mutex);
 
-    // TODO log to file (filename OK, filename NOT OK, ecc) instead and display it at the end
     gpointer ret = encrypt_file (filename, thread_data->pwd, thread_data->algo_btn_name, thread_data->algo_mode_btn_name);
     if (ret != NULL) {
         g_mutex_lock (&thread_data->mutex);

@@ -11,13 +11,15 @@
 
 
 gchar *
-get_file_hash (const gchar *filename, gint hash_algo, gint digest_size)
+get_file_hash (const gchar *filename,
+               gint         hash_algo,
+               gint         digest_size)
 {
     const gchar *name = gcry_md_algo_name (hash_algo);
     gint algo = gcry_md_map_name (name);
 
     gcry_md_hd_t hd;
-    gcry_md_open(&hd, algo, 0);
+    gcry_md_open (&hd, algo, 0);
 
     gpointer status = compute_hash (&hd, filename);
     if (status == MAP_FAILED) {
@@ -35,7 +37,8 @@ get_file_hash (const gchar *filename, gint hash_algo, gint digest_size)
 
 
 gpointer
-compute_hash (gcry_md_hd_t *hd, const gchar *filename)
+compute_hash (gcry_md_hd_t  *hd,
+              const gchar   *filename)
 {
     guint8 *addr;
     gint ret_val = 0;
@@ -104,10 +107,12 @@ compute_hash (gcry_md_hd_t *hd, const gchar *filename)
 
 
 gchar *
-finalize_hash (gcry_md_hd_t *hd, gint algo, gint digest_size)
+finalize_hash (gcry_md_hd_t *hd,
+               gint          algo,
+               gint          digest_size)
 {
     gcry_md_final (*hd);
-    gchar *finalized_hash = g_malloc ((gsize) digest_size * 2 + 1);
+    gchar *finalized_hash = g_malloc0 ((gsize) digest_size * 2 + 1);
     guchar *hash = gcry_md_read (*hd, algo);
 
     for (gint i = 0; i < digest_size; i++) {

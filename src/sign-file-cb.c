@@ -26,11 +26,14 @@ typedef struct sign_thread_data_t {
     const gchar *key_fingerprint;
 } ThreadData;
 
-static void cancel_clicked_cb (GtkWidget *button, gpointer user_data);
 
-static void prepare_signing_cb (GtkWidget *button, gpointer user_data);
+static void     prepare_signing_cb  (GtkWidget *btn,
+                                     gpointer   user_data);
 
-static gpointer exec_thread (gpointer user_data);
+static gpointer exec_thread         (gpointer   user_data);
+
+static void     cancel_clicked_cb   (GtkWidget *btn,
+                                     gpointer   user_data);
 
 
 void
@@ -41,6 +44,7 @@ sign_file_cb (GtkWidget *btn __attribute__((__unused__)),
     sign_file_widgets->sign_thread = NULL;
 
     sign_file_widgets->main_window = user_data;
+    // TODO multiple files sign
     GSList *list = choose_file (sign_file_widgets->main_window, "Choose File", FALSE);
     sign_file_widgets->filename = get_filename_from_list (list);
     if (sign_file_widgets->filename == NULL) {
@@ -136,8 +140,8 @@ sign_file_cb (GtkWidget *btn __attribute__((__unused__)),
 
 
 static void
-cancel_clicked_cb (GtkWidget *btn __attribute__((__unused__)),
-                   gpointer user_data)
+cancel_clicked_cb (GtkWidget *btn __attribute__((unused)),
+                   gpointer   user_data)
 {
     SignFileWidgets *data = user_data;
 
@@ -151,8 +155,8 @@ cancel_clicked_cb (GtkWidget *btn __attribute__((__unused__)),
 
 
 static void
-prepare_signing_cb (GtkWidget *w __attribute__((__unused__)),
-                       gpointer user_data)
+prepare_signing_cb (GtkWidget *btn __attribute__((unused)),
+                    gpointer   user_data)
 {
     SignFileWidgets *data = user_data;
     ThreadData *thread_data = g_new0 (ThreadData, 1);
