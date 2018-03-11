@@ -1,7 +1,201 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- Generated with glade 3.20.2 -->
+<!-- Generated with glade 3.20.3 -->
 <interface>
   <requires lib="gtk+" version="3.20"/>
+  <object class="GtkPopoverMenu" id="enc_popmenu">
+    <property name="can_focus">False</property>
+    <child>
+      <object class="GtkBox">
+        <property name="visible">True</property>
+        <property name="can_focus">False</property>
+        <property name="spacing">2</property>
+        <child>
+          <object class="GtkBox">
+            <property name="visible">True</property>
+            <property name="can_focus">False</property>
+            <property name="orientation">vertical</property>
+            <child>
+              <object class="GtkLabel">
+                <property name="visible">True</property>
+                <property name="can_focus">False</property>
+                <property name="label" translatable="yes">Cipher</property>
+                <property name="justify">center</property>
+              </object>
+              <packing>
+                <property name="expand">False</property>
+                <property name="fill">True</property>
+                <property name="position">0</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkSeparator">
+                <property name="visible">True</property>
+                <property name="can_focus">False</property>
+              </object>
+              <packing>
+                <property name="expand">False</property>
+                <property name="fill">True</property>
+                <property name="position">1</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkRadioButton" id="aes_rbtn">
+                <property name="label" translatable="yes">AES256</property>
+                <property name="name">aes_rbtn_widget</property>
+                <property name="visible">True</property>
+                <property name="can_focus">True</property>
+                <property name="receives_default">False</property>
+                <property name="active">True</property>
+                <property name="draw_indicator">True</property>
+              </object>
+              <packing>
+                <property name="expand">False</property>
+                <property name="fill">True</property>
+                <property name="position">2</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkRadioButton" id="twofish_rbtn">
+                <property name="label" translatable="yes">Twofish</property>
+                <property name="name">twofish_rbtn_widget</property>
+                <property name="visible">True</property>
+                <property name="can_focus">True</property>
+                <property name="receives_default">False</property>
+                <property name="draw_indicator">True</property>
+                <property name="group">aes_rbtn</property>
+              </object>
+              <packing>
+                <property name="expand">False</property>
+                <property name="fill">True</property>
+                <property name="position">3</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkRadioButton" id="serpent_rbtn">
+                <property name="label" translatable="yes">Serpent</property>
+                <property name="name">serpent_rbtn_widget</property>
+                <property name="visible">True</property>
+                <property name="can_focus">True</property>
+                <property name="receives_default">False</property>
+                <property name="draw_indicator">True</property>
+                <property name="group">aes_rbtn</property>
+              </object>
+              <packing>
+                <property name="expand">False</property>
+                <property name="fill">True</property>
+                <property name="position">4</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkRadioButton" id="camellia_rbtn">
+                <property name="label" translatable="yes">Camellia</property>
+                <property name="name">camellia_rbtn_widget</property>
+                <property name="visible">True</property>
+                <property name="can_focus">True</property>
+                <property name="receives_default">False</property>
+                <property name="draw_indicator">True</property>
+                <property name="group">aes_rbtn</property>
+              </object>
+              <packing>
+                <property name="expand">False</property>
+                <property name="fill">True</property>
+                <property name="position">5</property>
+              </packing>
+            </child>
+          </object>
+          <packing>
+            <property name="expand">True</property>
+            <property name="fill">True</property>
+            <property name="position">0</property>
+          </packing>
+        </child>
+        <child>
+          <object class="GtkSeparator">
+            <property name="visible">True</property>
+            <property name="can_focus">False</property>
+            <property name="orientation">vertical</property>
+          </object>
+          <packing>
+            <property name="expand">False</property>
+            <property name="fill">True</property>
+            <property name="position">1</property>
+          </packing>
+        </child>
+        <child>
+          <object class="GtkBox">
+            <property name="visible">True</property>
+            <property name="can_focus">False</property>
+            <property name="orientation">vertical</property>
+            <child>
+              <object class="GtkLabel">
+                <property name="visible">True</property>
+                <property name="can_focus">False</property>
+                <property name="label" translatable="yes">Mode</property>
+                <property name="justify">center</property>
+              </object>
+              <packing>
+                <property name="expand">False</property>
+                <property name="fill">True</property>
+                <property name="position">0</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkSeparator">
+                <property name="visible">True</property>
+                <property name="can_focus">False</property>
+              </object>
+              <packing>
+                <property name="expand">False</property>
+                <property name="fill">True</property>
+                <property name="position">1</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkRadioButton" id="ctr_rbtn">
+                <property name="label" translatable="yes">CTR</property>
+                <property name="name">ctr_rbtn_widget</property>
+                <property name="visible">True</property>
+                <property name="can_focus">True</property>
+                <property name="receives_default">False</property>
+                <property name="active">True</property>
+                <property name="draw_indicator">True</property>
+              </object>
+              <packing>
+                <property name="expand">False</property>
+                <property name="fill">True</property>
+                <property name="position">2</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkRadioButton" id="cbc_rbtn">
+                <property name="label" translatable="yes">CBC</property>
+                <property name="name">cbc_rbtn_widget</property>
+                <property name="visible">True</property>
+                <property name="can_focus">True</property>
+                <property name="receives_default">False</property>
+                <property name="draw_indicator">True</property>
+                <property name="group">ctr_rbtn</property>
+              </object>
+              <packing>
+                <property name="expand">False</property>
+                <property name="fill">True</property>
+                <property name="position">3</property>
+              </packing>
+            </child>
+          </object>
+          <packing>
+            <property name="expand">False</property>
+            <property name="fill">True</property>
+            <property name="position">2</property>
+          </packing>
+        </child>
+      </object>
+      <packing>
+        <property name="submenu">main</property>
+        <property name="position">1</property>
+      </packing>
+    </child>
+  </object>
   <object class="GtkApplicationWindow" id="mainwin">
     <property name="can_focus">False</property>
     <property name="border_width">10</property>
@@ -18,7 +212,7 @@
         <property name="spacing">4</property>
         <property name="homogeneous">True</property>
         <child>
-          <object class="GtkButton" id="encfile1">
+          <object class="GtkButton" id="encfile_btn">
             <property name="label" translatable="yes">Encrypt File</property>
             <property name="visible">True</property>
             <property name="can_focus">True</property>
@@ -31,7 +225,7 @@
           </packing>
         </child>
         <child>
-          <object class="GtkButton" id="decfile1">
+          <object class="GtkButton" id="decfile_btn">
             <property name="label" translatable="yes">Decrypt File</property>
             <property name="visible">True</property>
             <property name="can_focus">True</property>
@@ -44,7 +238,7 @@
           </packing>
         </child>
         <child>
-          <object class="GtkButton" id="sigfl1">
+          <object class="GtkButton" id="sigfile_btn">
             <property name="label" translatable="yes">Sign File</property>
             <property name="visible">True</property>
             <property name="can_focus">True</property>
@@ -57,7 +251,7 @@
           </packing>
         </child>
         <child>
-          <object class="GtkButton" id="versigfl1">
+          <object class="GtkButton" id="versig_btn">
             <property name="label" translatable="yes">Verify Signature</property>
             <property name="visible">True</property>
             <property name="can_focus">True</property>
@@ -70,9 +264,10 @@
           </packing>
         </child>
         <child>
-          <object class="GtkButton" id="enctxt1">
+          <object class="GtkButton" id="enctxt_btn">
             <property name="label" translatable="yes">Encrypt Text</property>
             <property name="visible">True</property>
+            <property name="sensitive">False</property>
             <property name="can_focus">True</property>
             <property name="receives_default">True</property>
           </object>
@@ -83,9 +278,10 @@
           </packing>
         </child>
         <child>
-          <object class="GtkButton" id="dectxt1">
+          <object class="GtkButton" id="dectxt_btn">
             <property name="label" translatable="yes">Decrypt Text</property>
             <property name="visible">True</property>
+            <property name="sensitive">False</property>
             <property name="can_focus">True</property>
             <property name="receives_default">True</property>
           </object>
@@ -96,7 +292,7 @@
           </packing>
         </child>
         <child>
-          <object class="GtkButton" id="chash1">
+          <object class="GtkButton" id="chash_btn">
             <property name="label" translatable="yes">Compute Hash</property>
             <property name="visible">True</property>
             <property name="can_focus">True</property>
@@ -109,7 +305,7 @@
           </packing>
         </child>
         <child>
-          <object class="GtkButton" id="cmphash1">
+          <object class="GtkButton" id="cmphash_btn">
             <property name="label" translatable="yes">Compare Hash</property>
             <property name="visible">True</property>
             <property name="can_focus">True</property>
@@ -123,8 +319,16 @@
         </child>
       </object>
     </child>
-    <child>
-      <placeholder/>
+    <child type="titlebar">
+      <object class="GtkHeaderBar" id="main_hb">
+        <property name="visible">True</property>
+        <property name="can_focus">False</property>
+        <property name="has_subtitle">False</property>
+        <property name="show_close_button">True</property>
+        <child>
+          <placeholder/>
+        </child>
+      </object>
     </child>
   </object>
   <object class="GtkDialog" id="comp_hash_diag">
@@ -288,7 +492,6 @@
                 <property name="can_focus">True</property>
                 <property name="hexpand">True</property>
                 <property name="editable">False</property>
-                <property name="text" translatable="yes">asd00lol</property>
                 <property name="secondary_icon_name">edit-copy-symbolic</property>
               </object>
               <packing>
@@ -393,7 +596,7 @@
               </packing>
             </child>
             <child>
-              <object class="GtkEntry" id="whilr_entry">
+              <object class="GtkEntry" id="whirl_entry">
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
                 <property name="editable">False</property>
@@ -501,6 +704,53 @@
                 <property name="expand">False</property>
                 <property name="fill">True</property>
                 <property name="position">0</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkCheckButton" id="check_btn_delfile">
+                <property name="label" translatable="yes">Delete encrypted file</property>
+                <property name="visible">True</property>
+                <property name="can_focus">True</property>
+                <property name="receives_default">False</property>
+                <property name="draw_indicator">True</property>
+              </object>
+              <packing>
+                <property name="expand">False</property>
+                <property name="fill">True</property>
+                <property name="position">1</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkBox">
+                <property name="visible">True</property>
+                <property name="can_focus">False</property>
+                <child>
+                  <object class="GtkLabel" id="dec_label">
+                    <property name="visible">True</property>
+                    <property name="can_focus">False</property>
+                  </object>
+                  <packing>
+                    <property name="expand">True</property>
+                    <property name="fill">True</property>
+                    <property name="position">0</property>
+                  </packing>
+                </child>
+                <child>
+                  <object class="GtkSpinner" id="dec_spinner">
+                    <property name="visible">True</property>
+                    <property name="can_focus">False</property>
+                  </object>
+                  <packing>
+                    <property name="expand">False</property>
+                    <property name="fill">True</property>
+                    <property name="position">1</property>
+                  </packing>
+                </child>
+              </object>
+              <packing>
+                <property name="expand">False</property>
+                <property name="fill">True</property>
+                <property name="position">2</property>
               </packing>
             </child>
           </object>
@@ -618,6 +868,39 @@ Please note that the password &lt;b&gt;can't&lt;/b&gt; be recovered.</property>
                 <property name="position">1</property>
               </packing>
             </child>
+            <child>
+              <object class="GtkBox">
+                <property name="visible">True</property>
+                <property name="can_focus">False</property>
+                <child>
+                  <object class="GtkLabel" id="enc_label">
+                    <property name="visible">True</property>
+                    <property name="can_focus">False</property>
+                  </object>
+                  <packing>
+                    <property name="expand">True</property>
+                    <property name="fill">True</property>
+                    <property name="position">0</property>
+                  </packing>
+                </child>
+                <child>
+                  <object class="GtkSpinner" id="enc_spinner">
+                    <property name="visible">True</property>
+                    <property name="can_focus">False</property>
+                  </object>
+                  <packing>
+                    <property name="expand">False</property>
+                    <property name="fill">True</property>
+                    <property name="position">1</property>
+                  </packing>
+                </child>
+              </object>
+              <packing>
+                <property name="expand">False</property>
+                <property name="fill">True</property>
+                <property name="position">2</property>
+              </packing>
+            </child>
           </object>
           <packing>
             <property name="expand">True</property>
@@ -634,10 +917,11 @@ Please note that the password &lt;b&gt;can't&lt;/b&gt; be recovered.</property>
         <property name="title">Encryption Password</property>
         <property name="has_subtitle">False</property>
         <child>
-          <object class="GtkMenuButton" id="menu_btn">
+          <object class="GtkMenuButton" id="enc_menu_btn">
             <property name="visible">True</property>
             <property name="can_focus">True</property>
             <property name="receives_default">True</property>
+            <property name="popover">enc_popmenu</property>
             <child>
               <placeholder/>
             </child>

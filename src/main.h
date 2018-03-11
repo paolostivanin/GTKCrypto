@@ -8,8 +8,6 @@
 
 void        activate                (GtkApplication *app, gpointer user_data);
 
-void        add_boxes_and_grid      (GtkWidget *main_window);
-
 void        compare_files_hash_cb   (GtkWidget *button, gpointer user_data);
 
 void        compute_hash_cb         (GtkWidget *button, gpointer user_data);

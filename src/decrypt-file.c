@@ -4,6 +4,7 @@
 #include "gtkcrypto.h"
 #include "hash.h"
 #include "crypt-common.h"
+#include "cleanup.h"
 
 
 static GFile    *get_g_file_with_encrypted_data (GFileInputStream  *in_stream,
@@ -40,6 +41,9 @@ decrypt_file (const gchar *input_file_path,
     if (err != NULL) {
         err_msg = g_strdup (err->message);
         g_clear_error (&err);
+        g_object_unref (in_file);
+        g_input_stream_close (G_INPUT_STREAM (in_stream), NULL, NULL);
+        g_object_unref (in_stream);
         return err_msg;
     }
 
@@ -47,8 +51,7 @@ decrypt_file (const gchar *input_file_path,
     if (!g_str_has_suffix (input_file_path, ".enc")) {
         g_printerr ("The selected file may not be encrypted\n");
         output_file_path = g_strconcat (input_file_path, ".decrypted", NULL);
-    }
-    else {
+    } else {
         output_file_path = g_strndup (input_file_path, (gsize) g_utf8_strlen (input_file_path, -1) - 4); // remove .enc
     }
     GFile *out_file = g_file_new_for_path (output_file_path);
@@ -56,6 +59,9 @@ decrypt_file (const gchar *input_file_path,
     if (err != NULL) {
         err_msg = g_strdup (err->message);
         g_clear_error (&err);
+        gfile_cleanup (in_file, out_file);
+        gstream_cleanup (in_stream, out_stream);
+        g_free (output_file_path);
         return err_msg;
     }
 
@@ -66,37 +72,67 @@ decrypt_file (const gchar *input_file_path,
     if (rw_len == -1) {
         err_msg = g_strdup (err->message);
         g_clear_error (&err);
+        crypto_keys_cleanup (decryption_keys);
+        gfile_cleanup (in_file, out_file);
+        gstream_cleanup (in_stream, out_stream);
+        data_cleanup (header_metadata, output_file_path, NULL);
         return err_msg;
     }
 
-    guchar *original_hmac = g_malloc (SHA512_DIGEST_SIZE);
+    guchar *original_hmac = g_malloc0 (SHA512_DIGEST_SIZE);
     if (!g_seekable_seek (G_SEEKABLE (in_stream), file_size - SHA512_DIGEST_SIZE, G_SEEK_SET, NULL, &err)) {
         err_msg = g_strdup (err->message);
         g_clear_error (&err);
+        crypto_keys_cleanup (decryption_keys);
+        gfile_cleanup (in_file, out_file);
+        gstream_cleanup (in_stream, out_stream);
+        data_cleanup (header_metadata, output_file_path, original_hmac);
         return err_msg;
     }
     rw_len = g_input_stream_read (G_INPUT_STREAM (in_stream), original_hmac, SHA512_DIGEST_SIZE, NULL, &err);
     if (rw_len == -1) {
         err_msg = g_strdup (err->message);
         g_clear_error (&err);
+        crypto_keys_cleanup (decryption_keys);
+        gfile_cleanup (in_file, out_file);
+        gstream_cleanup (in_stream, out_stream);
+        data_cleanup (header_metadata, output_file_path, original_hmac);
         return err_msg;
     }
 
     if (!g_seekable_seek (G_SEEKABLE (in_stream), 0, G_SEEK_SET, NULL, &err)) {
         err_msg = g_strdup (err->message);
         g_clear_error (&err);
+        crypto_keys_cleanup (decryption_keys);
+        gfile_cleanup (in_file, out_file);
+        gstream_cleanup (in_stream, out_stream);
+        data_cleanup (header_metadata, output_file_path, original_hmac);
         return err_msg;
     }
     GFile *file_encrypted_data = get_g_file_with_encrypted_data (in_stream, file_size);
     if (file_encrypted_data == NULL) {
+        crypto_keys_cleanup (decryption_keys);
+        gfile_cleanup (in_file, out_file);
+        gstream_cleanup (in_stream, out_stream);
+        data_cleanup (header_metadata, output_file_path, original_hmac);
         return g_strdup ("Couldn't get the encrypted data from the file.");
     }
 
     if (!setup_keys (pwd, gcry_cipher_get_algo_keylen (header_metadata->algo), header_metadata, decryption_keys)) {
+        g_object_unref (file_encrypted_data);
+        crypto_keys_cleanup (decryption_keys);
+        gfile_cleanup (in_file, out_file);
+        gstream_cleanup (in_stream, out_stream);
+        data_cleanup (header_metadata, output_file_path, original_hmac);
         return g_strdup ("Error during key derivation or during memory allocation.");
     }
 
     if (!compare_hmac (decryption_keys->hmac_key, original_hmac, file_encrypted_data)) {
+        g_object_unref (file_encrypted_data);
+        crypto_keys_cleanup (decryption_keys);
+        gfile_cleanup (in_file, out_file);
+        gstream_cleanup (in_stream, out_stream);
+        data_cleanup (header_metadata, output_file_path, original_hmac);
         return g_strdup ("HMAC differs from the one stored inside the file.\nEither the password is wrong or the file has been corrupted.");
     }
 
@@ -106,23 +142,12 @@ decrypt_file (const gchar *input_file_path,
     }
 
     g_unlink (g_file_get_path (file_encrypted_data));
-    // TODO remove encrypted file? Give option to the user
 
-    multiple_unref (5, (gpointer) &file_encrypted_data,
-                    (gpointer) &in_stream,
-                    (gpointer) &out_stream,
-                    (gpointer) &in_file,
-                    (gpointer) &out_file);
-
-    multiple_gcry_free (3, (gpointer) &decryption_keys->crypto_key,
-                        (gpointer) &decryption_keys->derived_key,
-                        (gpointer) &decryption_keys->hmac_key);
-
-    multiple_free (4, (gpointer) &header_metadata,
-                   (gpointer) &output_file_path,
-                   (gpointer) &original_hmac,
-                   (gpointer) &decryption_keys);
-
+    g_object_unref (file_encrypted_data);
+    crypto_keys_cleanup (decryption_keys);
+    gfile_cleanup (in_file, out_file);
+    gstream_cleanup (in_stream, out_stream);
+    data_cleanup (header_metadata, output_file_path, original_hmac);
     return NULL;
 }
 
@@ -151,17 +176,15 @@ get_g_file_with_encrypted_data (GFileInputStream *in_stream,
     }
 
     if (len_file_data < FILE_BUFFER) {
-        buf = g_malloc ((gsize)len_file_data);
+        buf = g_malloc0 ((gsize)len_file_data);
         g_input_stream_read (G_INPUT_STREAM (in_stream), buf, (gsize)len_file_data, NULL, &err);
         g_output_stream_write (G_OUTPUT_STREAM (out_enc_stream), buf, (gsize)len_file_data, NULL, &err);
-    }
-    else {
+    } else {
         buf = g_malloc (FILE_BUFFER);
         while (done_size < len_file_data) {
             if ((len_file_data - done_size) > FILE_BUFFER) {
                 read_len = g_input_stream_read (G_INPUT_STREAM (in_stream), buf, FILE_BUFFER, NULL, &err);
-            }
-            else {
+            } else {
                 read_len = g_input_stream_read (G_INPUT_STREAM (in_stream), buf, len_file_data - done_size, NULL, &err);
             }
             if (read_len == -1) {
@@ -174,9 +197,7 @@ get_g_file_with_encrypted_data (GFileInputStream *in_stream,
         }
     }
 
-    g_input_stream_close (G_INPUT_STREAM (in_stream), NULL, NULL);
-    g_output_stream_close (G_OUTPUT_STREAM (out_enc_stream), NULL, NULL);
-    g_object_unref (out_enc_stream);
+    gstream_cleanup (in_stream, out_enc_stream);
     g_free (buf);
 
     return tmp_encrypted_file;
@@ -184,13 +205,15 @@ get_g_file_with_encrypted_data (GFileInputStream *in_stream,
 
 
 static gboolean
-compare_hmac (guchar *hmac_key, guchar *original_hmac, GFile *encrypted_data) {
+compare_hmac (guchar *hmac_key,
+              guchar *original_hmac,
+              GFile  *encrypted_data)
+{
     gchar *path = g_file_get_path (encrypted_data);
 
     if (calculate_hmac (path, hmac_key, original_hmac) == HMAC_MISMATCH) {
         return FALSE;
-    }
-    else {
+    } else {
         return TRUE;
     }
 }
@@ -209,8 +232,7 @@ decrypt (Metadata          *header_metadata,
 
     if (header_metadata->algo_mode == GCRY_CIPHER_MODE_CBC) {
         gcry_cipher_setiv (hd, header_metadata->iv, header_metadata->iv_size);
-    }
-    else {
+    } else {
         gcry_cipher_setctr (hd, header_metadata->iv, header_metadata->iv_size);
     }
 
@@ -258,7 +280,8 @@ decrypt (Metadata          *header_metadata,
 
     gcry_cipher_close (hd);
 
-    multiple_free (2, (gpointer) &enc_buf, (gpointer) &dec_buf);
+    g_free (enc_buf);
+    g_free (dec_buf);
 
     g_input_stream_close (G_INPUT_STREAM (in_stream), NULL, NULL);
 

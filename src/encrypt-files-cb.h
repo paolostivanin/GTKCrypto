@@ -1,8 +1,5 @@
 #pragma once
 
-#define AVAILABLE_ALGO 6        // AES256, BLOWFISH, CAMELLIA256, CAST5, SERPENT256, TWOFISH
-#define AVAILABLE_ALGO_MODE 2   // CBC, CTR
-
 typedef struct encrypt_file_widgets_t {
     GtkWidget *main_window;
     GtkWidget *dialog;
@@ -10,14 +7,16 @@ typedef struct encrypt_file_widgets_t {
     GtkWidget *entry_pwd_retype;
     GtkWidget *cancel_btn;
     GtkWidget *ok_btn;
-    GtkWidget *radio_button_algo[AVAILABLE_ALGO];
-    GtkWidget *radio_button_algo_mode[AVAILABLE_ALGO_MODE];
+    GSList *radio_btns_algo_list;
+    GSList *radio_btns_mode_list;
     GtkWidget *header_bar_menu;
     GtkWidget *spinner;
     GtkWidget *message_label;
     GSList    *files_list;
     GThreadPool *thread_pool;
     guint running_threads;
+    guint files_not_encrypted;
+    guint source_id;
     gboolean first_run;
 } EncryptWidgets;
 
@@ -31,17 +30,5 @@ typedef struct enc_thread_data_t {
     const gchar *pwd;
     EncryptWidgets *widgets;
 } ThreadData;
-
-void do_dialog (EncryptWidgets *);
-
-void do_header_bar (GtkWidget *dialog, EncryptWidgets *);
-
-void do_entry_widgets (EncryptWidgets *);
-
-GtkWidget *create_hbox (EncryptWidgets *);
-
-GtkWidget *create_popover (GtkWidget *parent, GtkPositionType pos, gpointer user_data);
-
-GtkWidget *get_final_box_layout (EncryptWidgets *);
 
 gpointer encrypt_file (const gchar *input_file_path, const gchar *pwd, const gchar *algo, const gchar *algo_mode);

@@ -48,23 +48,21 @@ set(HEADER_FILES
         src/common-widgets.h
         src/crypt-common.h
         src/decrypt-files-cb.h
-        src/encrypt-cb-ui.h
+        src/encrypt-files-cb.h
         src/gpgme-misc.h
         src/gtkcrypto.h
         src/hash.h
         src/main.h
-        src/misc-style.h)
+        src/misc-style.h src/cleanup.h)
 
 set(SOURCE_FILES
         src/main.c
         src/message-dialog.c
-        src/add-boxes-grid.c
         src/compare-file-hash-cb.c
         src/compute-hash-cb.c
         src/choose-file.c
         src/common-callbacks.c
         src/hash.c
-        src/mfree.c
         src/misc-style.c
         src/get-file-size.c
         src/spinner.c
@@ -78,9 +76,8 @@ set(SOURCE_FILES
         src/gpgme-misc.c
         src/sign-file-cb.c
         src/verify-signature-cb.c
-        src/encrypt-cb-ui.c
         src/encrypt-files-cb.c
-        src/app.c)
+        src/app.c src/cleanup.c)
 
 add_executable(${PROJECT_NAME} ${SOURCE_FILES} ${HEADER_FILES})
 target_link_libraries(${PROJECT_NAME}

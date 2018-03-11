@@ -26,21 +26,25 @@ typedef struct sign_thread_data_t {
     const gchar *key_fingerprint;
 } ThreadData;
 
-static void cancel_clicked_cb (GtkWidget *button, gpointer user_data);
 
-static void prepare_signing_cb (GtkWidget *button, gpointer user_data);
+static void     prepare_signing_cb  (GtkWidget *btn,
+                                     gpointer   user_data);
 
-static gpointer exec_thread (gpointer user_data);
+static gpointer exec_thread         (gpointer   user_data);
+
+static void     cancel_clicked_cb   (GtkWidget *btn,
+                                     gpointer   user_data);
 
 
 void
-sign_file_cb (GtkWidget *btn __attribute__((__unused__)),
-              gpointer user_data)
+sign_file_cb (GtkWidget *btn __attribute__((unused)),
+              gpointer   user_data)
 {
     SignFileWidgets *sign_file_widgets = g_new0 (SignFileWidgets, 1);
     sign_file_widgets->sign_thread = NULL;
 
     sign_file_widgets->main_window = user_data;
+    // TODO multiple files sign
     GSList *list = choose_file (sign_file_widgets->main_window, "Choose File", FALSE);
     sign_file_widgets->filename = get_filename_from_list (list);
     if (sign_file_widgets->filename == NULL) {
@@ -121,13 +125,11 @@ sign_file_cb (GtkWidget *btn __attribute__((__unused__)),
                     g_free (info_message);
                 }
             }
-
             g_slist_free_full (sign_file_widgets->gpg_keys, g_free);
             g_slist_free_full (sign_file_widgets->to_free, g_free);
-
             gtk_widget_destroy (sign_file_widgets->dialog);
-
-            multiple_free (2, (gpointer) &sign_file_widgets->filename, (gpointer) &sign_file_widgets);
+            g_free (sign_file_widgets->filename);
+            g_free (sign_file_widgets);
             break;
         default:
             break;
@@ -136,8 +138,8 @@ sign_file_cb (GtkWidget *btn __attribute__((__unused__)),
 
 
 static void
-cancel_clicked_cb (GtkWidget *btn __attribute__((__unused__)),
-                   gpointer user_data)
+cancel_clicked_cb (GtkWidget *btn __attribute__((unused)),
+                   gpointer   user_data)
 {
     SignFileWidgets *data = user_data;
 
@@ -146,13 +148,14 @@ cancel_clicked_cb (GtkWidget *btn __attribute__((__unused__)),
 
     gtk_widget_destroy (data->dialog);
 
-    multiple_free (2, (gpointer) &data->filename, (gpointer) &data);
+    g_free (data->filename);
+    g_free (data);
 }
 
 
 static void
-prepare_signing_cb (GtkWidget *w __attribute__((__unused__)),
-                       gpointer user_data)
+prepare_signing_cb (GtkWidget *btn __attribute__((unused)),
+                    gpointer   user_data)
 {
     SignFileWidgets *data = user_data;
     ThreadData *thread_data = g_new0 (ThreadData, 1);
@@ -185,7 +188,9 @@ exec_thread (gpointer user_data)
 
     gtk_dialog_response (GTK_DIALOG (data->dialog), GTK_RESPONSE_DELETE_EVENT);
 
-    multiple_free (3, (gpointer) &data, (gpointer) &basename, (gpointer) &message);
+    g_free (data);
+    g_free (basename);
+    g_free (message);
 
     g_thread_exit (status);
 }
