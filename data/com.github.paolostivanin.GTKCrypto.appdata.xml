@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Copyright 2018 Paolo Stivanin <info@paolostivanin.com> -->
+<component type="desktop-application">
+  <id type="desktop">com.github.paolostivanin.GTKCrypto.desktop</id>
+  <metadata_license>CC-BY-4.0</metadata_license>
+  <project_license>GPL-3.0+</project_license>
+  <name>GTKCrypto</name>
+  <summary>GTK+ application for encrypting files and computing hashes.</summary>
+  <keywords>
+    <keyword>aes</keyword>
+    <keyword>twofish</keyword>
+    <keyword>serpent</keyword>
+    <keyword>md5</keyword>
+    <keyword>sha2</keyword>
+    <keyword>sha3</keyword>
+    <keyword>gost</keyword>
+  </keywords>
+  <description>
+    <p>
+GTKCrypto allows you to encrypt and sign files or text. Moreover, given a file, different types of hash can be computed and files can also be compared to check whether or not their content is the same.
+Supported cipher algorithms: AES, Twofish, Serpent and Camellia, all using 256 bits key and operating in either CBC or CTR mode.
+Supported hash algorithms: MD5, SHA-1, SHA-2, SHA-3, GOST, Whirlpool.
+    </p>
+  </description>
+
+  <launchable type="desktop-id">com.github.paolostivanin.GTKCrypto.desktop</launchable>
+
+  <screenshots>
+    <screenshot type="default">
+      <caption>Main window</caption>
+      TODO
+      <image type="source">https://cdn.rawgit.com/paolostivanin/GTKCrypto/.......</image>
+    </screenshot>
+  </screenshots>
+
+  <url type="homepage">https://github.com/paolostivanin/GTKCrypto</url>
+  <update_contact>info@paolostivanin.com</update_contact>
+
+  <provides>
+    <binary>gtkcrypto</binary>
+  </provides>
+
+  <content_rating type="oars-1.0">
+    <content_attribute id="violence-cartoon">none</content_attribute>
+    <content_attribute id="violence-fantasy">none</content_attribute>
+    <content_attribute id="violence-realistic">none</content_attribute>
+    <content_attribute id="violence-bloodshed">none</content_attribute>
+    <content_attribute id="violence-sexual">none</content_attribute>
+    <content_attribute id="drugs-alcohol">none</content_attribute>
+    <content_attribute id="drugs-narcotics">none</content_attribute>
+    <content_attribute id="drugs-tobacco">none</content_attribute>
+    <content_attribute id="sex-nudity">none</content_attribute>
+    <content_attribute id="sex-themes">none</content_attribute>
+    <content_attribute id="language-profanity">none</content_attribute>
+    <content_attribute id="language-humor">none</content_attribute>
+    <content_attribute id="language-discrimination">none</content_attribute>
+    <content_attribute id="social-chat">none</content_attribute>
+    <content_attribute id="social-info">none</content_attribute>
+    <content_attribute id="social-audio">none</content_attribute>
+    <content_attribute id="social-location">none</content_attribute>
+    <content_attribute id="social-contacts">none</content_attribute>
+    <content_attribute id="money-purchasing">none</content_attribute>
+    <content_attribute id="money-gambling">none</content_attribute>
+  </content_rating>
+
+  <releases>
+    <release version="1.0.0" date="2018-03-XX">
+      <description>
+        <p>https://github.com/paolostivanin/GTKCrypto/releases/tag/v1.0.0</p>
+      </description>
+    </release>
+  </releases>
+</component>
