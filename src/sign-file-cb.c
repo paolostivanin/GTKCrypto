@@ -37,8 +37,8 @@ static void     cancel_clicked_cb   (GtkWidget *btn,
 
 
 void
-sign_file_cb (GtkWidget *btn __attribute__((__unused__)),
-              gpointer user_data)
+sign_file_cb (GtkWidget *btn __attribute__((unused)),
+              gpointer   user_data)
 {
     SignFileWidgets *sign_file_widgets = g_new0 (SignFileWidgets, 1);
     sign_file_widgets->sign_thread = NULL;
@@ -125,13 +125,11 @@ sign_file_cb (GtkWidget *btn __attribute__((__unused__)),
                     g_free (info_message);
                 }
             }
-
             g_slist_free_full (sign_file_widgets->gpg_keys, g_free);
             g_slist_free_full (sign_file_widgets->to_free, g_free);
-
             gtk_widget_destroy (sign_file_widgets->dialog);
-
-            multiple_free (2, (gpointer) &sign_file_widgets->filename, (gpointer) &sign_file_widgets);
+            g_free (sign_file_widgets->filename);
+            g_free (sign_file_widgets);
             break;
         default:
             break;
@@ -150,7 +148,8 @@ cancel_clicked_cb (GtkWidget *btn __attribute__((unused)),
 
     gtk_widget_destroy (data->dialog);
 
-    multiple_free (2, (gpointer) &data->filename, (gpointer) &data);
+    g_free (data->filename);
+    g_free (data);
 }
 
 
@@ -189,7 +188,9 @@ exec_thread (gpointer user_data)
 
     gtk_dialog_response (GTK_DIALOG (data->dialog), GTK_RESPONSE_DELETE_EVENT);
 
-    multiple_free (3, (gpointer) &data, (gpointer) &basename, (gpointer) &message);
+    g_free (data);
+    g_free (basename);
+    g_free (message);
 
     g_thread_exit (status);
 }

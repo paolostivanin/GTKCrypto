@@ -8,12 +8,6 @@ GSList    *choose_file                  (GtkWidget *parent, const gchar *title, 
 
 gchar     *get_filename_from_list       (GSList *list);
 
-void       multiple_free                (gint, gpointer *, ...);
-
-void       multiple_gcry_free           (gint, gpointer *, ...);
-
-void       multiple_unref               (gint, gpointer *, ...);
-
 gchar     *get_file_hash                (const gchar *file_path, gint hash_algo, gint digest_size);
 
 goffset    get_file_size                (const gchar *file_path);

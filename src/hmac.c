@@ -73,7 +73,8 @@ calculate_hmac (const gchar     *file_path,
                 gcry_mac_close (mac);
                 g_free (buf);
                 g_input_stream_close (G_INPUT_STREAM (istream), NULL, NULL);
-                multiple_unref (2, (gpointer) &file, (gpointer) &istream);
+                g_object_unref (istream);
+                g_object_unref (file);
                 return NULL;
             }
             break;
@@ -90,7 +91,8 @@ calculate_hmac (const gchar     *file_path,
             gcry_mac_close (mac);
             g_free (buf);
             g_input_stream_close (G_INPUT_STREAM (istream), NULL, NULL);
-            multiple_unref (2, (gpointer) &file, (gpointer) &istream);
+            g_object_unref (istream);
+            g_object_unref (file);
             return NULL;
         }
         done_size += FILE_BUFFER;
@@ -101,7 +103,8 @@ calculate_hmac (const gchar     *file_path,
         gcry_mac_close (mac);
         g_free (buf);
         g_input_stream_close (G_INPUT_STREAM (istream), NULL, NULL);
-        multiple_unref (2, (gpointer) &file, (gpointer) &istream);
+        g_object_unref (istream);
+        g_object_unref (file);
         if (err) {
             g_printerr ("HMAC verification failed: %s/%s\n", gcry_strsource (err), gcry_strerror (err));
             return HMAC_MISMATCH;
@@ -115,7 +118,8 @@ calculate_hmac (const gchar     *file_path,
             gcry_mac_close (mac);
             g_free (buf);
             g_input_stream_close (G_INPUT_STREAM (istream), NULL, NULL);
-            multiple_unref (2, (gpointer) &file, (gpointer) &istream);
+            g_object_unref (istream);
+            g_object_unref (file);
             return NULL;
         }
     }
@@ -123,7 +127,8 @@ calculate_hmac (const gchar     *file_path,
     gcry_mac_close (mac);
     g_free (buf);
     g_input_stream_close (G_INPUT_STREAM (istream), NULL, NULL);
-    multiple_unref (2, (gpointer) &file, (gpointer) &istream);
+    g_object_unref (istream);
+    g_object_unref (file);
 
     return hmac;
 }

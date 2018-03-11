@@ -118,9 +118,8 @@ exec_thread (gpointer data,
         g_mutex_lock (&thread_data->mutex);
         thread_data->widgets->files_not_decrypted++;
         g_mutex_unlock (&thread_data->mutex);
-        // TODO deal with error
     }
-    if (thread_data->delete_file) {
+    if (thread_data->delete_file && ret == NULL) {
         g_unlink (filename);
     }
 

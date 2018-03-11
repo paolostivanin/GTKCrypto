@@ -105,7 +105,8 @@ compute_hash_cb (GtkWidget *button __attribute((unused)),
             g_thread_pool_free (hash_widgets->thread_pool, FALSE, FALSE);
             g_hash_table_remove_all (hash_widgets->hash_table);
             g_hash_table_unref (hash_widgets->hash_table);
-            multiple_free (2, (gpointer) &(hash_widgets->filename), (gpointer) &hash_widgets);
+            g_free (hash_widgets->filename);
+            g_free (hash_widgets);
             break;
         default:
             break;
@@ -210,7 +211,8 @@ exec_thread (gpointer pushed_data,
     if (!gtk_widget_get_sensitive (data->widgets->cancel_btn) && is_last_thread (data->widgets->thread_pool)) {
         gtk_widget_set_sensitive (data->widgets->cancel_btn, TRUE);
     }
-    multiple_free (2, (gpointer) &hash, (gpointer) &data);
+    g_free (hash);
+    g_free (data);
 }
 
 
