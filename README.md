@@ -1,4 +1,4 @@
-# GTKCrypto (Beta)
+# GTKCrypto
 
 <a href="https://scan.coverity.com/projects/paolostivanin-gtkcrypto">
   <img alt="Coverity Scan Build Status"
