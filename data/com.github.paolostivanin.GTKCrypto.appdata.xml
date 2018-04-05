@@ -63,7 +63,7 @@ Supported hash algorithms: MD5, SHA-1, SHA-2, SHA-3, GOST, Whirlpool.
   </content_rating>
 
   <releases>
-    <release version="1.0.0" date="2018-03-XX">
+    <release version="1.0.0" date="2018-04-05">
       <description>
         <p>https://github.com/paolostivanin/GTKCrypto/releases/tag/v1.0.0</p>
       </description>
