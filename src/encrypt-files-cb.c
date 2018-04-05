@@ -90,7 +90,7 @@ check_tp (gpointer data)
 
 
 static void
-entry_activated_cb (GtkWidget *entry __attribute__((__unused__)),
+entry_activated_cb (GtkWidget *entry __attribute__((unused)),
                     gpointer   user_data)
 {
     EncryptWidgets *encrypt_widgets = user_data;
