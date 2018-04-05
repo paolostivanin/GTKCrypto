@@ -79,7 +79,8 @@ set(SOURCE_FILES
         src/encrypt-files-cb.c
         src/app.c
         src/cleanup.c
-        src/text-cb.c)
+        src/text-cb.c
+        src/get-builder.c)
 
 add_executable(${PROJECT_NAME} ${SOURCE_FILES} ${HEADER_FILES})
 target_link_libraries(${PROJECT_NAME}

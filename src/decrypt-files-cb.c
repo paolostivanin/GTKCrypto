@@ -19,6 +19,11 @@ void
 decrypt_files_cb (GtkWidget *btn __attribute__((unused)),
                   gpointer   user_data)
 {
+    GtkBuilder *builder = get_builder_from_path (PARTIAL_PATH_TO_UI_FILE);
+    if (builder == NULL) {
+        return;
+    }
+
     DecryptWidgets *decrypt_widgets = g_new0 (DecryptWidgets, 1);
 
     decrypt_widgets->main_window = (GtkWidget *)user_data;
@@ -32,7 +37,6 @@ decrypt_files_cb (GtkWidget *btn __attribute__((unused)),
         return;
     }
 
-    GtkBuilder *builder = gtk_builder_new_from_file (PATH_TO_UI_FILE);
     decrypt_widgets->dialog = GTK_WIDGET (gtk_builder_get_object (builder, "dec_pwd_diag"));
     decrypt_widgets->ok_btn = GTK_WIDGET (gtk_builder_get_object (builder, "ok_btn_dec_pwd_diag"));
     decrypt_widgets->cancel_btn = GTK_WIDGET (gtk_builder_get_object (builder, "cancel_btn_dec_pwd_diag"));
