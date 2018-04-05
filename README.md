@@ -15,10 +15,16 @@
 ## Security
 * Encrypt-then-MAC. The plain text is encrypted and then the MAC of the encrypted text is computed and appended to the cipher text.
 * Confidentiality is given by AES/Twofish/Serpent/Camellia operating in either CBC or CTR mode using a key size of 256 bits;
-* Integrity is given by the MAC calculation (MAC = HMAC+SHA512);
-* The input key is derived using PBKDF2 with 100'000 iterations and using SHA512 as hash algo;
+* Integrity is given by the MAC calculation (MAC = HMAC+SHA3-512);
+* The input key is derived using PBKDF2 with 100'000 iterations and using SHA3-512 as hash algo;
 * The key is temporarily stored inside a portion of secure memory which is erased before the program exits;
 
+### Text Encryption
+* Encrypt-then-TAG
+* Plaintext is encrypted using AES-256 in GCM mode
+* The input key is derived using PBKDF2 with 150'000 iterations and using SHA3-256 as hash algo;
+* Data is always stored in a secure memory pool allocated by Gcrypt
+* The resulting buffer has the following structure: `base64(IV,SALT,encrypt(plaintext),TAG)`
 
 ## Requirements
 |Name|Min Version|
