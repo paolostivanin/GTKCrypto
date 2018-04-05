@@ -1,0 +1,10 @@
+[Desktop Entry]
+Type=Application
+Exec=gtkcrypto
+Icon=com.github.paolostivanin.GTKCrypto
+Keywords=aes;twofish;serpent;sha2;sha3;md5;gost;
+Terminal=false
+Name=GTKCrypto
+Comment=Encrypt, sign and compute hashes of a given file
+Categories=GTK;GNOME;Utility;
+

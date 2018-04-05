@@ -56,9 +56,13 @@ void
 txt_cb (GtkWidget *btn,
         gpointer   user_data __attribute__((unused)))
 {
+    GtkBuilder *builder = get_builder_from_path (PARTIAL_PATH_TO_UI_FILE);
+    if (builder == NULL) {
+        return;
+    }
+
     TxtData *txt_data = g_new0 (TxtData, 1);
 
-    GtkBuilder *builder = gtk_builder_new_from_file (PATH_TO_UI_FILE);
     txt_data->diag = GTK_WIDGET(gtk_builder_get_object (builder, "text_diag"));
     GtkWidget *ok_btn = GTK_WIDGET(gtk_builder_get_object (builder, "txt_btn_ok"));
     txt_data->entry1 = GTK_WIDGET(gtk_builder_get_object (builder, "pwd_entry1_txt"));
@@ -405,7 +409,11 @@ derive_and_set_cipher_data (TxtData   *txt_data,
 static void
 show_dialog_with_data (gchar *data)
 {
-    GtkBuilder *builder = gtk_builder_new_from_file (PATH_TO_UI_FILE);
+    GtkBuilder *builder = get_builder_from_path (PARTIAL_PATH_TO_UI_FILE);
+    if (builder == NULL) {
+        return;
+    }
+
     GtkWidget *diag = GTK_WIDGET(gtk_builder_get_object (builder, "data_diag"));
     GtkTextBuffer *text_buf = GTK_TEXT_BUFFER(gtk_builder_get_object(builder,"data_text_buf"));
     g_object_unref (builder);

@@ -27,6 +27,11 @@ void
 encrypt_files_cb (GtkWidget *btn __attribute__((__unused__)),
                   gpointer   user_data)
 {
+    GtkBuilder *builder = get_builder_from_path (PARTIAL_PATH_TO_UI_FILE);
+    if (builder == NULL) {
+        return;
+    }
+
     EncryptWidgets *encrypt_widgets = g_new0 (EncryptWidgets, 1);
 
     encrypt_widgets->main_window = (GtkWidget *)user_data;
@@ -40,7 +45,6 @@ encrypt_files_cb (GtkWidget *btn __attribute__((__unused__)),
         return;
     }
 
-    GtkBuilder *builder = gtk_builder_new_from_file (PATH_TO_UI_FILE);
     encrypt_widgets->dialog = GTK_WIDGET (gtk_builder_get_object (builder, "enc_pwd_diag"));
     encrypt_widgets->ok_btn = GTK_WIDGET (gtk_builder_get_object (builder, "ok_btn_pwd_diag"));
     encrypt_widgets->cancel_btn = GTK_WIDGET (gtk_builder_get_object (builder, "cancel_btn_pwd_diag"));
