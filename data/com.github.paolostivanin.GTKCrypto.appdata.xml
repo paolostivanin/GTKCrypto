@@ -28,8 +28,7 @@ Supported hash algorithms: MD5, SHA-1, SHA-2, SHA-3, GOST, Whirlpool.
   <screenshots>
     <screenshot type="default">
       <caption>Main window</caption>
-      TODO
-      <image type="source">https://cdn.rawgit.com/paolostivanin/GTKCrypto/.......</image>
+      <image type="source">https://cdn.rawgit.com/paolostivanin/GTKCrypto/.../data/screenshots/mainwin.png</image>
     </screenshot>
   </screenshots>
 
