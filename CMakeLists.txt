@@ -77,7 +77,8 @@ set(SOURCE_FILES
         src/sign-file-cb.c
         src/verify-signature-cb.c
         src/encrypt-files-cb.c
-        src/app.c src/cleanup.c)
+        src/app.c
+        src/cleanup.c src/text-cb.c)
 
 add_executable(${PROJECT_NAME} ${SOURCE_FILES} ${HEADER_FILES})
 target_link_libraries(${PROJECT_NAME}

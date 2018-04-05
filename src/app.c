@@ -32,6 +32,8 @@ activate (GtkApplication *app,
     g_signal_connect (GTK_WIDGET (gtk_builder_get_object (builder, "decfile_btn")), "clicked", G_CALLBACK (decrypt_files_cb), main_window);
     g_signal_connect (GTK_WIDGET (gtk_builder_get_object (builder, "sigfile_btn")), "clicked", G_CALLBACK (sign_file_cb), main_window);
     g_signal_connect (GTK_WIDGET (gtk_builder_get_object (builder, "versig_btn")), "clicked", G_CALLBACK (verify_signature_cb), main_window);
+    g_signal_connect (GTK_WIDGET (gtk_builder_get_object (builder, "enctxt_btn")), "clicked", G_CALLBACK (txt_cb), NULL);
+    g_signal_connect (GTK_WIDGET (gtk_builder_get_object (builder, "dectxt_btn")), "clicked", G_CALLBACK (txt_cb), NULL);
     g_signal_connect (GTK_WIDGET (gtk_builder_get_object (builder, "chash_btn")), "clicked", G_CALLBACK (compute_hash_cb), main_window);
     g_signal_connect (GTK_WIDGET (gtk_builder_get_object (builder, "cmphash_btn")), "clicked", G_CALLBACK (compare_files_hash_cb), main_window);
 
