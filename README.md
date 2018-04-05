@@ -29,8 +29,10 @@
 |gpgme|1.8.0|
 
 
-How to compile
---------------
+## Screenshots
+![Main window](/data/screenshots/mainwin.png?raw=true "Main window")
+
+## How to compile
 * `$ git clone https://github.com/paolostivanin/GTKCrypto.git`
 * `$ cd GTKCrypto`
 * `$ mkdir build && cd $_`
@@ -39,17 +41,14 @@ How to compile
 * `$ sudo make install`
 
 
-How can I trust your program?
-----------------------------
+## How can I trust your program?
 Don't trust me, trust the code. But if you really want to be sure that I'm not doing things in the wrong way, then you can just encrypt a file using GTKCrypto and write your own decryption program.
 This is a relatively quick and easy task to achieve, just be sure to first understand the structure of the encrypted file (spoiler: `enc_file = metadata + encrypted_data + HMAC`). More info [HERE](https://github.com/paolostivanin/GTKCrypto/blob/master/src/crypt-common.h).
 
 
-Latest version
--------------
+## Latest version
 Stable and pre-release versions can be found [HERE](https://github.com/paolostivanin/GTKCrypto/releases)
 
 
-Notes
------
+## Notes
 This software is licensed under the GNU General Public License version 3 and above.
