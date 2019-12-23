@@ -22,6 +22,7 @@ calculate_hmac (const gchar     *file_path,
     gcry_error_t err = gcry_mac_open (&mac, GCRY_MAC_HMAC_SHA3_512, 0, NULL);
     if (err) {
         g_printerr ("mac_open error: %s/%s\n", gcry_strsource (err), gcry_strerror (err));
+        g_free (hmac);
         return NULL;
     }
 
@@ -29,6 +30,7 @@ calculate_hmac (const gchar     *file_path,
     if (err) {
         g_printerr ("mac_setkey error: %s/%s\n", gcry_strsource (err), gcry_strerror (err));
         gcry_mac_close (mac);
+        g_free (hmac);
         return NULL;
     }
 
@@ -53,6 +55,7 @@ calculate_hmac (const gchar     *file_path,
         g_printerr ("%s\n", gerr->message);
         g_object_unref (file);
         gcry_mac_close (mac);
+        g_free (hmac);
         g_free (buf);
         g_clear_error (&gerr);
         return NULL;
@@ -72,6 +75,7 @@ calculate_hmac (const gchar     *file_path,
                 g_printerr ("mac_write error: %s/%s\n", gcry_strsource (err), gcry_strerror (err));
                 gcry_mac_close (mac);
                 g_free (buf);
+                g_free (hmac);
                 g_input_stream_close (G_INPUT_STREAM (istream), NULL, NULL);
                 g_object_unref (istream);
                 g_object_unref (file);
@@ -90,6 +94,7 @@ calculate_hmac (const gchar     *file_path,
             g_printerr ("mac_write error: %s/%s\n", gcry_strsource (err), gcry_strerror (err));
             gcry_mac_close (mac);
             g_free (buf);
+            g_free (hmac);
             g_input_stream_close (G_INPUT_STREAM (istream), NULL, NULL);
             g_object_unref (istream);
             g_object_unref (file);
@@ -102,6 +107,7 @@ calculate_hmac (const gchar     *file_path,
         err = gcry_mac_verify (mac, user_hmac, mac_len);
         gcry_mac_close (mac);
         g_free (buf);
+        g_free (hmac);
         g_input_stream_close (G_INPUT_STREAM (istream), NULL, NULL);
         g_object_unref (istream);
         g_object_unref (file);
@@ -117,6 +123,7 @@ calculate_hmac (const gchar     *file_path,
             g_printerr ("mac_read error: %s/%s\n", gcry_strsource(err), gcry_strerror(err));
             gcry_mac_close (mac);
             g_free (buf);
+            g_free (hmac);
             g_input_stream_close (G_INPUT_STREAM (istream), NULL, NULL);
             g_object_unref (istream);
             g_object_unref (file);

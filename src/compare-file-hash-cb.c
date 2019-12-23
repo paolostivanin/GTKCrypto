@@ -190,7 +190,6 @@ exec_thread (gpointer user_data)
     if (hash == NULL) {
         show_message_dialog (data->widgets_data->main_window, "Error during hash computation", GTK_MESSAGE_ERROR);
         g_free (data->filename);
-        g_free (hash);
         g_free (data);
         g_thread_exit (NULL);
     }

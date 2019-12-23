@@ -120,7 +120,7 @@ verify_signature_cb (GtkWidget *btn __attribute__((unused)),
             }
             gtk_widget_destroy (verify_widgets->dialog);
             g_free (verify_widgets->entry_data.entry1_filename);
-            g_free (verify_widgets->entry_data.entry1_filename);
+            g_free (verify_widgets->entry_data.entry2_filename);
             g_free (verify_widgets);
             break;
         default:

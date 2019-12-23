@@ -50,9 +50,8 @@ get_main_window (GtkBuilder *builder)
 {
     GtkWidget *window = GTK_WIDGET (gtk_builder_get_object(builder, "mainwin"));
 
-    gchar *header_bar_text = g_malloc (strlen (APP_NAME) + strlen (APP_VERSION) + 2);
-    g_snprintf (header_bar_text, strlen (APP_NAME) + strlen (APP_VERSION) + 2, "%s %s", APP_NAME, APP_VERSION);
-    header_bar_text[strlen(header_bar_text)] = '\0';
+    gchar *header_bar_text = g_malloc0 (strlen (APP_NAME) + strlen (APP_VERSION) + 2);
+    g_snprintf (header_bar_text, strlen (APP_NAME) +1 + strlen (APP_VERSION) + 1, "%s %s", APP_NAME, APP_VERSION);
 
     GtkWidget *header_bar = (GTK_WIDGET (gtk_builder_get_object(builder, "main_hb")));
     gtk_header_bar_set_title (GTK_HEADER_BAR (header_bar), header_bar_text);

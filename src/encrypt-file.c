@@ -186,6 +186,8 @@ encrypt_using_cbc_mode (Metadata *header_metadata,
     guchar *buffer = g_try_malloc0 ((gsize)(file_size < FILE_BUFFER ? (num_of_blocks * block_length) : FILE_BUFFER));
     guchar *enc_buffer = g_try_malloc0 ((gsize)(file_size < FILE_BUFFER ? (num_of_blocks * block_length) : FILE_BUFFER));
     if (buffer == NULL || enc_buffer == NULL) {
+        if (buffer != NULL) g_free (buffer);
+        if (enc_buffer != NULL) g_free (enc_buffer);
         return g_strdup ("Couldn't allocate memory");
     }
 
@@ -255,8 +257,9 @@ encrypt_using_ctr_mode (Metadata *header_metadata, gcry_cipher_hd_t *hd, goffset
 
     guchar *buffer = g_try_malloc0 ((gsize)(file_size < FILE_BUFFER ? file_size : FILE_BUFFER));
     guchar *enc_buffer = g_try_malloc0 ((gsize)(file_size < FILE_BUFFER ? file_size : FILE_BUFFER));
-
     if (buffer == NULL || enc_buffer == NULL) {
+        if (buffer != NULL) g_free (buffer);
+        if (enc_buffer != NULL) g_free (enc_buffer);
         return g_strdup ("Couldn't allocate memory");
     }
 
