@@ -109,7 +109,7 @@ verify_signature_cb (GtkWidget *btn __attribute__((unused)),
                 if (status == BAD_SIGNATURE) {
                     show_message_dialog (verify_widgets->main_window, "Bad signature for the given file", GTK_MESSAGE_WARNING);
                 } else if (status == GPGME_ERROR || status == FILE_OPEN_ERROR) {
-                    show_message_dialog (verify_widgets->main_window, "An error occured while checking the signature", GTK_MESSAGE_WARNING);
+                    show_message_dialog (verify_widgets->main_window, "An error occurred while checking the signature", GTK_MESSAGE_WARNING);
                 } else {
                     if (status == SIGNATURE_OK) {
                         show_message_dialog (verify_widgets->main_window, "Signature OK for the given file", GTK_MESSAGE_INFO);
