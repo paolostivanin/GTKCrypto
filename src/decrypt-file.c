@@ -255,6 +255,8 @@ decrypt (Metadata          *header_metadata,
     guchar *dec_buf = g_try_malloc0 (FILE_BUFFER);
 
     if (enc_buf == NULL || dec_buf == NULL) {
+        if (enc_buf != NULL) g_free (enc_buf);
+        if (dec_buf != NULL) g_free (dec_buf);
         return g_strdup ("Error during memory allocation.");
     }
 

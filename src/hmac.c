@@ -45,6 +45,7 @@ calculate_hmac (const gchar     *file_path,
     if (buf == NULL) {
         g_printerr ("Error during memory allocation (hmac's buffer)\n");
         gcry_mac_close (mac);
+        g_free (hmac);
         return NULL;
     }
 
@@ -68,6 +69,8 @@ calculate_hmac (const gchar     *file_path,
             read_len = g_input_stream_read (G_INPUT_STREAM (istream), buf, (gsize)file_size - done_size, NULL, &gerr);
             if (read_len == -1) {
                 g_printerr ("%s\n", gerr->message);
+                g_free (buf);
+                g_free (hmac);
                 return NULL;
             }
             err = gcry_mac_write (mac, buf, (gsize)read_len);
@@ -86,6 +89,9 @@ calculate_hmac (const gchar     *file_path,
             read_len = g_input_stream_read (G_INPUT_STREAM (istream), buf, FILE_BUFFER, NULL, &gerr);
             if (read_len == -1) {
                 g_printerr ("%s\n", gerr->message);
+                gcry_mac_close (mac);
+                g_free (buf);
+                g_free (hmac);
                 return NULL;
             }
             err = gcry_mac_write (mac, buf, (gsize)read_len);

@@ -213,7 +213,7 @@ exec_thread (gpointer pushed_data,
     }
     g_free (hash);
     g_free (data);
-}
+} //-V591
 
 
 static gboolean

@@ -194,27 +194,27 @@ exec_thread (gpointer user_data)
         g_thread_exit (NULL);
     }
 
-    if (g_strcmp0 (gtk_widget_get_name (GTK_WIDGET (data->entry)), "file1_he_name") == 0) {
-        gtk_entry_set_text (GTK_ENTRY (data->widgets_data->file1_hash_entry), hash);
-        stop_spinner (data->widgets_data->spinner_entry1);
+    if (g_strcmp0 (gtk_widget_get_name (GTK_WIDGET (data->entry)), "file1_he_name") == 0) { //-V774
+        gtk_entry_set_text (GTK_ENTRY (data->widgets_data->file1_hash_entry), hash); //-V774
+        stop_spinner (data->widgets_data->spinner_entry1); //-V774
     }
     else {
-        gtk_entry_set_text (GTK_ENTRY (data->widgets_data->file2_hash_entry), hash);
-        stop_spinner (data->widgets_data->spinner_entry2);
+        gtk_entry_set_text (GTK_ENTRY (data->widgets_data->file2_hash_entry), hash); //-V774
+        stop_spinner (data->widgets_data->spinner_entry2); //-V774
     }
 
-    if (!gtk_widget_get_sensitive (data->widgets_data->cancel_btn)) {
+    if (!gtk_widget_get_sensitive (data->widgets_data->cancel_btn)) { //-V774
         /* if cancel_btn is non-sensitive AND both the gtk_entry have have text inside them, THEN cancel_btn becomes
          + sensitive again. */
-        if ((data->widgets_data->entry1_changed) && (data->widgets_data->entry2_changed)) {
-            gtk_widget_set_sensitive (data->widgets_data->cancel_btn, TRUE);
+        if ((data->widgets_data->entry1_changed) && (data->widgets_data->entry2_changed)) { //-V774
+            gtk_widget_set_sensitive (data->widgets_data->cancel_btn, TRUE); //-V774
         }
     }
-    g_free (data->filename);
+    g_free (data->filename); //-V774
     g_free (hash);
-    g_free (data);
+    g_free (data); //-V586
     g_thread_exit ((gpointer) 0);
-}
+} //-V591
 
 
 static void

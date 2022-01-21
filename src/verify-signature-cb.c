@@ -214,4 +214,4 @@ exec_thread (gpointer user_data)
     g_free (data);
 
     g_thread_exit (status);
-}
+} //-V591

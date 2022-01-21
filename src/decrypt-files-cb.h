@@ -18,13 +18,13 @@ typedef struct decrypt_file_widgets_t {
 } DecryptWidgets;
 
 typedef struct dec_thread_data_t {
-    GMutex mutex;
+    DecryptWidgets *widgets;
     GtkWidget *dialog;
     GtkWidget *spinner;
-    guint list_len;
     const gchar *pwd;
+    GMutex mutex;
+    guint list_len;
     gboolean delete_file;
-    DecryptWidgets *widgets;
 } ThreadData;
 
 gpointer decrypt_file (const gchar *input_file_path, const gchar *pwd);
