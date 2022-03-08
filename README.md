@@ -1,8 +1,6 @@
 # GTKCrypto
-
-<a href="https://scan.coverity.com/projects/paolostivanin-gtkcrypto">
-  <img alt="Coverity Scan Build Status"
-       src="https://scan.coverity.com/projects/12746/badge.svg"/>
+<a href="https://circleci.com/gh/paolostivanin/GTKCrypto">
+  <img alt="CircleCI" src="https://circleci.com/gh/paolostivanin/GTKCrypto.svg?style=svg"/>
 </a>
 
 
@@ -29,8 +27,8 @@
 ## Requirements
 |Name|Min Version|
 |----|-----------|
-|GTK+|3.18|
-|Glib|2.46.0|
+|GTK+|3.20|
+|Glib|2.48.0|
 |libgcrypt|1.7.0|
 |gpgme|1.8.0|
 
@@ -50,6 +48,11 @@
 ## How can I trust your program?
 Don't trust me, trust the code. But if you really want to be sure that I'm not doing things in the wrong way, then you can just encrypt a file using GTKCrypto and write your own decryption program.
 This is a relatively quick and easy task to achieve, just be sure to first understand the structure of the encrypted file (spoiler: `enc_file = metadata + encrypted_data + HMAC`). More info [HERE](https://github.com/paolostivanin/GTKCrypto/blob/master/src/crypt-common.h).
+
+
+## Testing
+* Before each release, I run PVS Studio in order to catch even more errors and/or corner cases
+* With every commit to master, GTKCrypto is compiled in CircleCI against different distros
 
 
 ## Latest version
