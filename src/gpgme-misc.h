@@ -12,6 +12,12 @@
 #define NO_GPG_KEYS_AVAILABLE        ((gpointer) -5)
 #define BAD_SIGNATURE                ((gpointer) -6)
 
+#if GLIB_CHECK_VERSION(2, 68, 0)
+    #define g_memdupX g_memdup2
+#else
+    #define g_memdupX g_memdup
+#endif
+
 typedef struct _key_info_t {
     gchar *name;
     gchar *email;

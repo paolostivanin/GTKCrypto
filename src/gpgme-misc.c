@@ -191,7 +191,7 @@ get_available_keys ()
         gssize bytes_to_copy = (gssize)sizeof(KeyInfo) + g_utf8_strlen (key_info->name, -1) + g_utf8_strlen (key_info->email, -1) +
                 g_utf8_strlen (key_info->key_id, -1) + g_utf8_strlen (key_info->key_fpr, -1) + 4;
 
-        list = g_slist_append (list, g_memdup2 (key_info, (guint)bytes_to_copy));
+        list = g_slist_append (list, g_memdupX (key_info, (guint)bytes_to_copy));
 
         g_free (key_info->key_id);
         g_free (key_info->name);
