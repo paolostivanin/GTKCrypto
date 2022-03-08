@@ -31,7 +31,7 @@ endif()
 find_package(PkgConfig REQUIRED)
 find_package(Gcrypt 1.7.0 REQUIRED)
 find_package(Gpgme 1.8.0 REQUIRED)
-pkg_check_modules(GTK3 REQUIRED gtk+-3.0 >= 3.20.0)
+pkg_check_modules(GTK3 REQUIRED gtk+-3.0>=3.20.0)
 
 include_directories(${GTK3_INCLUDE_DIRS}
         ${GCRYPT_INCLUDE_DIR}
