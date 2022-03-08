@@ -27,7 +27,7 @@ typedef struct compute_hash_thread_data_t {
 
 static void       prepare_hash_computation_cb (GtkWidget *ck_btn, gpointer user_data);
 
-static gpointer   exec_thread                 (gpointer pushed_data, gpointer user_data);
+static void       exec_thread                 (gpointer pushed_data, gpointer user_data);
 
 static gboolean   is_last_thread              (GThreadPool *tp);
 
@@ -92,7 +92,7 @@ compute_hash_cb (GtkWidget *button __attribute((unused)),
         gtk_grid_attach_next_to (GTK_GRID (grid), hash_widgets->spinner[i], hash_widgets->hash_entry[i], GTK_POS_RIGHT, 1, 1);
     }
 
-    hash_widgets->thread_pool = g_thread_pool_new ((GFunc) exec_thread, NULL, g_get_num_processors (), FALSE, NULL);
+    hash_widgets->thread_pool = g_thread_pool_new (exec_thread, NULL, (gint)g_get_num_processors (), FALSE, NULL);
     hash_widgets->hash_table = g_hash_table_new_full (g_str_hash, g_str_equal, g_free, g_free);
 
     gtk_widget_show_all (dialog);
@@ -182,7 +182,7 @@ prepare_hash_computation_cb (GtkWidget *ck_btn,
 }
 
 
-static gpointer
+static void
 exec_thread (gpointer pushed_data,
              gpointer user_data __attribute__((unused)))
 {

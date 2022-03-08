@@ -169,12 +169,12 @@ get_available_keys ()
     GSList *list = NULL;
     KeyInfo *key_info;
 
+    key_info = g_new0 (KeyInfo, 1);
     while (1) {
         err = gpgme_op_keylist_next (ctx, &key);
         if (err) {
             break;
         }
-        key_info = g_new0 (KeyInfo, 1);
         key_info->key_id = g_strdup (key->subkeys->keyid);
         if (key->uids && key->uids->name) {
             key_info->name = g_strdup (key->uids->name);
@@ -188,16 +188,20 @@ get_available_keys ()
         }
         key_info->key_fpr = g_strdup (key->subkeys->fpr);
 
-        gssize bytes_to_copy = sizeof (KeyInfo) + g_utf8_strlen (key_info->name, -1) + g_utf8_strlen (key_info->email, -1) +
+        gssize bytes_to_copy = (gssize)sizeof(KeyInfo) + g_utf8_strlen (key_info->name, -1) + g_utf8_strlen (key_info->email, -1) +
                 g_utf8_strlen (key_info->key_id, -1) + g_utf8_strlen (key_info->key_fpr, -1) + 4;
 
         list = g_slist_append (list, g_memdup2 (key_info, (guint)bytes_to_copy));
 
-        g_free (key_info);
+        g_free (key_info->key_id);
+        g_free (key_info->name);
+        g_free (key_info->email);
+        g_free (key_info->key_fpr);
 
         gpgme_key_release (key);
     }
 
+    g_free (key_info);
     gpgme_release (ctx);
 
     return list;

@@ -1,11 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!-- Copyright 2018 Paolo Stivanin <info@paolostivanin.com> -->
 <component type="desktop-application">
-  <id type="desktop">com.github.paolostivanin.GTKCrypto.desktop</id>
+  <id>com.github.paolostivanin.GTKCrypto.desktop</id>
   <metadata_license>CC-BY-4.0</metadata_license>
   <project_license>GPL-3.0+</project_license>
   <name>GTKCrypto</name>
-  <summary>GTK+ application for encrypting files and computing hashes.</summary>
+  <summary>GTK+ application for encrypting files and computing hashes</summary>
   <keywords>
     <keyword>aes</keyword>
     <keyword>twofish</keyword>
@@ -63,9 +63,19 @@ Supported hash algorithms: MD5, SHA-1, SHA-2, SHA-3, GOST, Whirlpool.
   </content_rating>
 
   <releases>
+    <release version="1.0.1" date="2022-03-08">
+      <description>
+        <p>GTKCrypto 1.0.1 brings some small fixes</p>
+        <ul>
+          <li>force enable large file support via CMakeLists.txt (fix issue on non x86_64 archs)</li>
+          <li>fix possible memory leaks</li>
+          <li>improve performance when listing gpg keys</li>
+        </ul>
+      </description>
+    </release>
     <release version="1.0.0" date="2018-04-05">
       <description>
-        <p>https://github.com/paolostivanin/GTKCrypto/releases/tag/v1.0.0</p>
+        <url>https://github.com/paolostivanin/GTKCrypto/releases/tag/v1.0.0</url>
       </description>
     </release>
   </releases>

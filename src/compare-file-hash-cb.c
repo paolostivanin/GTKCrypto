@@ -177,6 +177,8 @@ select_file_cb (GtkEntry             *entry,
 }
 
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wreturn-type"
 static gpointer
 exec_thread (gpointer user_data)
 {
@@ -215,6 +217,7 @@ exec_thread (gpointer user_data)
     g_free (data); //-V586
     g_thread_exit ((gpointer) 0);
 } //-V591
+#pragma GCC diagnostic pop
 
 
 static void

@@ -6,7 +6,7 @@ set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
 
 set(GTKCRYPTO_VERSION_MAJOR "1")
 set(GTKCRYPTO_VERSION_MINOR "0")
-set(GTKCRYPTO_VERSION_PATCH "1")
+set(GTKCRYPTO_VERSION_PATCH "2")
 set(GTKCRYPTO_VERSION "${GTKCRYPTO_VERSION_MAJOR}.${GTKCRYPTO_VERSION_MINOR}.${GTKCRYPTO_VERSION_PATCH}")
 
 set(CMAKE_C_STANDARD 11)
@@ -15,6 +15,8 @@ set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fdiagnostics-color=always -Wstrict-prototyp
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wchar-subscripts -Wwrite-strings -Wpointer-arith -Wbad-function-cast -Wcast-align")
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Werror=format-security -Werror=implicit-function-declaration -Wno-sign-compare")
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -U_FORTIFY_SOURCE -D_FORTIFY_SOURCE=2")
+# libgpgme need Largefile support
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64")
 if(CMAKE_COMPILER_IS_GNUCC)
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -pie -fPIE")
 endif()
@@ -29,7 +31,7 @@ endif()
 find_package(PkgConfig REQUIRED)
 find_package(Gcrypt 1.7.0 REQUIRED)
 find_package(Gpgme 1.8.0 REQUIRED)
-pkg_check_modules(GTK3 REQUIRED gtk+-3.0)
+pkg_check_modules(GTK3 REQUIRED gtk+-3.0 >= 3.20.0)
 
 include_directories(${GTK3_INCLUDE_DIRS}
         ${GCRYPT_INCLUDE_DIR}

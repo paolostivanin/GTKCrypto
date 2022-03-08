@@ -201,6 +201,8 @@ entry_changed_cb (GtkWidget *btn,
 }
 
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wreturn-type"
 static gpointer
 exec_thread (gpointer user_data)
 {
@@ -215,3 +217,4 @@ exec_thread (gpointer user_data)
 
     g_thread_exit (status);
 } //-V591
+#pragma GCC diagnostic pop
