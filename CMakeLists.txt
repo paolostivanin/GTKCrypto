@@ -97,12 +97,4 @@ install(FILES data/com.github.paolostivanin.GTKCrypto.desktop DESTINATION share/
 install(FILES data/com.github.paolostivanin.GTKCrypto.appdata.xml DESTINATION share/metainfo)
 
 install(FILES src/ui/gtkcrypto.ui DESTINATION share/gtkcrypto)
-install(FILES data/icons/icon_x16.png DESTINATION share/icons/hicolor/16x16/apps RENAME com.github.paolostivanin.GTKCrypto.png)
-install(FILES data/icons/icon_x24.png DESTINATION share/icons/hicolor/24x24/apps RENAME com.github.paolostivanin.GTKCrypto.png)
-install(FILES data/icons/icon_x32.png DESTINATION share/icons/hicolor/32x32/apps RENAME com.github.paolostivanin.GTKCrypto.png)
-install(FILES data/icons/icon_x48.png DESTINATION share/icons/hicolor/48x48/apps RENAME com.github.paolostivanin.GTKCrypto.png)
-install(FILES data/icons/icon_x64.png DESTINATION share/icons/hicolor/64x64/apps RENAME com.github.paolostivanin.GTKCrypto.png)
-install(FILES data/icons/icon_x128.png DESTINATION share/icons/hicolor/128x128/apps RENAME com.github.paolostivanin.GTKCrypto.png)
-install(FILES data/icons/icon_x256.png DESTINATION share/icons/hicolor/256x256/apps RENAME com.github.paolostivanin.GTKCrypto.png)
-install(FILES data/icons/icon_x512.png DESTINATION share/icons/hicolor/512x512/apps RENAME com.github.paolostivanin.GTKCrypto.png)
-install(FILES data/icons/gtkcrypto.svg DESTINATION share/icons/hicolor/scalable/apps RENAME com.github.paolostivanin.GTKCrypto.svg)
+install(FILES data/icons/com.github.paolostivanin.GTKCrypto.svg DESTINATION share/icons/hicolor/scalable/apps)
