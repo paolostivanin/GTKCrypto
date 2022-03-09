@@ -21,14 +21,19 @@ gfile_cleanup (GFile *ifile,
     g_object_unref(ofile);
 }
 
+
 void
 gstream_cleanup (GFileInputStream  *istream,
                  GFileOutputStream *ostream)
 {
-    g_input_stream_close (G_INPUT_STREAM (istream), NULL, NULL);
-    g_output_stream_close (G_OUTPUT_STREAM (ostream), NULL, NULL);
-    g_object_unref (istream);
-    g_object_unref (ostream);
+    if (istream != NULL) {
+        g_input_stream_close (G_INPUT_STREAM (istream), NULL, NULL);
+        g_object_unref (istream);
+    }
+    if (ostream != NULL) {
+        g_output_stream_close (G_OUTPUT_STREAM (ostream), NULL, NULL);
+        g_object_unref (ostream);
+    }
 }
 
 

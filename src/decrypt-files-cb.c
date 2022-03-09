@@ -98,7 +98,7 @@ prepare_multi_decryption_cb (GtkWidget      *widget __attribute__((unused)),
 
     g_mutex_init (&thread_data->mutex);
 
-    data->thread_pool = g_thread_pool_new (exec_thread, thread_data, g_get_num_processors (), TRUE, NULL);
+    data->thread_pool = g_thread_pool_new (exec_thread, thread_data, (gint)g_get_num_processors (), TRUE, NULL);
     for (guint i = 0; i < thread_data->list_len; i++) {
         g_thread_pool_push (data->thread_pool, g_slist_nth_data (data->files_list, i), NULL);
     }
@@ -126,7 +126,6 @@ exec_thread (gpointer data,
     if (thread_data->delete_file && ret == NULL) {
         g_unlink (filename);
     }
-
     g_mutex_lock (&thread_data->mutex);
     thread_data->widgets->running_threads--;
     thread_data->widgets->first_run = FALSE;

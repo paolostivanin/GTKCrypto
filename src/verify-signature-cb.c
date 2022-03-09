@@ -66,16 +66,16 @@ verify_signature_cb (GtkWidget *btn __attribute__((unused)),
     verify_widgets->signed_file_entry = gtk_entry_new ();
     gtk_widget_set_name (GTK_WIDGET (verify_widgets->signed_file_entry), "signed_file_entry");
     gtk_entry_set_placeholder_text (GTK_ENTRY (verify_widgets->signed_file_entry), "Choose signed file");
-    verify_widgets->signature_file_entry = gtk_entry_new ();
-    gtk_widget_set_name (GTK_WIDGET (verify_widgets->signed_file_entry), "signature_file_entry");
-    gtk_entry_set_placeholder_text (GTK_ENTRY (verify_widgets->signature_file_entry), "Choose signature (.sig) file");
     gtk_editable_set_editable (GTK_EDITABLE (verify_widgets->signed_file_entry), FALSE);
-    gtk_editable_set_editable (GTK_EDITABLE (verify_widgets->signature_file_entry), FALSE);
     gtk_widget_set_hexpand (verify_widgets->signed_file_entry, TRUE);
-    gtk_widget_set_hexpand (verify_widgets->signature_file_entry, TRUE);
-
     gtk_entry_set_icon_from_icon_name (GTK_ENTRY (verify_widgets->signed_file_entry), GTK_ENTRY_ICON_SECONDARY,
                                        "document-open-symbolic");
+
+    verify_widgets->signature_file_entry = gtk_entry_new ();
+    gtk_widget_set_name (GTK_WIDGET (verify_widgets->signature_file_entry), "signature_file_entry");
+    gtk_entry_set_placeholder_text (GTK_ENTRY (verify_widgets->signature_file_entry), "Choose signature (.sig) file");
+    gtk_editable_set_editable (GTK_EDITABLE (verify_widgets->signature_file_entry), FALSE);
+    gtk_widget_set_hexpand (verify_widgets->signature_file_entry, TRUE);
     gtk_entry_set_icon_from_icon_name (GTK_ENTRY (verify_widgets->signature_file_entry), GTK_ENTRY_ICON_SECONDARY,
                                        "document-open-symbolic");
 
@@ -158,7 +158,9 @@ select_file_cb (GtkEntry                *entry,
         verify_widgets->entry_data.entry1_filename = g_strdup (filename);
     } else {
         verify_widgets->entry_data.entry2_filename = g_strdup (filename);
+
     }
+    gtk_entry_set_text (entry, filename);
 
     g_free (filename);
 }
@@ -191,9 +193,12 @@ entry_changed_cb (GtkWidget *btn,
             gtk_widget_show (thread_data->spinner);
             start_spinner (thread_data->spinner);
 
-            change_widgets_sensitivity (3, FALSE, &verify_widgets->cancel_btn,
-                                        verify_widgets->signed_file_entry,
-                                        verify_widgets->signature_file_entry);
+            if (gtk_widget_get_sensitive (verify_widgets->signed_file_entry) != FALSE) {
+                gtk_widget_set_sensitive (verify_widgets->signed_file_entry, FALSE);
+            }
+            if (gtk_widget_get_sensitive (verify_widgets->signature_file_entry) != FALSE) {
+                gtk_widget_set_sensitive (verify_widgets->signature_file_entry, FALSE);
+            }
 
             verify_widgets->thread = g_thread_new (NULL, exec_thread, thread_data);
         }

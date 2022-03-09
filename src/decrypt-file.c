@@ -197,7 +197,7 @@ get_g_file_with_encrypted_data (GFileInputStream *in_stream,
         }
     }
 
-    gstream_cleanup (in_stream, out_enc_stream);
+    gstream_cleanup (NULL, out_enc_stream);
     g_free (buf);
 
     return tmp_encrypted_file;

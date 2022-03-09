@@ -63,6 +63,18 @@ Supported hash algorithms: MD5, SHA-1, SHA-2, SHA-3, GOST, Whirlpool.
   </content_rating>
 
   <releases>
+    <release version="1.0.2" date="2022-03-09">
+      <description>
+        <p>GTKCrypto 1.0.2 brings some fixes</p>
+        <ul>
+          <li>fix double free when decrypting a file</li>
+          <li>fix incorrect version set on header bar</li>
+          <li>fix UI bug when listing GPG keys</li>
+          <li>fix signature verification workflow</li>
+          <li>fix UI file path</li>
+        </ul>
+      </description>
+    </release>
     <release version="1.0.1" date="2022-03-08">
       <description>
         <p>GTKCrypto 1.0.1 brings some small fixes</p>

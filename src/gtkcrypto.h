@@ -1,6 +1,6 @@
 #pragma once
 
-#define PARTIAL_PATH_TO_UI_FILE "share/gtkcrypto/widgets.ui"
+#define PARTIAL_PATH_TO_UI_FILE "share/gtkcrypto/gtkcrypto.ui"
 
 void        show_message_dialog             (GtkWidget *parent, const gchar *message, GtkMessageType);
 
