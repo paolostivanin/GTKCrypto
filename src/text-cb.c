@@ -1,16 +1,12 @@
 #include <gtk/gtk.h>
 #include <gcrypt.h>
 #include "gtkcrypto.h"
+#include "crypt-common.h"
 #include "main.h"
 
-#define AES256_KEY_SIZE     32
-#define AES256_BLOCK_SIZE   16
-#define AES256_IV_SIZE      AES256_BLOCK_SIZE
-#define TAG_SIZE            AES256_BLOCK_SIZE
-#define KDF_ITERATIONS      150000
-#define KDF_SALT_SIZE       32
+#define TXT_KDF_ITERATIONS      150000
 
-typedef struct _txt_data {
+typedef struct txt_data_t {
     GtkWidget *diag;
     GtkWidget *entry1;
     GtkWidget *entry2;
@@ -18,7 +14,7 @@ typedef struct _txt_data {
     gchar *text_from_buffer;
 } TxtData;
 
-typedef struct _crypt_data {
+typedef struct crypt_data_t {
     gcry_cipher_hd_t hd;
     guint8 *iv;
     guint8 *salt;
@@ -383,7 +379,7 @@ derive_and_set_cipher_data (TxtData   *txt_data,
     gpg_error_t err = gcry_kdf_derive (gtk_entry_get_text (GTK_ENTRY (txt_data->entry1)), gtk_entry_get_text_length (GTK_ENTRY (txt_data->entry1)) + 1,
                                        GCRY_KDF_PBKDF2, GCRY_MD_SHA3_256,
                                        crypt_data->salt, KDF_SALT_SIZE,
-                                       KDF_ITERATIONS,
+                                       TXT_KDF_ITERATIONS,
                                        AES256_KEY_SIZE, crypt_data->derived_key);
     if (err != 0) {
         g_printerr ("Couldn't derive key\n");

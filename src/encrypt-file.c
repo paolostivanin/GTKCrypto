@@ -154,7 +154,7 @@ set_number_of_blocks_and_padding_bytes (goffset file_size,
                                         gint64 *num_of_blocks,
                                         gint *num_of_padding_bytes)
 {
-    gint64 file_blocks = file_size / block_length;
+    gint64 file_blocks = (gint64)(file_size / block_length);
 
     gint spare_bytes = (gint) (file_size % block_length);  // number of bytes left which didn't filled up a block
 
@@ -203,10 +203,10 @@ encrypt_using_cbc_mode (Metadata *header_metadata,
     gint64 done_blocks = 0;
 
     while (done_blocks < num_of_blocks) {
-        goffset remaining_bytes = ((num_of_blocks - done_blocks) * block_length);
+        goffset remaining_bytes = (goffset)((num_of_blocks - done_blocks) * block_length);
         if (remaining_bytes > FILE_BUFFER) {
             read_len = g_input_stream_read (G_INPUT_STREAM (in_stream), buffer, FILE_BUFFER, NULL, &err);
-            done_blocks += (read_len / block_length);
+            done_blocks += (gint64)(read_len / block_length);
         } else {
             read_len = g_input_stream_read (G_INPUT_STREAM (in_stream), buffer, (gsize)remaining_bytes, NULL, &err);
             for (gsize j = (gsize)read_len, i = (block_length - num_of_padding_bytes); i < block_length; i++) {
@@ -214,7 +214,7 @@ encrypt_using_cbc_mode (Metadata *header_metadata,
                 j++;
             }
             read_len += num_of_padding_bytes;
-            done_blocks += (read_len / block_length);
+            done_blocks += (gint64)(read_len / block_length);
         }
         if (read_len == -1) {
             g_free (buffer);

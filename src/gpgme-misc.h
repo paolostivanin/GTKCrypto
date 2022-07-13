@@ -18,7 +18,7 @@
     #define g_memdupX g_memdup
 #endif
 
-typedef struct _key_info_t {
+typedef struct key_info_t {
     gchar *name;
     gchar *email;
     gchar *key_id;
