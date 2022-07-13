@@ -3,7 +3,7 @@
 #define HASH_ERR_CSS 101
 #define HASH_OK_CSS 102
 
-typedef struct _pango_data {
+typedef struct pango_data_t {
     PangoAttrList *attrs;
     PangoFontDescription *font_desc;
     PangoAttribute *attr;

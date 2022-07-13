@@ -71,7 +71,7 @@ compute_hash (gcry_md_hd_t  *hd,
         return HASH_COMPUTED;
     } else {
         while (file_size > done_size) {
-            addr = mmap (NULL, FILE_BUFFER, PROT_READ, MAP_FILE | MAP_SHARED, fd, offset);
+            addr = mmap (NULL, FILE_BUFFER, PROT_READ, MAP_FILE | MAP_SHARED, fd, (off64_t)offset);
             if (addr == MAP_FAILED) {
                 g_close (fd, NULL);
                 return MAP_FAILED;
@@ -81,7 +81,7 @@ compute_hash (gcry_md_hd_t  *hd,
             diff = file_size - done_size;
             offset += FILE_BUFFER;
             if (diff < FILE_BUFFER) {
-                addr = mmap (NULL, diff, PROT_READ, MAP_FILE | MAP_SHARED, fd, offset);
+                addr = mmap (NULL, diff, PROT_READ, MAP_FILE | MAP_SHARED, fd, (off64_t)offset);
                 if (addr == MAP_FAILED) {
                     g_close (fd, NULL);
                     return MAP_FAILED;
