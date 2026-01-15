@@ -49,14 +49,21 @@ static GtkWidget *
 get_main_window (GtkBuilder *builder)
 {
     GtkWidget *window = GTK_WIDGET (gtk_builder_get_object(builder, "mainwin"));
-
-    gchar *header_bar_text = g_malloc0 (strlen (APP_NAME) + strlen (APP_VERSION) + 2);
-    g_snprintf (header_bar_text, strlen (APP_NAME) +1 + strlen (APP_VERSION) + 1, "%s %s", APP_NAME, APP_VERSION);
-
     GtkWidget *header_bar = (GTK_WIDGET (gtk_builder_get_object(builder, "main_hb")));
-    GtkWidget *title_label = gtk_label_new (header_bar_text);
-    gtk_header_bar_set_title_widget (GTK_HEADER_BAR (header_bar), title_label);
-    g_free (header_bar_text);
+    GtkWidget *title_box = gtk_box_new (GTK_ORIENTATION_VERTICAL, 2);
+    GtkWidget *title_label = gtk_label_new (APP_NAME);
+    GtkWidget *subtitle_label = gtk_label_new (APP_VERSION);
+
+    gtk_widget_add_css_class (title_label, "title-3");
+    gtk_widget_add_css_class (subtitle_label, "dim-label");
+    gtk_label_set_xalign (GTK_LABEL (title_label), 0.5f);
+    gtk_label_set_xalign (GTK_LABEL (subtitle_label), 0.5f);
+
+    gtk_box_append (GTK_BOX (title_box), title_label);
+    gtk_box_append (GTK_BOX (title_box), subtitle_label);
+    gtk_header_bar_set_title_widget (GTK_HEADER_BAR (header_bar), title_box);
+
+    gtk_window_set_default_size (GTK_WINDOW (window), 760, 560);
 
     return window;
 }

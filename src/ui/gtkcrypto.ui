@@ -119,75 +119,403 @@
       </object>
     </child>
     <child>
-      <object class="GtkBox" id="vbox1">
+      <object class="GtkBox" id="main_content_box">
         <property name="visible">1</property>
         <property name="orientation">vertical</property>
-        <property name="spacing">4</property>
-        <property name="homogeneous">1</property>
+        <property name="spacing">16</property>
+        <property name="margin_top">20</property>
+        <property name="margin_bottom">20</property>
+        <property name="margin_start">24</property>
+        <property name="margin_end">24</property>
         <child>
-          <object class="GtkButton" id="encfile_btn">
+          <object class="GtkBox" id="hero_box">
             <property name="visible">1</property>
-            <property name="label" translatable="1">Encrypt File</property>
-            <property name="focusable">1</property>
-            <property name="receives_default">1</property>
+            <property name="orientation">vertical</property>
+            <property name="spacing">4</property>
+            <child>
+              <object class="GtkLabel" id="hero_title">
+                <property name="visible">1</property>
+                <property name="label" translatable="1">GTKCrypto</property>
+                <property name="xalign">0</property>
+                <property name="css_classes">title-1</property>
+              </object>
+            </child>
+            <child>
+              <object class="GtkLabel" id="hero_subtitle">
+                <property name="visible">1</property>
+                <property name="label" translatable="1">Encrypt, decrypt, sign, and verify files or text with confidence.</property>
+                <property name="xalign">0</property>
+                <property name="wrap">1</property>
+                <property name="css_classes">dim-label</property>
+              </object>
+            </child>
           </object>
         </child>
         <child>
-          <object class="GtkButton" id="decfile_btn">
+          <object class="GtkSeparator">
             <property name="visible">1</property>
-            <property name="label" translatable="1">Decrypt File</property>
-            <property name="focusable">1</property>
-            <property name="receives_default">1</property>
           </object>
         </child>
         <child>
-          <object class="GtkButton" id="sigfile_btn">
+          <object class="GtkBox" id="actions_box">
             <property name="visible">1</property>
-            <property name="label" translatable="1">Sign File</property>
-            <property name="focusable">1</property>
-            <property name="receives_default">1</property>
-          </object>
-        </child>
-        <child>
-          <object class="GtkButton" id="versig_btn">
-            <property name="visible">1</property>
-            <property name="label" translatable="1">Verify Signature</property>
-            <property name="focusable">1</property>
-            <property name="receives_default">1</property>
-          </object>
-        </child>
-        <child>
-          <object class="GtkButton" id="enctxt_btn">
-            <property name="visible">1</property>
-            <property name="label" translatable="1">Encrypt Text</property>
-            <property name="name">enctxt_btn</property>
-            <property name="focusable">1</property>
-            <property name="receives_default">1</property>
-          </object>
-        </child>
-        <child>
-          <object class="GtkButton" id="dectxt_btn">
-            <property name="visible">1</property>
-            <property name="label" translatable="1">Decrypt Text</property>
-            <property name="name">dectxt_btn</property>
-            <property name="focusable">1</property>
-            <property name="receives_default">1</property>
-          </object>
-        </child>
-        <child>
-          <object class="GtkButton" id="chash_btn">
-            <property name="visible">1</property>
-            <property name="label" translatable="1">Compute Hash</property>
-            <property name="focusable">1</property>
-            <property name="receives_default">1</property>
-          </object>
-        </child>
-        <child>
-          <object class="GtkButton" id="cmphash_btn">
-            <property name="visible">1</property>
-            <property name="label" translatable="1">Compare Hash</property>
-            <property name="focusable">1</property>
-            <property name="receives_default">1</property>
+            <property name="orientation">vertical</property>
+            <property name="spacing">16</property>
+            <child>
+              <object class="GtkFrame" id="file_ops_frame">
+                <property name="visible">1</property>
+                <property name="label" translatable="1">File Operations</property>
+                <child>
+                  <object class="GtkBox" id="file_ops_box">
+                    <property name="visible">1</property>
+                    <property name="orientation">vertical</property>
+                    <property name="spacing">12</property>
+                    <property name="margin_top">12</property>
+                    <property name="margin_bottom">12</property>
+                    <property name="margin_start">12</property>
+                    <property name="margin_end">12</property>
+                    <child>
+                      <object class="GtkBox" id="file_ops_row_one">
+                        <property name="visible">1</property>
+                        <property name="orientation">horizontal</property>
+                        <property name="spacing">12</property>
+                        <child>
+                          <object class="GtkButton" id="encfile_btn">
+                            <property name="visible">1</property>
+                            <property name="focusable">1</property>
+                            <property name="hexpand">1</property>
+                            <property name="halign">fill</property>
+                            <child>
+                              <object class="GtkBox">
+                                <property name="visible">1</property>
+                                <property name="orientation">vertical</property>
+                                <property name="spacing">2</property>
+                                <property name="margin_top">8</property>
+                                <property name="margin_bottom">8</property>
+                                <property name="margin_start">8</property>
+                                <property name="margin_end">8</property>
+                                <child>
+                                  <object class="GtkLabel">
+                                    <property name="visible">1</property>
+                                    <property name="label" translatable="1">Encrypt File</property>
+                                    <property name="xalign">0</property>
+                                    <property name="css_classes">title-4</property>
+                                  </object>
+                                </child>
+                                <child>
+                                  <object class="GtkLabel">
+                                    <property name="visible">1</property>
+                                    <property name="label" translatable="1">Protect a file with a password.</property>
+                                    <property name="xalign">0</property>
+                                    <property name="wrap">1</property>
+                                    <property name="css_classes">dim-label</property>
+                                  </object>
+                                </child>
+                              </object>
+                            </child>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkButton" id="decfile_btn">
+                            <property name="visible">1</property>
+                            <property name="focusable">1</property>
+                            <property name="hexpand">1</property>
+                            <property name="halign">fill</property>
+                            <child>
+                              <object class="GtkBox">
+                                <property name="visible">1</property>
+                                <property name="orientation">vertical</property>
+                                <property name="spacing">2</property>
+                                <property name="margin_top">8</property>
+                                <property name="margin_bottom">8</property>
+                                <property name="margin_start">8</property>
+                                <property name="margin_end">8</property>
+                                <child>
+                                  <object class="GtkLabel">
+                                    <property name="visible">1</property>
+                                    <property name="label" translatable="1">Decrypt File</property>
+                                    <property name="xalign">0</property>
+                                    <property name="css_classes">title-4</property>
+                                  </object>
+                                </child>
+                                <child>
+                                  <object class="GtkLabel">
+                                    <property name="visible">1</property>
+                                    <property name="label" translatable="1">Open a protected file using a password.</property>
+                                    <property name="xalign">0</property>
+                                    <property name="wrap">1</property>
+                                    <property name="css_classes">dim-label</property>
+                                  </object>
+                                </child>
+                              </object>
+                            </child>
+                          </object>
+                        </child>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkBox" id="file_ops_row_two">
+                        <property name="visible">1</property>
+                        <property name="orientation">horizontal</property>
+                        <property name="spacing">12</property>
+                        <child>
+                          <object class="GtkButton" id="sigfile_btn">
+                            <property name="visible">1</property>
+                            <property name="focusable">1</property>
+                            <property name="hexpand">1</property>
+                            <property name="halign">fill</property>
+                            <child>
+                              <object class="GtkBox">
+                                <property name="visible">1</property>
+                                <property name="orientation">vertical</property>
+                                <property name="spacing">2</property>
+                                <property name="margin_top">8</property>
+                                <property name="margin_bottom">8</property>
+                                <property name="margin_start">8</property>
+                                <property name="margin_end">8</property>
+                                <child>
+                                  <object class="GtkLabel">
+                                    <property name="visible">1</property>
+                                    <property name="label" translatable="1">Sign File</property>
+                                    <property name="xalign">0</property>
+                                    <property name="css_classes">title-4</property>
+                                  </object>
+                                </child>
+                                <child>
+                                  <object class="GtkLabel">
+                                    <property name="visible">1</property>
+                                    <property name="label" translatable="1">Create a signature to prove authenticity.</property>
+                                    <property name="xalign">0</property>
+                                    <property name="wrap">1</property>
+                                    <property name="css_classes">dim-label</property>
+                                  </object>
+                                </child>
+                              </object>
+                            </child>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkButton" id="versig_btn">
+                            <property name="visible">1</property>
+                            <property name="focusable">1</property>
+                            <property name="hexpand">1</property>
+                            <property name="halign">fill</property>
+                            <child>
+                              <object class="GtkBox">
+                                <property name="visible">1</property>
+                                <property name="orientation">vertical</property>
+                                <property name="spacing">2</property>
+                                <property name="margin_top">8</property>
+                                <property name="margin_bottom">8</property>
+                                <property name="margin_start">8</property>
+                                <property name="margin_end">8</property>
+                                <child>
+                                  <object class="GtkLabel">
+                                    <property name="visible">1</property>
+                                    <property name="label" translatable="1">Verify Signature</property>
+                                    <property name="xalign">0</property>
+                                    <property name="css_classes">title-4</property>
+                                  </object>
+                                </child>
+                                <child>
+                                  <object class="GtkLabel">
+                                    <property name="visible">1</property>
+                                    <property name="label" translatable="1">Confirm a file has not been altered.</property>
+                                    <property name="xalign">0</property>
+                                    <property name="wrap">1</property>
+                                    <property name="css_classes">dim-label</property>
+                                  </object>
+                                </child>
+                              </object>
+                            </child>
+                          </object>
+                        </child>
+                      </object>
+                    </child>
+                  </object>
+                </child>
+              </object>
+            </child>
+            <child>
+              <object class="GtkFrame" id="text_ops_frame">
+                <property name="visible">1</property>
+                <property name="label" translatable="1">Text Operations</property>
+                <child>
+                  <object class="GtkBox" id="text_ops_box">
+                    <property name="visible">1</property>
+                    <property name="orientation">horizontal</property>
+                    <property name="spacing">12</property>
+                    <property name="margin_top">12</property>
+                    <property name="margin_bottom">12</property>
+                    <property name="margin_start">12</property>
+                    <property name="margin_end">12</property>
+                    <child>
+                      <object class="GtkButton" id="enctxt_btn">
+                        <property name="visible">1</property>
+                        <property name="name">enctxt_btn</property>
+                        <property name="focusable">1</property>
+                        <property name="hexpand">1</property>
+                        <property name="halign">fill</property>
+                        <child>
+                          <object class="GtkBox">
+                            <property name="visible">1</property>
+                            <property name="orientation">vertical</property>
+                            <property name="spacing">2</property>
+                            <property name="margin_top">8</property>
+                            <property name="margin_bottom">8</property>
+                            <property name="margin_start">8</property>
+                            <property name="margin_end">8</property>
+                            <child>
+                              <object class="GtkLabel">
+                                <property name="visible">1</property>
+                                <property name="label" translatable="1">Encrypt Text</property>
+                                <property name="xalign">0</property>
+                                <property name="css_classes">title-4</property>
+                              </object>
+                            </child>
+                            <child>
+                              <object class="GtkLabel">
+                                <property name="visible">1</property>
+                                <property name="label" translatable="1">Paste text and encrypt it quickly.</property>
+                                <property name="xalign">0</property>
+                                <property name="wrap">1</property>
+                                <property name="css_classes">dim-label</property>
+                              </object>
+                            </child>
+                          </object>
+                        </child>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkButton" id="dectxt_btn">
+                        <property name="visible">1</property>
+                        <property name="name">dectxt_btn</property>
+                        <property name="focusable">1</property>
+                        <property name="hexpand">1</property>
+                        <property name="halign">fill</property>
+                        <child>
+                          <object class="GtkBox">
+                            <property name="visible">1</property>
+                            <property name="orientation">vertical</property>
+                            <property name="spacing">2</property>
+                            <property name="margin_top">8</property>
+                            <property name="margin_bottom">8</property>
+                            <property name="margin_start">8</property>
+                            <property name="margin_end">8</property>
+                            <child>
+                              <object class="GtkLabel">
+                                <property name="visible">1</property>
+                                <property name="label" translatable="1">Decrypt Text</property>
+                                <property name="xalign">0</property>
+                                <property name="css_classes">title-4</property>
+                              </object>
+                            </child>
+                            <child>
+                              <object class="GtkLabel">
+                                <property name="visible">1</property>
+                                <property name="label" translatable="1">Reveal protected text securely.</property>
+                                <property name="xalign">0</property>
+                                <property name="wrap">1</property>
+                                <property name="css_classes">dim-label</property>
+                              </object>
+                            </child>
+                          </object>
+                        </child>
+                      </object>
+                    </child>
+                  </object>
+                </child>
+              </object>
+            </child>
+            <child>
+              <object class="GtkFrame" id="hash_ops_frame">
+                <property name="visible">1</property>
+                <property name="label" translatable="1">Hashing</property>
+                <child>
+                  <object class="GtkBox" id="hash_ops_box">
+                    <property name="visible">1</property>
+                    <property name="orientation">horizontal</property>
+                    <property name="spacing">12</property>
+                    <property name="margin_top">12</property>
+                    <property name="margin_bottom">12</property>
+                    <property name="margin_start">12</property>
+                    <property name="margin_end">12</property>
+                    <child>
+                      <object class="GtkButton" id="chash_btn">
+                        <property name="visible">1</property>
+                        <property name="focusable">1</property>
+                        <property name="hexpand">1</property>
+                        <property name="halign">fill</property>
+                        <child>
+                          <object class="GtkBox">
+                            <property name="visible">1</property>
+                            <property name="orientation">vertical</property>
+                            <property name="spacing">2</property>
+                            <property name="margin_top">8</property>
+                            <property name="margin_bottom">8</property>
+                            <property name="margin_start">8</property>
+                            <property name="margin_end">8</property>
+                            <child>
+                              <object class="GtkLabel">
+                                <property name="visible">1</property>
+                                <property name="label" translatable="1">Compute Hash</property>
+                                <property name="xalign">0</property>
+                                <property name="css_classes">title-4</property>
+                              </object>
+                            </child>
+                            <child>
+                              <object class="GtkLabel">
+                                <property name="visible">1</property>
+                                <property name="label" translatable="1">Generate checksums for integrity checks.</property>
+                                <property name="xalign">0</property>
+                                <property name="wrap">1</property>
+                                <property name="css_classes">dim-label</property>
+                              </object>
+                            </child>
+                          </object>
+                        </child>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkButton" id="cmphash_btn">
+                        <property name="visible">1</property>
+                        <property name="focusable">1</property>
+                        <property name="hexpand">1</property>
+                        <property name="halign">fill</property>
+                        <child>
+                          <object class="GtkBox">
+                            <property name="visible">1</property>
+                            <property name="orientation">vertical</property>
+                            <property name="spacing">2</property>
+                            <property name="margin_top">8</property>
+                            <property name="margin_bottom">8</property>
+                            <property name="margin_start">8</property>
+                            <property name="margin_end">8</property>
+                            <child>
+                              <object class="GtkLabel">
+                                <property name="visible">1</property>
+                                <property name="label" translatable="1">Compare Hash</property>
+                                <property name="xalign">0</property>
+                                <property name="css_classes">title-4</property>
+                              </object>
+                            </child>
+                            <child>
+                              <object class="GtkLabel">
+                                <property name="visible">1</property>
+                                <property name="label" translatable="1">Match a file against a known checksum.</property>
+                                <property name="xalign">0</property>
+                                <property name="wrap">1</property>
+                                <property name="css_classes">dim-label</property>
+                              </object>
+                            </child>
+                          </object>
+                        </child>
+                      </object>
+                    </child>
+                  </object>
+                </child>
+              </object>
+            </child>
           </object>
         </child>
       </object>
