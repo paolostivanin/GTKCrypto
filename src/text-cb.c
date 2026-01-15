@@ -50,6 +50,8 @@ static void         show_error_and_cleanup      (GtkWidget      *diag,
 static void         data_dialog_ok_cb           (GtkWidget      *btn,
                                                  gpointer        user_data);
 
+static void         cancel_txt_cb               (GtkWidget      *btn,
+                                                 gpointer        user_data);
 
 void
 txt_cb (GtkWidget *btn,
@@ -64,6 +66,7 @@ txt_cb (GtkWidget *btn,
 
     txt_data->diag = GTK_WIDGET(gtk_builder_get_object (builder, "text_diag"));
     GtkWidget *ok_btn = GTK_WIDGET(gtk_builder_get_object (builder, "txt_btn_ok"));
+    GtkWidget *cancel_btn = GTK_WIDGET(gtk_builder_get_object (builder, "txt_btn_cancel"));
     txt_data->entry1 = GTK_WIDGET(gtk_builder_get_object (builder, "pwd_entry1_txt"));
     txt_data->entry2 = GTK_WIDGET(gtk_builder_get_object (builder, "pwd_entry2_txt"));
     txt_data->txt_buf = GTK_TEXT_BUFFER(gtk_builder_get_object (builder, "text_buf"));
@@ -80,6 +83,8 @@ txt_cb (GtkWidget *btn,
         g_signal_connect (ok_btn, "clicked", G_CALLBACK (dec_txt), txt_data);
         g_signal_connect (txt_data->entry1, "activate", G_CALLBACK (dec_txt), txt_data);
     }
+
+    g_signal_connect (cancel_btn, "clicked", G_CALLBACK (cancel_txt_cb), txt_data->diag);
 
     gint result = run_dialog (GTK_WINDOW (txt_data->diag));
     switch (result) {
@@ -439,4 +444,11 @@ data_dialog_ok_cb (GtkWidget *btn __attribute__((unused)),
                    gpointer   user_data)
 {
     dialog_finish_response (GTK_WINDOW (user_data), GTK_RESPONSE_OK);
+}
+
+static void
+cancel_txt_cb (GtkWidget *btn __attribute__((unused)),
+               gpointer   user_data)
+{
+    dialog_finish_response (GTK_WINDOW (user_data), GTK_RESPONSE_CANCEL);
 }

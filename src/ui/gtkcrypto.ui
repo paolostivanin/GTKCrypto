@@ -1,6 +1,15 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <interface>
   <requires lib="gtk" version="4.0"/>
+  <object class="GtkSizeGroup" id="file_ops_size_group">
+    <property name="mode">both</property>
+    <widgets>
+      <widget name="encfile_btn"/>
+      <widget name="decfile_btn"/>
+      <widget name="sigfile_btn"/>
+      <widget name="versig_btn"/>
+    </widgets>
+  </object>
   <object class="GtkTextBuffer" id="data_text_buf"/>
   <object class="GtkPopoverMenu" id="enc_popmenu">
     <property name="child">
