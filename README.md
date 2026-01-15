@@ -1,8 +1,4 @@
 # GTKCrypto
-<a href="https://circleci.com/gh/paolostivanin/GTKCrypto">
-  <img alt="CircleCI" src="https://circleci.com/gh/paolostivanin/GTKCrypto.svg?style=svg"/>
-</a>
-
 
 ## Features
 * Encrypt and decrypt files using AES, Twofish, Serpent or Camellia using either CBC or CTR mode. Key size for all algorithms is 256 bits.
