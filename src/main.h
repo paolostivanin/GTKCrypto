@@ -1,8 +1,8 @@
 #pragma once
 
 #define APP_NAME                "GTKCrypto"
-#define APP_VERSION             "1.0.2"
-#define GCRYPT_MIN_VERSION      "1.7.0"
+#define APP_VERSION             "1.1.0"
+#define GCRYPT_MIN_VERSION      "1.10.1"
 #define SECURE_MEMORY_POOL_SIZE 32768
 
 
