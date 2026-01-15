@@ -128,35 +128,6 @@
         <property name="margin_start">24</property>
         <property name="margin_end">24</property>
         <child>
-          <object class="GtkBox" id="hero_box">
-            <property name="visible">1</property>
-            <property name="orientation">vertical</property>
-            <property name="spacing">4</property>
-            <child>
-              <object class="GtkLabel" id="hero_title">
-                <property name="visible">1</property>
-                <property name="label" translatable="1">GTKCrypto</property>
-                <property name="xalign">0</property>
-                <property name="css_classes">title-1</property>
-              </object>
-            </child>
-            <child>
-              <object class="GtkLabel" id="hero_subtitle">
-                <property name="visible">1</property>
-                <property name="label" translatable="1">Encrypt, decrypt, sign, and verify files or text with confidence.</property>
-                <property name="xalign">0</property>
-                <property name="wrap">1</property>
-                <property name="css_classes">dim-label</property>
-              </object>
-            </child>
-          </object>
-        </child>
-        <child>
-          <object class="GtkSeparator">
-            <property name="visible">1</property>
-          </object>
-        </child>
-        <child>
           <object class="GtkBox" id="actions_box">
             <property name="visible">1</property>
             <property name="orientation">vertical</property>
