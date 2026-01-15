@@ -1,27 +1,32 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <interface>
   <requires lib="gtk" version="4.0"/>
-  <requires lib="gtk" version="4.10"/>
   <object class="GtkTextBuffer" id="data_text_buf"/>
   <object class="GtkPopoverMenu" id="enc_popmenu">
     <property name="child">
       <object class="GtkBox">
+        <property name="visible">0</property>
         <property name="spacing">2</property>
         <child>
           <object class="GtkBox">
+            <property name="visible">0</property>
             <property name="hexpand">1</property>
             <property name="orientation">vertical</property>
             <child>
               <object class="GtkLabel">
+                <property name="visible">0</property>
                 <property name="label" translatable="1">Cipher</property>
                 <property name="justify">center</property>
               </object>
             </child>
             <child>
-              <object class="GtkSeparator"/>
+              <object class="GtkSeparator">
+                <property name="visible">0</property>
+              </object>
             </child>
             <child>
               <object class="GtkCheckButton" id="aes_rbtn">
+                <property name="visible">0</property>
                 <property name="label" translatable="1">AES256</property>
                 <property name="name">aes_rbtn_widget</property>
                 <property name="focusable">1</property>
@@ -30,6 +35,7 @@
             </child>
             <child>
               <object class="GtkCheckButton" id="twofish_rbtn">
+                <property name="visible">0</property>
                 <property name="label" translatable="1">Twofish</property>
                 <property name="name">twofish_rbtn_widget</property>
                 <property name="focusable">1</property>
@@ -38,6 +44,7 @@
             </child>
             <child>
               <object class="GtkCheckButton" id="serpent_rbtn">
+                <property name="visible">0</property>
                 <property name="label" translatable="1">Serpent</property>
                 <property name="name">serpent_rbtn_widget</property>
                 <property name="focusable">1</property>
@@ -46,6 +53,7 @@
             </child>
             <child>
               <object class="GtkCheckButton" id="camellia_rbtn">
+                <property name="visible">0</property>
                 <property name="label" translatable="1">Camellia</property>
                 <property name="name">camellia_rbtn_widget</property>
                 <property name="focusable">1</property>
@@ -56,23 +64,29 @@
         </child>
         <child>
           <object class="GtkSeparator">
+            <property name="visible">0</property>
             <property name="orientation">vertical</property>
           </object>
         </child>
         <child>
           <object class="GtkBox">
+            <property name="visible">0</property>
             <property name="orientation">vertical</property>
             <child>
               <object class="GtkLabel">
+                <property name="visible">0</property>
                 <property name="label" translatable="1">Mode</property>
                 <property name="justify">center</property>
               </object>
             </child>
             <child>
-              <object class="GtkSeparator"/>
+              <object class="GtkSeparator">
+                <property name="visible">0</property>
+              </object>
             </child>
             <child>
               <object class="GtkCheckButton" id="ctr_rbtn">
+                <property name="visible">0</property>
                 <property name="label" translatable="1">CTR</property>
                 <property name="name">ctr_rbtn_widget</property>
                 <property name="focusable">1</property>
@@ -81,6 +95,7 @@
             </child>
             <child>
               <object class="GtkCheckButton" id="cbc_rbtn">
+                <property name="visible">0</property>
                 <property name="label" translatable="1">CBC</property>
                 <property name="name">cbc_rbtn_widget</property>
                 <property name="focusable">1</property>
@@ -97,6 +112,7 @@
     <property name="gravity">center</property>
     <child type="titlebar">
       <object class="GtkHeaderBar" id="main_hb">
+        <property name="visible">0</property>
         <child>
           <placeholder/>
         </child>
@@ -104,11 +120,13 @@
     </child>
     <child>
       <object class="GtkBox" id="vbox1">
+        <property name="visible">0</property>
         <property name="orientation">vertical</property>
         <property name="spacing">4</property>
         <property name="homogeneous">1</property>
         <child>
           <object class="GtkButton" id="encfile_btn">
+            <property name="visible">0</property>
             <property name="label" translatable="1">Encrypt File</property>
             <property name="focusable">1</property>
             <property name="receives_default">1</property>
@@ -116,6 +134,7 @@
         </child>
         <child>
           <object class="GtkButton" id="decfile_btn">
+            <property name="visible">0</property>
             <property name="label" translatable="1">Decrypt File</property>
             <property name="focusable">1</property>
             <property name="receives_default">1</property>
@@ -123,6 +142,7 @@
         </child>
         <child>
           <object class="GtkButton" id="sigfile_btn">
+            <property name="visible">0</property>
             <property name="label" translatable="1">Sign File</property>
             <property name="focusable">1</property>
             <property name="receives_default">1</property>
@@ -130,6 +150,7 @@
         </child>
         <child>
           <object class="GtkButton" id="versig_btn">
+            <property name="visible">0</property>
             <property name="label" translatable="1">Verify Signature</property>
             <property name="focusable">1</property>
             <property name="receives_default">1</property>
@@ -137,6 +158,7 @@
         </child>
         <child>
           <object class="GtkButton" id="enctxt_btn">
+            <property name="visible">0</property>
             <property name="label" translatable="1">Encrypt Text</property>
             <property name="name">enctxt_btn</property>
             <property name="focusable">1</property>
@@ -145,6 +167,7 @@
         </child>
         <child>
           <object class="GtkButton" id="dectxt_btn">
+            <property name="visible">0</property>
             <property name="label" translatable="1">Decrypt Text</property>
             <property name="name">dectxt_btn</property>
             <property name="focusable">1</property>
@@ -153,6 +176,7 @@
         </child>
         <child>
           <object class="GtkButton" id="chash_btn">
+            <property name="visible">0</property>
             <property name="label" translatable="1">Compute Hash</property>
             <property name="focusable">1</property>
             <property name="receives_default">1</property>
@@ -160,6 +184,7 @@
         </child>
         <child>
           <object class="GtkButton" id="cmphash_btn">
+            <property name="visible">0</property>
             <property name="label" translatable="1">Compare Hash</property>
             <property name="focusable">1</property>
             <property name="receives_default">1</property>
@@ -184,11 +209,13 @@
         <property name="spacing">2</property>
         <child>
           <object class="GtkGrid" id="hash_grid">
+            <property name="visible">0</property>
             <property name="vexpand">1</property>
             <property name="row_spacing">4</property>
             <property name="column_spacing">5</property>
             <child>
               <object class="GtkLabel">
+                <property name="visible">0</property>
                 <property name="label" translatable="1">MD5</property>
                 <layout>
                   <property name="column">0</property>
@@ -198,6 +225,7 @@
             </child>
             <child>
               <object class="GtkLabel">
+                <property name="visible">0</property>
                 <property name="label" translatable="1">SHA-1</property>
                 <layout>
                   <property name="column">0</property>
@@ -207,6 +235,7 @@
             </child>
             <child>
               <object class="GtkLabel">
+                <property name="visible">0</property>
                 <property name="label" translatable="1">GOST94</property>
                 <layout>
                   <property name="column">0</property>
@@ -216,6 +245,7 @@
             </child>
             <child>
               <object class="GtkLabel">
+                <property name="visible">0</property>
                 <property name="label" translatable="1">SHA-256</property>
                 <layout>
                   <property name="column">0</property>
@@ -225,6 +255,7 @@
             </child>
             <child>
               <object class="GtkLabel">
+                <property name="visible">0</property>
                 <property name="label" translatable="1">SHA3-256</property>
                 <layout>
                   <property name="column">0</property>
@@ -234,6 +265,7 @@
             </child>
             <child>
               <object class="GtkLabel">
+                <property name="visible">0</property>
                 <property name="label" translatable="1">SHA-384</property>
                 <layout>
                   <property name="column">0</property>
@@ -243,6 +275,7 @@
             </child>
             <child>
               <object class="GtkLabel">
+                <property name="visible">0</property>
                 <property name="label" translatable="1">SHA3-384</property>
                 <layout>
                   <property name="column">0</property>
@@ -252,6 +285,7 @@
             </child>
             <child>
               <object class="GtkLabel">
+                <property name="visible">0</property>
                 <property name="label" translatable="1">SHA-512</property>
                 <layout>
                   <property name="column">0</property>
@@ -261,6 +295,7 @@
             </child>
             <child>
               <object class="GtkLabel">
+                <property name="visible">0</property>
                 <property name="label" translatable="1">SHA3-512</property>
                 <layout>
                   <property name="column">0</property>
@@ -270,6 +305,7 @@
             </child>
             <child>
               <object class="GtkLabel">
+                <property name="visible">0</property>
                 <property name="label" translatable="1">WHIRLPOOL</property>
                 <layout>
                   <property name="column">0</property>
@@ -279,6 +315,7 @@
             </child>
             <child>
               <object class="GtkEntry" id="md5_entry">
+                <property name="visible">0</property>
                 <property name="focusable">1</property>
                 <property name="hexpand">1</property>
                 <property name="editable">0</property>
@@ -291,6 +328,7 @@
             </child>
             <child>
               <object class="GtkEntry" id="sha1_entry">
+                <property name="visible">0</property>
                 <property name="focusable">1</property>
                 <property name="editable">0</property>
                 <property name="secondary_icon_name">edit-copy-symbolic</property>
@@ -302,6 +340,7 @@
             </child>
             <child>
               <object class="GtkEntry" id="gost94_entry">
+                <property name="visible">0</property>
                 <property name="focusable">1</property>
                 <property name="editable">0</property>
                 <property name="secondary_icon_name">edit-copy-symbolic</property>
@@ -313,6 +352,7 @@
             </child>
             <child>
               <object class="GtkEntry" id="sha256_entry">
+                <property name="visible">0</property>
                 <property name="focusable">1</property>
                 <property name="editable">0</property>
                 <property name="secondary_icon_name">edit-copy-symbolic</property>
@@ -324,6 +364,7 @@
             </child>
             <child>
               <object class="GtkEntry" id="sha3_256_entry">
+                <property name="visible">0</property>
                 <property name="focusable">1</property>
                 <property name="editable">0</property>
                 <property name="secondary_icon_name">edit-copy-symbolic</property>
@@ -335,6 +376,7 @@
             </child>
             <child>
               <object class="GtkEntry" id="sha384_entry">
+                <property name="visible">0</property>
                 <property name="focusable">1</property>
                 <property name="editable">0</property>
                 <property name="secondary_icon_name">edit-copy-symbolic</property>
@@ -346,6 +388,7 @@
             </child>
             <child>
               <object class="GtkEntry" id="sha3_384_entry">
+                <property name="visible">0</property>
                 <property name="focusable">1</property>
                 <property name="editable">0</property>
                 <property name="secondary_icon_name">edit-copy-symbolic</property>
@@ -357,6 +400,7 @@
             </child>
             <child>
               <object class="GtkEntry" id="sha512_entry">
+                <property name="visible">0</property>
                 <property name="focusable">1</property>
                 <property name="editable">0</property>
                 <property name="secondary_icon_name">edit-copy-symbolic</property>
@@ -368,6 +412,7 @@
             </child>
             <child>
               <object class="GtkEntry" id="sha3_512_entry">
+                <property name="visible">0</property>
                 <property name="focusable">1</property>
                 <property name="editable">0</property>
                 <property name="secondary_icon_name">edit-copy-symbolic</property>
@@ -379,6 +424,7 @@
             </child>
             <child>
               <object class="GtkEntry" id="whirl_entry">
+                <property name="visible">0</property>
                 <property name="focusable">1</property>
                 <property name="editable">0</property>
                 <property name="secondary_icon_name">edit-copy-symbolic</property>
@@ -396,6 +442,7 @@
       <object class="GtkButtonBox">
         <child>
           <object class="GtkButton" id="cancel_btn_chash">
+            <property name="visible">0</property>
             <property name="label" translatable="1">Cancel</property>
             <property name="focusable">1</property>
             <property name="receives_default">1</property>
@@ -421,6 +468,7 @@
         <property name="spacing">2</property>
         <child>
           <object class="GtkLabel" id="label_dec_pwd_diag">
+            <property name="visible">0</property>
             <property name="margin_bottom">4</property>
             <property name="label" translatable="1">Type the decryption password.</property>
             <property name="justify">center</property>
@@ -428,10 +476,12 @@
         </child>
         <child>
           <object class="GtkBox">
+            <property name="visible">0</property>
             <property name="vexpand">1</property>
             <property name="orientation">vertical</property>
             <child>
               <object class="GtkEntry" id="dec_pwd_entry">
+                <property name="visible">0</property>
                 <property name="focusable">1</property>
                 <property name="max_length">255</property>
                 <property name="visibility">0</property>
@@ -440,19 +490,24 @@
             </child>
             <child>
               <object class="GtkCheckButton" id="check_btn_delfile">
+                <property name="visible">0</property>
                 <property name="label" translatable="1">Delete encrypted file</property>
                 <property name="focusable">1</property>
               </object>
             </child>
             <child>
               <object class="GtkBox">
+                <property name="visible">0</property>
                 <child>
                   <object class="GtkLabel" id="dec_label">
+                    <property name="visible">0</property>
                     <property name="hexpand">1</property>
                   </object>
                 </child>
                 <child>
-                  <object class="GtkSpinner" id="dec_spinner"/>
+                  <object class="GtkSpinner" id="dec_spinner">
+                    <property name="visible">0</property>
+                  </object>
                 </child>
               </object>
             </child>
@@ -464,6 +519,7 @@
       <object class="GtkButtonBox">
         <child>
           <object class="GtkButton" id="cancel_btn_dec_pwd_diag">
+            <property name="visible">0</property>
             <property name="label" translatable="1">Cancel</property>
             <property name="focusable">1</property>
             <property name="receives_default">1</property>
@@ -471,6 +527,7 @@
         </child>
         <child>
           <object class="GtkButton" id="ok_btn_dec_pwd_diag">
+            <property name="visible">0</property>
             <property name="label" translatable="1">OK</property>
             <property name="focusable">1</property>
             <property name="receives_default">1</property>
@@ -486,8 +543,10 @@
     <property name="transient_for">mainwin</property>
     <child type="titlebar">
       <object class="GtkHeaderBar" id="hd_bar_enc">
+        <property name="visible">0</property>
         <child>
           <object class="GtkMenuButton" id="enc_menu_btn">
+            <property name="visible">0</property>
             <property name="focusable">1</property>
             <property name="receives_default">1</property>
             <property name="popover">enc_popmenu</property>
@@ -505,6 +564,7 @@
         <property name="spacing">2</property>
         <child>
           <object class="GtkLabel" id="pwd_diag_label">
+            <property name="visible">0</property>
             <property name="margin_bottom">4</property>
             <property name="label" translatable="1">Type the encryption password.
 Please note that the password &lt;b&gt;can&apos;t&lt;/b&gt; be recovered.</property>
@@ -514,12 +574,14 @@ Please note that the password &lt;b&gt;can&apos;t&lt;/b&gt; be recovered.</prope
         </child>
         <child>
           <object class="GtkBox">
+            <property name="visible">0</property>
             <property name="vexpand">1</property>
             <property name="margin_bottom">4</property>
             <property name="orientation">vertical</property>
             <property name="spacing">5</property>
             <child>
               <object class="GtkEntry" id="pwd_entry1">
+                <property name="visible">0</property>
                 <property name="focusable">1</property>
                 <property name="max_length">255</property>
                 <property name="visibility">0</property>
@@ -528,6 +590,7 @@ Please note that the password &lt;b&gt;can&apos;t&lt;/b&gt; be recovered.</prope
             </child>
             <child>
               <object class="GtkEntry" id="pwd_entry2">
+                <property name="visible">0</property>
                 <property name="focusable">1</property>
                 <property name="max_length">255</property>
                 <property name="visibility">0</property>
@@ -536,13 +599,17 @@ Please note that the password &lt;b&gt;can&apos;t&lt;/b&gt; be recovered.</prope
             </child>
             <child>
               <object class="GtkBox">
+                <property name="visible">0</property>
                 <child>
                   <object class="GtkLabel" id="enc_label">
+                    <property name="visible">0</property>
                     <property name="hexpand">1</property>
                   </object>
                 </child>
                 <child>
-                  <object class="GtkSpinner" id="enc_spinner"/>
+                  <object class="GtkSpinner" id="enc_spinner">
+                    <property name="visible">0</property>
+                  </object>
                 </child>
               </object>
             </child>
@@ -554,6 +621,7 @@ Please note that the password &lt;b&gt;can&apos;t&lt;/b&gt; be recovered.</prope
       <object class="GtkButtonBox">
         <child>
           <object class="GtkButton" id="cancel_btn_pwd_diag">
+            <property name="visible">0</property>
             <property name="label" translatable="1">Cancel</property>
             <property name="focusable">1</property>
             <property name="receives_default">1</property>
@@ -561,6 +629,7 @@ Please note that the password &lt;b&gt;can&apos;t&lt;/b&gt; be recovered.</prope
         </child>
         <child>
           <object class="GtkButton" id="ok_btn_pwd_diag">
+            <property name="visible">0</property>
             <property name="label" translatable="1">OK</property>
             <property name="focusable">1</property>
             <property name="receives_default">1</property>
@@ -570,6 +639,7 @@ Please note that the password &lt;b&gt;can&apos;t&lt;/b&gt; be recovered.</prope
     </child>
   </object>
   <object class="GtkImage" id="menu_image">
+    <property name="visible">0</property>
     <property name="icon_name">open-menu-symbolic</property>
   </object>
   <object class="GtkTextBuffer" id="text_buf"/>
@@ -590,12 +660,15 @@ Please note that the password &lt;b&gt;can&apos;t&lt;/b&gt; be recovered.</prope
         <property name="spacing">5</property>
         <child>
           <object class="GtkScrolledWindow">
+            <property name="visible">0</property>
             <property name="vexpand">1</property>
             <property name="focusable">1</property>
             <property name="child">
               <object class="GtkViewport">
+                <property name="visible">0</property>
                 <property name="child">
                   <object class="GtkTextView" id="text_view">
+                    <property name="visible">0</property>
                     <property name="focusable">1</property>
                     <property name="buffer">text_buf</property>
                     <property name="monospace">1</property>
@@ -607,8 +680,10 @@ Please note that the password &lt;b&gt;can&apos;t&lt;/b&gt; be recovered.</prope
         </child>
         <child>
           <object class="GtkBox">
+            <property name="visible">0</property>
             <child>
               <object class="GtkEntry" id="pwd_entry1_txt">
+                <property name="visible">0</property>
                 <property name="hexpand">1</property>
                 <property name="focusable">1</property>
                 <property name="visibility">0</property>
@@ -618,6 +693,7 @@ Please note that the password &lt;b&gt;can&apos;t&lt;/b&gt; be recovered.</prope
             </child>
             <child>
               <object class="GtkEntry" id="pwd_entry2_txt">
+                <property name="visible">0</property>
                 <property name="hexpand">1</property>
                 <property name="focusable">1</property>
                 <property name="visibility">0</property>
@@ -636,6 +712,7 @@ Please note that the password &lt;b&gt;can&apos;t&lt;/b&gt; be recovered.</prope
       <object class="GtkButtonBox">
         <child>
           <object class="GtkButton" id="txt_btn_cancel">
+            <property name="visible">0</property>
             <property name="label" translatable="1">Cancel</property>
             <property name="focusable">1</property>
             <property name="receives_default">1</property>
@@ -643,6 +720,7 @@ Please note that the password &lt;b&gt;can&apos;t&lt;/b&gt; be recovered.</prope
         </child>
         <child>
           <object class="GtkButton" id="txt_btn_ok">
+            <property name="visible">0</property>
             <property name="label" translatable="1">OK</property>
             <property name="focusable">1</property>
             <property name="receives_default">1</property>
@@ -667,12 +745,15 @@ Please note that the password &lt;b&gt;can&apos;t&lt;/b&gt; be recovered.</prope
         <property name="spacing">2</property>
         <child>
           <object class="GtkScrolledWindow">
+            <property name="visible">0</property>
             <property name="vexpand">1</property>
             <property name="focusable">1</property>
             <property name="child">
               <object class="GtkViewport">
+                <property name="visible">0</property>
                 <property name="child">
                   <object class="GtkTextView" id="data_diag_text_view">
+                    <property name="visible">0</property>
                     <property name="focusable">1</property>
                     <property name="buffer">data_text_buf</property>
                     <property name="monospace">1</property>
@@ -691,6 +772,7 @@ Please note that the password &lt;b&gt;can&apos;t&lt;/b&gt; be recovered.</prope
       <object class="GtkButtonBox">
         <child>
           <object class="GtkButton" id="data_diag_ok_btn">
+            <property name="visible">0</property>
             <property name="label" translatable="1">OK</property>
             <property name="focusable">1</property>
             <property name="receives_default">1</property>
