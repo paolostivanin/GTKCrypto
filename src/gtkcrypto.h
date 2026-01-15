@@ -1,5 +1,7 @@
 #pragma once
 
+#include <gio/gio.h>
+
 #define PARTIAL_PATH_TO_UI_FILE "share/gtkcrypto/gtkcrypto.ui"
 
 void        show_message_dialog             (GtkWidget *parent, const gchar *message, GtkMessageType);
@@ -22,7 +24,14 @@ void        change_widgets_sensitivity      (gint number_of_widgets, gboolean va
 
 GtkBuilder *get_builder_from_path           (const gchar *partial_path);
 
-gint        run_dialog                      (GtkWindow *dialog);
+void        dialog_run_async                (GtkWindow           *dialog,
+                                             GCancellable        *cancellable,
+                                             GAsyncReadyCallback  callback,
+                                             gpointer             user_data);
+
+gint        dialog_run_finish               (GtkWindow    *dialog,
+                                             GAsyncResult *result,
+                                             GError      **error);
 
 void        dialog_set_response             (GtkWindow *dialog, gint response);
 

@@ -1,33 +1,50 @@
 #include <gtk/gtk.h>
+#include <gio/gio.h>
 
 #include "gtkcrypto.h"
 
 typedef struct {
-    GMainLoop *loop;
+    gulong close_request_id;
+    gulong destroy_id;
 } DialogRunData;
+
+typedef struct {
+    GtkWindow *dialog;
+    gint response;
+} DialogFinishData;
+
+static void dialog_complete (GtkWindow *dialog,
+                             gint       response);
+
+static void dialog_cleanup (GtkWindow *dialog);
+
+static gboolean dialog_finish_response_invoke (gpointer user_data);
 
 static gboolean
 dialog_close_request_cb (GtkWindow *dialog,
-                         gpointer   user_data)
+                         gpointer   user_data __attribute__((unused)))
 {
-    DialogRunData *data = user_data;
     gpointer response = g_object_get_data (G_OBJECT (dialog), "dialog-response");
 
     if (response == NULL) {
-        dialog_set_response (dialog, GTK_RESPONSE_DELETE_EVENT);
+        response = GINT_TO_POINTER (GTK_RESPONSE_DELETE_EVENT);
     }
 
-    g_main_loop_quit (data->loop);
+    dialog_complete (dialog, GPOINTER_TO_INT (response));
     return FALSE;
 }
 
 static void
 dialog_destroy_cb (GtkWidget *dialog,
-                   gpointer   user_data)
+                   gpointer   user_data __attribute__((unused)))
 {
-    DialogRunData *data = user_data;
+    gpointer response = g_object_get_data (G_OBJECT (dialog), "dialog-response");
 
-    g_main_loop_quit (data->loop);
+    if (response == NULL) {
+        response = GINT_TO_POINTER (GTK_RESPONSE_DELETE_EVENT);
+    }
+
+    dialog_complete (GTK_WINDOW (dialog), GPOINTER_TO_INT (response));
 }
 
 void
@@ -41,37 +58,89 @@ void
 dialog_finish_response (GtkWindow *dialog,
                         gint       response)
 {
-    GMainLoop *loop = g_object_get_data (G_OBJECT (dialog), "dialog-loop");
-
-    dialog_set_response (dialog, response);
-    if (loop != NULL) {
-        g_main_loop_quit (loop);
+    if (g_main_context_is_owner (g_main_context_default ())) {
+        dialog_complete (dialog, response);
+        return;
     }
+
+    DialogFinishData *data = g_new0 (DialogFinishData, 1);
+    data->dialog = g_object_ref (dialog);
+    data->response = response;
+    g_main_context_invoke (NULL, dialog_finish_response_invoke, data);
+}
+
+void
+dialog_run_async (GtkWindow           *dialog,
+                  GCancellable        *cancellable,
+                  GAsyncReadyCallback  callback,
+                  gpointer             user_data)
+{
+    DialogRunData *data = g_new0 (DialogRunData, 1);
+    GTask *task = g_task_new (dialog, cancellable, callback, user_data);
+
+    dialog_set_response (dialog, GTK_RESPONSE_NONE);
+    g_object_set_data (G_OBJECT (dialog), "dialog-task", task);
+
+    data->close_request_id = g_signal_connect (dialog, "close-request",
+                                               G_CALLBACK (dialog_close_request_cb), data);
+    data->destroy_id = g_signal_connect (dialog, "destroy",
+                                         G_CALLBACK (dialog_destroy_cb), data);
+    g_object_set_data (G_OBJECT (dialog), "dialog-run-data", data);
+
+    gtk_window_present (dialog);
 }
 
 gint
-run_dialog (GtkWindow *dialog)
+dialog_run_finish (GtkWindow   *dialog,
+                   GAsyncResult *result,
+                   GError     **error)
 {
-    DialogRunData data = {0};
-    gpointer response = NULL;
-    g_object_ref (dialog);
+    g_return_val_if_fail (g_task_is_valid (result, dialog), GTK_RESPONSE_NONE);
 
-    dialog_set_response (dialog, GTK_RESPONSE_NONE);
+    return g_task_propagate_int (G_TASK (result), error);
+}
 
-    data.loop = g_main_loop_new (NULL, FALSE);
-    g_object_set_data (G_OBJECT (dialog), "dialog-loop", data.loop);
-    g_signal_connect (dialog, "close-request", G_CALLBACK (dialog_close_request_cb), &data);
-    g_signal_connect (dialog, "destroy", G_CALLBACK (dialog_destroy_cb), &data);
+static void
+dialog_complete (GtkWindow *dialog,
+                 gint       response)
+{
+    GTask *task = g_object_steal_data (G_OBJECT (dialog), "dialog-task");
 
-    gtk_window_present (GTK_WINDOW (dialog));
-    g_main_loop_run (data.loop);
+    if (task == NULL) {
+        return;
+    }
 
-    g_object_set_data (G_OBJECT (dialog), "dialog-loop", NULL);
-    response = g_object_get_data (G_OBJECT (dialog), "dialog-response");
-    g_signal_handlers_disconnect_by_func (dialog, G_CALLBACK (dialog_close_request_cb), &data);
-    g_signal_handlers_disconnect_by_func (dialog, G_CALLBACK (dialog_destroy_cb), &data);
-    g_main_loop_unref (data.loop);
-    g_object_unref (dialog);
+    dialog_set_response (dialog, response);
+    dialog_cleanup (dialog);
+    g_task_return_int (task, response);
+    g_object_unref (task);
+}
 
-    return response == NULL ? GTK_RESPONSE_NONE : GPOINTER_TO_INT (response);
+static void
+dialog_cleanup (GtkWindow *dialog)
+{
+    DialogRunData *data = g_object_steal_data (G_OBJECT (dialog), "dialog-run-data");
+
+    if (data == NULL) {
+        return;
+    }
+
+    if (data->close_request_id != 0) {
+        g_signal_handler_disconnect (dialog, data->close_request_id);
+    }
+    if (data->destroy_id != 0) {
+        g_signal_handler_disconnect (dialog, data->destroy_id);
+    }
+    g_free (data);
+}
+
+static gboolean
+dialog_finish_response_invoke (gpointer user_data)
+{
+    DialogFinishData *data = user_data;
+
+    dialog_complete (data->dialog, data->response);
+    g_object_unref (data->dialog);
+    g_free (data);
+    return G_SOURCE_REMOVE;
 }

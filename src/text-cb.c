@@ -53,6 +53,14 @@ static void         data_dialog_ok_cb           (GtkWidget      *btn,
 static void         cancel_txt_cb               (GtkWidget      *btn,
                                                  gpointer        user_data);
 
+static void         txt_dialog_response_cb      (GObject        *source,
+                                                 GAsyncResult   *result,
+                                                 gpointer        user_data);
+
+static void         data_dialog_response_cb     (GObject        *source,
+                                                 GAsyncResult   *result,
+                                                 gpointer        user_data);
+
 void
 txt_cb (GtkWidget *btn,
         gpointer   user_data __attribute__((unused)))
@@ -86,14 +94,7 @@ txt_cb (GtkWidget *btn,
 
     g_signal_connect (cancel_btn, "clicked", G_CALLBACK (cancel_txt_cb), txt_data->diag);
 
-    gint result = run_dialog (GTK_WINDOW (txt_data->diag));
-    switch (result) {
-        case GTK_RESPONSE_CANCEL:
-        default:
-            gtk_window_destroy (GTK_WINDOW (txt_data->diag));
-            g_free (txt_data);
-            break;
-    }
+    dialog_run_async (GTK_WINDOW (txt_data->diag), NULL, txt_dialog_response_cb, txt_data);
 }
 
 
@@ -429,14 +430,7 @@ show_dialog_with_data (gchar *data)
 
     g_signal_connect (ok_btn, "clicked", G_CALLBACK (data_dialog_ok_cb), diag);
 
-    gint result = run_dialog (GTK_WINDOW (diag));
-    switch (result) {
-        case GTK_RESPONSE_OK:
-            break;
-        default:
-            break;
-    }
-    gtk_window_destroy (GTK_WINDOW (diag));
+    dialog_run_async (GTK_WINDOW (diag), NULL, data_dialog_response_cb, NULL);
 }
 
 static void
@@ -451,4 +445,38 @@ cancel_txt_cb (GtkWidget *btn __attribute__((unused)),
                gpointer   user_data)
 {
     dialog_finish_response (GTK_WINDOW (user_data), GTK_RESPONSE_CANCEL);
+}
+
+static void
+txt_dialog_response_cb (GObject      *source,
+                        GAsyncResult *result,
+                        gpointer      user_data)
+{
+    TxtData *txt_data = user_data;
+    GtkWindow *dialog = GTK_WINDOW (source);
+    GError *error = NULL;
+
+    dialog_run_finish (dialog, result, &error);
+    if (error != NULL) {
+        g_error_free (error);
+    }
+
+    gtk_window_destroy (dialog);
+    g_free (txt_data);
+}
+
+static void
+data_dialog_response_cb (GObject      *source,
+                         GAsyncResult *result,
+                         gpointer      user_data __attribute__((unused)))
+{
+    GtkWindow *dialog = GTK_WINDOW (source);
+    GError *error = NULL;
+
+    dialog_run_finish (dialog, result, &error);
+    if (error != NULL) {
+        g_error_free (error);
+    }
+
+    gtk_window_destroy (dialog);
 }

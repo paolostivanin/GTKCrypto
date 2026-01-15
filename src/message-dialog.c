@@ -13,6 +13,20 @@ message_dialog_ok_cb (GtkWidget *button __attribute__((unused)),
     gtk_window_destroy (dialog);
 }
 
+static void
+message_dialog_response_cb (GObject      *source,
+                            GAsyncResult *result,
+                            gpointer      user_data __attribute__((unused)))
+{
+    GtkWindow *dialog = GTK_WINDOW (source);
+    GError *error = NULL;
+
+    dialog_run_finish (dialog, result, &error);
+    if (error != NULL) {
+        g_error_free (error);
+    }
+}
+
 
 void
 show_message_dialog (GtkWidget *parent,
@@ -49,5 +63,5 @@ show_message_dialog (GtkWidget *parent,
     gtk_box_append (GTK_BOX (action_area), ok_btn);
     g_signal_connect (ok_btn, "clicked", G_CALLBACK (message_dialog_ok_cb), dialog);
 
-    run_dialog (GTK_WINDOW (dialog));
+    dialog_run_async (GTK_WINDOW (dialog), NULL, message_dialog_response_cb, NULL);
 }

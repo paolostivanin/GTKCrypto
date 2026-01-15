@@ -37,6 +37,9 @@ static gpointer exec_thread         (gpointer   user_data);
 static void     cancel_clicked_cb   (GtkWidget *btn,
                                      gpointer   user_data);
 
+static void     sign_dialog_response_cb (GObject      *source,
+                                         GAsyncResult *result,
+                                         gpointer      user_data);
 
 void
 sign_file_cb (GtkWidget *btn __attribute__((unused)),
@@ -117,31 +120,7 @@ sign_file_cb (GtkWidget *btn __attribute__((unused)),
     g_signal_connect (sign_file_widgets->combo_box, "notify::selected", G_CALLBACK (prepare_signing_cb), sign_file_widgets);
     g_signal_connect (sign_file_widgets->cancel_btn, "clicked", G_CALLBACK (cancel_clicked_cb), sign_file_widgets);
 
-    gint result = run_dialog (GTK_WINDOW (sign_file_widgets->dialog));
-    switch (result) {
-        case GTK_RESPONSE_DELETE_EVENT:
-            if (sign_file_widgets->sign_thread != NULL) {
-                gpointer status = g_thread_join (sign_file_widgets->sign_thread);
-                if (status != SIGN_OK) {
-                    show_message_dialog (sign_file_widgets->main_window, "Couldn't sign file", GTK_MESSAGE_ERROR);
-                }
-                else {
-                    gchar *info_message = g_strconcat ("File <b>", sign_file_widgets->filename, "</b> has been successfully signed\n"
-                            "(GPG key fingerprint: ", sign_file_widgets->selected_fpr, ")", NULL);
-                    show_message_dialog (sign_file_widgets->dialog, info_message, GTK_MESSAGE_INFO);
-                    g_free (info_message);
-                }
-            }
-            g_slist_free_full (sign_file_widgets->gpg_keys, g_free);
-            g_slist_free_full (sign_file_widgets->to_free, g_free);
-            g_ptr_array_unref (sign_file_widgets->key_fprs);
-            gtk_window_destroy (GTK_WINDOW (sign_file_widgets->dialog));
-            g_free (sign_file_widgets->filename);
-            g_free (sign_file_widgets);
-            break;
-        default:
-            break;
-    }
+    dialog_run_async (GTK_WINDOW (sign_file_widgets->dialog), NULL, sign_dialog_response_cb, sign_file_widgets);
 }
 
 
@@ -151,15 +130,47 @@ cancel_clicked_cb (GtkWidget *btn __attribute__((unused)),
 {
     SignFileWidgets *data = user_data;
 
-    g_slist_free_full (data->gpg_keys, g_free);
-    g_slist_free_full (data->to_free, g_free);
-    g_ptr_array_unref (data->key_fprs);
-
     dialog_set_response (GTK_WINDOW (data->dialog), GTK_RESPONSE_CANCEL);
     gtk_window_destroy (GTK_WINDOW (data->dialog));
+}
 
-    g_free (data->filename);
-    g_free (data);
+static void
+sign_dialog_response_cb (GObject      *source,
+                         GAsyncResult *result,
+                         gpointer      user_data)
+{
+    SignFileWidgets *sign_file_widgets = user_data;
+    GtkWindow *dialog = GTK_WINDOW (source);
+    GError *error = NULL;
+    gint response = dialog_run_finish (dialog, result, &error);
+    gpointer status = NULL;
+
+    if (error != NULL) {
+        g_error_free (error);
+        response = GTK_RESPONSE_NONE;
+    }
+
+    if (sign_file_widgets->sign_thread != NULL) {
+        status = g_thread_join (sign_file_widgets->sign_thread);
+    }
+
+    if (response == GTK_RESPONSE_DELETE_EVENT && status != NULL) {
+        if (status != SIGN_OK) {
+            show_message_dialog (sign_file_widgets->main_window, "Couldn't sign file", GTK_MESSAGE_ERROR);
+        } else {
+            gchar *info_message = g_strconcat ("File <b>", sign_file_widgets->filename, "</b> has been successfully signed\n"
+                                               "(GPG key fingerprint: ", sign_file_widgets->selected_fpr, ")", NULL);
+            show_message_dialog (sign_file_widgets->dialog, info_message, GTK_MESSAGE_INFO);
+            g_free (info_message);
+        }
+    }
+
+    gtk_window_destroy (dialog);
+    g_slist_free_full (sign_file_widgets->gpg_keys, g_free);
+    g_slist_free_full (sign_file_widgets->to_free, g_free);
+    g_ptr_array_unref (sign_file_widgets->key_fprs);
+    g_free (sign_file_widgets->filename);
+    g_free (sign_file_widgets);
 }
 
 

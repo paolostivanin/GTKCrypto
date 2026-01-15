@@ -22,6 +22,9 @@ static void     exec_thread                 (gpointer data,
 static void     cancel_clicked_cb           (GtkWidget *btn,
                                              gpointer   user_data);
 
+static void     encrypt_dialog_response_cb  (GObject      *source,
+                                             GAsyncResult *result,
+                                             gpointer      user_data);
 
 void
 encrypt_files_cb (GtkWidget *btn __attribute__((__unused__)),
@@ -74,7 +77,7 @@ encrypt_files_cb (GtkWidget *btn __attribute__((__unused__)),
     g_signal_connect (encrypt_widgets->cancel_btn, "clicked", G_CALLBACK (cancel_clicked_cb), encrypt_widgets);
     encrypt_widgets->source_id = g_timeout_add (500, check_tp, encrypt_widgets);
 
-    run_dialog (GTK_WINDOW (encrypt_widgets->dialog));
+    dialog_run_async (GTK_WINDOW (encrypt_widgets->dialog), NULL, encrypt_dialog_response_cb, encrypt_widgets);
 }
 
 
@@ -174,7 +177,6 @@ prepare_multi_encryption (const gchar    *algo,
         g_thread_pool_push (data->thread_pool, g_slist_nth_data (data->files_list, i), NULL);
     }
 
-    dialog_finish_response (GTK_WINDOW (data->dialog), GTK_RESPONSE_DELETE_EVENT);
 }
 
 
@@ -210,13 +212,33 @@ cancel_clicked_cb (GtkWidget *btn __attribute__((__unused__)),
 {
     EncryptWidgets *encrypt_widgets = user_data;
 
-    g_source_remove (encrypt_widgets->source_id);
-
     dialog_set_response (GTK_WINDOW (encrypt_widgets->dialog), GTK_RESPONSE_CANCEL);
     gtk_window_destroy (GTK_WINDOW (encrypt_widgets->dialog));
-    g_object_unref (encrypt_widgets->dialog);
+}
 
-    g_slist_free_full (encrypt_widgets->files_list, g_free);
+static void
+encrypt_dialog_response_cb (GObject      *source,
+                            GAsyncResult *result,
+                            gpointer      user_data)
+{
+    EncryptWidgets *encrypt_widgets = user_data;
+    GtkWindow *dialog = GTK_WINDOW (source);
+    GError *error = NULL;
+    gint response = dialog_run_finish (dialog, result, &error);
 
-    g_free (encrypt_widgets);
+    if (error != NULL) {
+        g_error_free (error);
+        response = GTK_RESPONSE_NONE;
+    }
+
+    if (encrypt_widgets->source_id != 0) {
+        g_source_remove (encrypt_widgets->source_id);
+        encrypt_widgets->source_id = 0;
+    }
+
+    if (response == GTK_RESPONSE_CANCEL || response == GTK_RESPONSE_DELETE_EVENT) {
+        g_object_unref (encrypt_widgets->dialog);
+        g_slist_free_full (encrypt_widgets->files_list, g_free);
+        g_free (encrypt_widgets);
+    }
 }

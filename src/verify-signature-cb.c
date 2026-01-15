@@ -43,6 +43,10 @@ static void     entry_changed_cb        (GtkWidget *btn,
 
 static gpointer exec_thread             (gpointer user_data);
 
+static void     verify_signature_dialog_response_cb (GObject      *source,
+                                                     GAsyncResult *result,
+                                                     gpointer      user_data);
+
 
 void
 verify_signature_cb (GtkWidget *btn __attribute__((unused)),
@@ -101,31 +105,8 @@ verify_signature_cb (GtkWidget *btn __attribute__((unused)),
     g_signal_connect (verify_widgets->signed_file_entry, "changed", G_CALLBACK (entry_changed_cb), verify_widgets);
     g_signal_connect (verify_widgets->signature_file_entry, "changed", G_CALLBACK (entry_changed_cb), verify_widgets);
 
-    gint result = run_dialog (GTK_WINDOW (verify_widgets->dialog));
-    switch (result) {
-        case GTK_RESPONSE_DELETE_EVENT:
-            if (verify_widgets->thread != NULL) {
-                gpointer status = g_thread_join (verify_widgets->thread);
-                if (status == BAD_SIGNATURE) {
-                    show_message_dialog (verify_widgets->main_window, "Bad signature for the given file", GTK_MESSAGE_WARNING);
-                } else if (status == GPGME_ERROR || status == FILE_OPEN_ERROR) {
-                    show_message_dialog (verify_widgets->main_window, "An error occurred while checking the signature", GTK_MESSAGE_WARNING);
-                } else {
-                    if (status == SIGNATURE_OK) {
-                        show_message_dialog (verify_widgets->main_window, "Signature OK for the given file", GTK_MESSAGE_INFO);
-                    } else {
-                        show_message_dialog (verify_widgets->main_window, "Signature OK for the given file but the key is not certified with a trusted signature", GTK_MESSAGE_INFO);
-                    }
-                }
-            }
-            gtk_window_destroy (GTK_WINDOW (verify_widgets->dialog));
-            g_free (verify_widgets->entry_data.entry1_filename);
-            g_free (verify_widgets->entry_data.entry2_filename);
-            g_free (verify_widgets);
-            break;
-        default:
-            break;
-    }
+    dialog_run_async (GTK_WINDOW (verify_widgets->dialog), NULL,
+                      verify_signature_dialog_response_cb, verify_widgets);
 }
 
 
@@ -137,7 +118,43 @@ cancel_btn_clicked_cb (GtkWidget *btn __attribute__((unused)),
 
     dialog_set_response (GTK_WINDOW (verify_widgets->dialog), GTK_RESPONSE_CANCEL);
     gtk_window_destroy (GTK_WINDOW (verify_widgets->dialog));
+}
 
+static void
+verify_signature_dialog_response_cb (GObject      *source,
+                                     GAsyncResult *result,
+                                     gpointer      user_data)
+{
+    VerifyWidgets *verify_widgets = user_data;
+    GtkWindow *dialog = GTK_WINDOW (source);
+    GError *error = NULL;
+    gint response = dialog_run_finish (dialog, result, &error);
+
+    if (error != NULL) {
+        g_error_free (error);
+        response = GTK_RESPONSE_NONE;
+    }
+
+    if (response == GTK_RESPONSE_DELETE_EVENT) {
+        if (verify_widgets->thread != NULL) {
+            gpointer status = g_thread_join (verify_widgets->thread);
+            if (status == BAD_SIGNATURE) {
+                show_message_dialog (verify_widgets->main_window, "Bad signature for the given file", GTK_MESSAGE_WARNING);
+            } else if (status == GPGME_ERROR || status == FILE_OPEN_ERROR) {
+                show_message_dialog (verify_widgets->main_window, "An error occurred while checking the signature", GTK_MESSAGE_WARNING);
+            } else {
+                if (status == SIGNATURE_OK) {
+                    show_message_dialog (verify_widgets->main_window, "Signature OK for the given file", GTK_MESSAGE_INFO);
+                } else {
+                    show_message_dialog (verify_widgets->main_window, "Signature OK for the given file but the key is not certified with a trusted signature", GTK_MESSAGE_INFO);
+                }
+            }
+        }
+    }
+
+    gtk_window_destroy (dialog);
+    g_free (verify_widgets->entry_data.entry1_filename);
+    g_free (verify_widgets->entry_data.entry2_filename);
     g_free (verify_widgets);
 }
 

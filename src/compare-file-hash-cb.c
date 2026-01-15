@@ -17,6 +17,7 @@ typedef struct compare_hash_widgets_t {
     GtkWidget *spinner_entry2;
     gboolean entry1_changed;
     gboolean entry2_changed;
+    PangoData *pango_data;
 } HashWidgets;
 
 typedef struct compare_hash_thread_data_t {
@@ -46,6 +47,10 @@ static gpointer   exec_thread       (gpointer);
 static void       cancel_dialog_cb  (GtkWidget *btn, gpointer user_data);
 
 static void       popover_choice_cb (GtkWidget *btn, gpointer user_data);
+
+static void       compare_hash_dialog_response_cb (GObject      *source,
+                                                   GAsyncResult *result,
+                                                   gpointer      user_data);
 
 static void
 cancel_dialog_cb (GtkWidget *btn __attribute__((unused)),
@@ -99,9 +104,9 @@ compare_files_hash_cb (GtkWidget *button  __attribute__((unused)),
     gtk_widget_set_hexpand (hash_widgets->file1_hash_entry, TRUE);
     gtk_widget_set_hexpand (hash_widgets->file2_hash_entry, TRUE);
 
-    PangoData *pango_data = get_pango_monospace_attr ();
-    gtk_entry_set_attributes (GTK_ENTRY (hash_widgets->file1_hash_entry), pango_data->attrs);
-    gtk_entry_set_attributes (GTK_ENTRY (hash_widgets->file2_hash_entry), pango_data->attrs);
+    hash_widgets->pango_data = get_pango_monospace_attr ();
+    gtk_entry_set_attributes (GTK_ENTRY (hash_widgets->file1_hash_entry), hash_widgets->pango_data->attrs);
+    gtk_entry_set_attributes (GTK_ENTRY (hash_widgets->file2_hash_entry), hash_widgets->pango_data->attrs);
 
     gtk_entry_set_icon_from_icon_name (GTK_ENTRY (hash_widgets->file1_hash_entry), GTK_ENTRY_ICON_SECONDARY, "document-open-symbolic");
     gtk_entry_set_icon_from_icon_name (GTK_ENTRY (hash_widgets->file2_hash_entry), GTK_ENTRY_ICON_SECONDARY, "document-open-symbolic");
@@ -121,15 +126,29 @@ compare_files_hash_cb (GtkWidget *button  __attribute__((unused)),
     g_signal_connect (hash_widgets->file1_hash_entry, "changed", G_CALLBACK (entry_changed_cb), hash_widgets);
     g_signal_connect (hash_widgets->file2_hash_entry, "changed", G_CALLBACK (entry_changed_cb), hash_widgets);
 
-    gint result = run_dialog (GTK_WINDOW (dialog));
-    switch (result) {
-        case GTK_RESPONSE_CANCEL:
-            gtk_window_destroy (GTK_WINDOW (dialog));
-            pango_data_free (pango_data);
-            g_free (hash_widgets);
-            break;
-        default:
-            break;
+    dialog_run_async (GTK_WINDOW (dialog), NULL, compare_hash_dialog_response_cb, hash_widgets);
+}
+
+static void
+compare_hash_dialog_response_cb (GObject      *source,
+                                 GAsyncResult *result,
+                                 gpointer      user_data)
+{
+    HashWidgets *hash_widgets = user_data;
+    GtkWindow *dialog = GTK_WINDOW (source);
+    GError *error = NULL;
+    gint response = dialog_run_finish (dialog, result, &error);
+
+    if (error != NULL) {
+        g_error_free (error);
+        response = GTK_RESPONSE_NONE;
+    }
+
+    if (response == GTK_RESPONSE_CANCEL || response == GTK_RESPONSE_DELETE_EVENT) {
+        if (hash_widgets->pango_data != NULL) {
+            pango_data_free (hash_widgets->pango_data);
+        }
+        g_free (hash_widgets);
     }
 }
 
