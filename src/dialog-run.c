@@ -54,6 +54,7 @@ run_dialog (GtkWindow *dialog)
 {
     DialogRunData data = {0};
     gpointer response = NULL;
+    g_object_ref (dialog);
 
     dialog_set_response (dialog, GTK_RESPONSE_NONE);
 
@@ -70,6 +71,7 @@ run_dialog (GtkWindow *dialog)
     g_signal_handlers_disconnect_by_func (dialog, G_CALLBACK (dialog_close_request_cb), &data);
     g_signal_handlers_disconnect_by_func (dialog, G_CALLBACK (dialog_destroy_cb), &data);
     g_main_loop_unref (data.loop);
+    g_object_unref (dialog);
 
     return response == NULL ? GTK_RESPONSE_NONE : GPOINTER_TO_INT (response);
 }
