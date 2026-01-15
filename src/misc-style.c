@@ -5,7 +5,6 @@
 void
 set_css (gint css_type, GtkWidget *widget)
 {
-    GError *err = NULL;
     const gchar *data = NULL;
 
     GtkCssProvider *css = gtk_css_provider_new ();

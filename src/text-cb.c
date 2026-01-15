@@ -376,7 +376,7 @@ derive_and_set_cipher_data (TxtData   *txt_data,
                             CryptData *crypt_data)
 {
     gpg_error_t err = gcry_kdf_derive (gtk_editable_get_text (GTK_EDITABLE (txt_data->entry1)),
-                                      gtk_editable_get_text_length (GTK_EDITABLE (txt_data->entry1)) + 1,
+                                       gtk_entry_get_text_length (GTK_ENTRY (txt_data->entry1)) + 1,
                                        GCRY_KDF_PBKDF2, GCRY_MD_SHA3_256,
                                        crypt_data->salt, KDF_SALT_SIZE,
                                        TXT_KDF_ITERATIONS,
