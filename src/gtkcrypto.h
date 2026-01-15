@@ -21,3 +21,9 @@ void        stop_spinner                    (GtkWidget *spinner);
 void        change_widgets_sensitivity      (gint number_of_widgets, gboolean value, GtkWidget **widget, ...);
 
 GtkBuilder *get_builder_from_path           (const gchar *partial_path);
+
+gint        run_dialog                      (GtkWindow *dialog);
+
+void        dialog_set_response             (GtkWindow *dialog, gint response);
+
+void        dialog_finish_response          (GtkWindow *dialog, gint response);

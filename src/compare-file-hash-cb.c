@@ -1,7 +1,6 @@
 #include <gtk/gtk.h>
 #include <gcrypt.h>
 #include "gtkcrypto.h"
-#include "common-callbacks.h"
 #include "common-widgets.h"
 #include "hash.h"
 #include "misc-style.h"
@@ -36,8 +35,7 @@ static void       select_file_cb    (GtkEntry             *entry,
 static void       do_header_bar     (GtkWidget   *dialog,
                                      HashWidgets *widgets);
 
-static GtkWidget *create_popover    (GtkWidget       *parent,
-                                     GtkPositionType  pos,
+static GtkWidget *create_popover    (GtkPositionType  pos,
                                      HashWidgets     *widgets);
 
 static void       entry_changed_cb  (GtkWidget *btn,
@@ -45,6 +43,28 @@ static void       entry_changed_cb  (GtkWidget *btn,
 
 static gpointer   exec_thread       (gpointer);
 
+static void       cancel_dialog_cb  (GtkWidget *btn, gpointer user_data);
+
+static void       popover_choice_cb (GtkWidget *btn, gpointer user_data);
+
+static void
+cancel_dialog_cb (GtkWidget *btn __attribute__((unused)),
+                  gpointer   user_data)
+{
+    GtkWindow *dialog = GTK_WINDOW (user_data);
+
+    dialog_set_response (dialog, GTK_RESPONSE_CANCEL);
+    gtk_window_destroy (dialog);
+}
+
+static void
+popover_choice_cb (GtkWidget *btn __attribute__((unused)),
+                   gpointer   user_data)
+{
+    GtkPopover *popover = GTK_POPOVER (user_data);
+
+    gtk_popover_popdown (popover);
+}
 
 void
 compare_files_hash_cb (GtkWidget *button  __attribute__((unused)),
@@ -56,15 +76,19 @@ compare_files_hash_cb (GtkWidget *button  __attribute__((unused)),
     hash_widgets->entry2_changed = FALSE;
 
     GtkWidget *dialog = create_dialog (hash_widgets->main_window, "dialog", NULL);
-    hash_widgets->cancel_btn = gtk_dialog_add_button (GTK_DIALOG (dialog), "Cancel", GTK_RESPONSE_CANCEL);
+    GtkWidget *action_area = get_dialog_action_area (dialog);
+
+    hash_widgets->cancel_btn = gtk_button_new_with_label ("Cancel");
     gtk_widget_set_margin_top (hash_widgets->cancel_btn, 10);
-    gtk_widget_set_size_request (dialog, 600, -1);
+    gtk_box_append (GTK_BOX (action_area), hash_widgets->cancel_btn);
+    g_signal_connect (hash_widgets->cancel_btn, "clicked", G_CALLBACK (cancel_dialog_cb), dialog);
+    gtk_window_set_default_size (GTK_WINDOW (dialog), 600, -1);
 
     do_header_bar (dialog, hash_widgets);
 
-    GtkWidget *content_area = gtk_dialog_get_content_area (GTK_DIALOG (dialog));
+    GtkWidget *content_area = get_dialog_content_area (dialog);
     GtkWidget *grid = gtk_grid_new ();
-    gtk_container_add (GTK_CONTAINER (content_area), grid);
+    gtk_box_append (GTK_BOX (content_area), grid);
 
     hash_widgets->file1_hash_entry = gtk_entry_new ();
     gtk_widget_set_name (hash_widgets->file1_hash_entry, "file1_he_name");
@@ -94,17 +118,13 @@ compare_files_hash_cb (GtkWidget *button  __attribute__((unused)),
 
     g_signal_connect (hash_widgets->file1_hash_entry, "icon-press", G_CALLBACK (select_file_cb), hash_widgets);
     g_signal_connect (hash_widgets->file2_hash_entry, "icon-press", G_CALLBACK (select_file_cb), hash_widgets);
-    g_signal_connect_swapped (dialog, "button-press-event", G_CALLBACK (toggle_active_cb),
-                              hash_widgets->header_bar_menu);
     g_signal_connect (hash_widgets->file1_hash_entry, "changed", G_CALLBACK (entry_changed_cb), hash_widgets);
     g_signal_connect (hash_widgets->file2_hash_entry, "changed", G_CALLBACK (entry_changed_cb), hash_widgets);
 
-    gtk_widget_show_all (dialog);
-
-    gint result = gtk_dialog_run (GTK_DIALOG (dialog));
+    gint result = run_dialog (GTK_WINDOW (dialog));
     switch (result) {
         case GTK_RESPONSE_CANCEL:
-            gtk_widget_destroy (dialog);
+            gtk_window_destroy (GTK_WINDOW (dialog));
             pango_data_free (pango_data);
             g_free (hash_widgets);
             break;
@@ -133,7 +153,7 @@ select_file_cb (GtkEntry             *entry,
 
     gint hash_algo = -1, digest_size = -1;
     for (gint i = 0; i < 6; i++) {
-        if (gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (hash_widgets->radio_button[i]))) {
+        if (gtk_check_button_get_active (GTK_CHECK_BUTTON (hash_widgets->radio_button[i]))) {
             if (g_strcmp0 (gtk_widget_get_name (hash_widgets->radio_button[i]), "md5_radio_btn") == 0) {
                 hash_algo = GCRY_MD_MD5;
                 digest_size = MD5_DIGEST_SIZE;
@@ -197,11 +217,11 @@ exec_thread (gpointer user_data)
     }
 
     if (g_strcmp0 (gtk_widget_get_name (GTK_WIDGET (data->entry)), "file1_he_name") == 0) { //-V774
-        gtk_entry_set_text (GTK_ENTRY (data->widgets_data->file1_hash_entry), hash); //-V774
+        gtk_editable_set_text (GTK_EDITABLE (data->widgets_data->file1_hash_entry), hash); //-V774
         stop_spinner (data->widgets_data->spinner_entry1); //-V774
     }
     else {
-        gtk_entry_set_text (GTK_ENTRY (data->widgets_data->file2_hash_entry), hash); //-V774
+        gtk_editable_set_text (GTK_EDITABLE (data->widgets_data->file2_hash_entry), hash); //-V774
         stop_spinner (data->widgets_data->spinner_entry2); //-V774
     }
 
@@ -227,26 +247,25 @@ do_header_bar (GtkWidget   *dialog,
     GtkWidget *header_bar = create_header_bar (dialog, "Compare Hash");
 
     GtkWidget *box = gtk_box_new (GTK_ORIENTATION_HORIZONTAL, 0);
-    gtk_style_context_add_class (gtk_widget_get_style_context (box), "linked");
+    gtk_widget_add_css_class (box, "linked");
     GIcon *icon = g_themed_icon_new ("emblem-system-symbolic");
-    GtkWidget *image = gtk_image_new_from_gicon (icon, GTK_ICON_SIZE_BUTTON);
+    GtkWidget *image = gtk_image_new_from_gicon (icon);
     g_object_unref (icon);
+    gtk_image_set_pixel_size (GTK_IMAGE (image), 16);
 
-    widgets->header_bar_menu = gtk_toggle_button_new ();
-    gtk_container_add (GTK_CONTAINER (widgets->header_bar_menu), image);
+    widgets->header_bar_menu = gtk_menu_button_new ();
+    gtk_menu_button_set_child (GTK_MENU_BUTTON (widgets->header_bar_menu), image);
     gtk_widget_set_tooltip_text (GTK_WIDGET (widgets->header_bar_menu), "Settings");
 
-    GtkWidget *popover = create_popover (widgets->header_bar_menu, GTK_POS_TOP, widgets);
-    gtk_popover_set_modal (GTK_POPOVER (popover), TRUE);
-    g_signal_connect (widgets->header_bar_menu, "toggled", G_CALLBACK (toggle_changed_cb), popover);
+    GtkWidget *popover = create_popover (GTK_POS_TOP, widgets);
+    gtk_menu_button_set_popover (GTK_MENU_BUTTON (widgets->header_bar_menu), popover);
 
     gtk_header_bar_pack_start (GTK_HEADER_BAR (header_bar), GTK_WIDGET (widgets->header_bar_menu));
 }
 
 
 static GtkWidget *
-create_popover (GtkWidget       *parent,
-                GtkPositionType  pos,
+create_popover (GtkPositionType  pos,
                 HashWidgets     *widgets)
 {
     const gchar *algo[] = {"MD5", "SHA1", "SHA2-256", "SHA2-512", "SHA3-256", "SHA3-512"};
@@ -259,13 +278,14 @@ create_popover (GtkWidget       *parent,
 
     gtk_box_set_homogeneous (GTK_BOX (box[3]), FALSE);
 
-    GtkWidget *popover = gtk_popover_new (parent);
+    GtkWidget *popover = gtk_popover_new ();
     gtk_popover_set_position (GTK_POPOVER (popover), pos);
 
-    widgets->radio_button[0] = gtk_radio_button_new_with_label_from_widget (NULL, algo[0]);
+    widgets->radio_button[0] = gtk_check_button_new_with_label (algo[0]);
     for (gint i = 1, j = 1; i < 6; i++, j++) {
-        widgets->radio_button[i] = gtk_radio_button_new_with_label_from_widget(
-                GTK_RADIO_BUTTON (widgets->radio_button[0]), algo[j]);
+        widgets->radio_button[i] = gtk_check_button_new_with_label (algo[j]);
+        gtk_check_button_set_group (GTK_CHECK_BUTTON (widgets->radio_button[i]),
+                                    GTK_CHECK_BUTTON (widgets->radio_button[0]));
     }
 
     gtk_widget_set_name (widgets->radio_button[0], "md5_radio_btn");
@@ -276,33 +296,35 @@ create_popover (GtkWidget       *parent,
     gtk_widget_set_name (widgets->radio_button[5], "sha3_512_radio_btn");
 
     for (gint i = 0; i < 2; i++)
-        gtk_box_pack_start (GTK_BOX (box[0]), widgets->radio_button[i], TRUE, TRUE, 0);
+        gtk_box_append (GTK_BOX (box[0]), widgets->radio_button[i]);
 
     for (gint i = 2; i < 4; i++)
-        gtk_box_pack_start (GTK_BOX (box[1]), widgets->radio_button[i], FALSE, TRUE, 0);
+        gtk_box_append (GTK_BOX (box[1]), widgets->radio_button[i]);
 
     for (gint i = 4; i < 6; i++)
-        gtk_box_pack_start (GTK_BOX (box[2]), widgets->radio_button[i], FALSE, TRUE, 0);
+        gtk_box_append (GTK_BOX (box[2]), widgets->radio_button[i]);
 
     GtkWidget *vline1 = gtk_separator_new (GTK_ORIENTATION_VERTICAL);
     GtkWidget *vline2 = gtk_separator_new (GTK_ORIENTATION_VERTICAL);
 
-    gtk_box_pack_start (GTK_BOX (box[3]), box[0], FALSE, FALSE, 0);
-    gtk_box_pack_start (GTK_BOX (box[3]), vline1, TRUE, TRUE, 0);
-    gtk_box_pack_start (GTK_BOX (box[3]), box[1], FALSE, FALSE, 0);
-    gtk_box_pack_start (GTK_BOX (box[3]), vline2, TRUE, TRUE, 0);
-    gtk_box_pack_start (GTK_BOX (box[3]), box[2], FALSE, FALSE, 0);
+    gtk_box_append (GTK_BOX (box[3]), box[0]);
+    gtk_box_append (GTK_BOX (box[3]), vline1);
+    gtk_box_append (GTK_BOX (box[3]), box[1]);
+    gtk_box_append (GTK_BOX (box[3]), vline2);
+    gtk_box_append (GTK_BOX (box[3]), box[2]);
 
     for (gint i = 0; i < 6; i++) {
-        g_signal_connect_swapped (widgets->radio_button[i], "clicked", G_CALLBACK(toggle_active_cb),
-                                  widgets->header_bar_menu);
+        g_signal_connect (widgets->radio_button[i], "toggled", G_CALLBACK (popover_choice_cb), popover);
     }
 
-    g_object_set (widgets->radio_button[0], "active", TRUE, NULL);
+    gtk_check_button_set_active (GTK_CHECK_BUTTON (widgets->radio_button[0]), TRUE);
 
-    gtk_container_add (GTK_CONTAINER (popover), box[3]);
-    gtk_container_set_border_width (GTK_CONTAINER (popover), 4);
-    gtk_widget_show_all (box[3]);
+    gtk_popover_set_child (GTK_POPOVER (popover), box[3]);
+    gtk_widget_set_margin_top (box[3], 4);
+    gtk_widget_set_margin_bottom (box[3], 4);
+    gtk_widget_set_margin_start (box[3], 4);
+    gtk_widget_set_margin_end (box[3], 4);
+    gtk_widget_set_visible (box[3], TRUE);
 
     return popover;
 }
@@ -322,8 +344,8 @@ entry_changed_cb (GtkWidget *btn,
     }
 
     if (data->entry1_changed == TRUE && data->entry2_changed == TRUE) {
-        const gchar *hash1 = gtk_entry_get_text (GTK_ENTRY (data->file1_hash_entry));
-        const gchar *hash2 = gtk_entry_get_text (GTK_ENTRY (data->file2_hash_entry));
+        const gchar *hash1 = gtk_editable_get_text (GTK_EDITABLE (data->file1_hash_entry));
+        const gchar *hash2 = gtk_editable_get_text (GTK_EDITABLE (data->file2_hash_entry));
 
         if (g_strcmp0 (hash1, hash2) != 0) {
             set_css (HASH_ERR_CSS, data->file1_hash_entry);

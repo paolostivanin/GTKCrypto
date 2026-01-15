@@ -46,8 +46,7 @@ decrypt_files_cb (GtkWidget *btn __attribute__((unused)),
     decrypt_widgets->ck_btn_delete = GTK_WIDGET (gtk_builder_get_object (builder, "check_btn_delfile"));
     g_object_unref (builder);
 
-    gtk_widget_show_all (decrypt_widgets->dialog);
-    gtk_widget_hide (decrypt_widgets->spinner);
+    gtk_widget_set_visible (decrypt_widgets->spinner, FALSE);
 
     g_signal_connect (decrypt_widgets->entry_pwd, "activate", G_CALLBACK (prepare_multi_decryption_cb), decrypt_widgets);
     g_signal_connect (decrypt_widgets->ok_btn, "clicked", G_CALLBACK (prepare_multi_decryption_cb), decrypt_widgets);
@@ -55,7 +54,7 @@ decrypt_files_cb (GtkWidget *btn __attribute__((unused)),
 
     decrypt_widgets->source_id = g_timeout_add (500, check_tp, decrypt_widgets);
 
-    gtk_dialog_run (GTK_DIALOG (decrypt_widgets->dialog));
+    run_dialog (GTK_WINDOW (decrypt_widgets->dialog));
 }
 
 
@@ -86,12 +85,12 @@ prepare_multi_decryption_cb (GtkWidget      *widget __attribute__((unused)),
     thread_data->dialog = data->dialog;
     thread_data->spinner = data->spinner;
     thread_data->list_len = g_slist_length (data->files_list);
-    thread_data->pwd = gtk_entry_get_text (GTK_ENTRY (data->entry_pwd));
-    thread_data->delete_file = gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (data->ck_btn_delete));
+    thread_data->pwd = gtk_editable_get_text (GTK_EDITABLE (data->entry_pwd));
+    thread_data->delete_file = gtk_check_button_get_active (GTK_CHECK_BUTTON (data->ck_btn_delete));
     thread_data->widgets = data;
 
     gtk_label_set_label (GTK_LABEL (data->message_label), "Decrypting file(s)...");
-    gtk_widget_show (thread_data->spinner);
+    gtk_widget_set_visible (thread_data->spinner, TRUE);
     start_spinner (thread_data->spinner);
 
     change_widgets_sensitivity (4, FALSE, &data->ok_btn, &data->cancel_btn, &data->entry_pwd, &data->ck_btn_delete);
@@ -102,7 +101,7 @@ prepare_multi_decryption_cb (GtkWidget      *widget __attribute__((unused)),
     for (guint i = 0; i < thread_data->list_len; i++) {
         g_thread_pool_push (data->thread_pool, g_slist_nth_data (data->files_list, i), NULL);
     }
-    gtk_dialog_response (GTK_DIALOG (data->dialog), GTK_RESPONSE_DELETE_EVENT);
+    dialog_finish_response (GTK_WINDOW (data->dialog), GTK_RESPONSE_DELETE_EVENT);
 }
 
 
@@ -141,7 +140,8 @@ cancel_clicked_cb (GtkWidget *btn __attribute__((unused)),
 
     g_source_remove (decrypt_widgets->source_id);
 
-    gtk_widget_destroy (decrypt_widgets->dialog);
+    dialog_set_response (GTK_WINDOW (decrypt_widgets->dialog), GTK_RESPONSE_CANCEL);
+    gtk_window_destroy (GTK_WINDOW (decrypt_widgets->dialog));
 
     g_slist_free_full (decrypt_widgets->files_list, g_free);
 

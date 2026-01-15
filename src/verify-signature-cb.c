@@ -57,11 +57,14 @@ verify_signature_cb (GtkWidget *btn __attribute__((unused)),
 
     verify_widgets->dialog = create_dialog (verify_widgets->main_window, "ver_sig_dialog", "Verify Signature");
 
-    verify_widgets->cancel_btn = gtk_dialog_add_button (GTK_DIALOG (verify_widgets->dialog), "Cancel",
-                                                        GTK_RESPONSE_CANCEL);
-    gtk_widget_set_margin_top (verify_widgets->cancel_btn, 10);
+    GtkWidget *action_area = get_dialog_action_area (verify_widgets->dialog);
 
-    gtk_widget_set_size_request (verify_widgets->dialog, 600, -1);
+    verify_widgets->cancel_btn = gtk_button_new_with_label ("Cancel");
+    gtk_widget_set_margin_top (verify_widgets->cancel_btn, 10);
+    gtk_box_append (GTK_BOX (action_area), verify_widgets->cancel_btn);
+    g_signal_connect (verify_widgets->cancel_btn, "clicked", G_CALLBACK (cancel_btn_clicked_cb), verify_widgets);
+
+    gtk_window_set_default_size (GTK_WINDOW (verify_widgets->dialog), 600, -1);
 
     verify_widgets->signed_file_entry = gtk_entry_new ();
     gtk_widget_set_name (GTK_WIDGET (verify_widgets->signed_file_entry), "signed_file_entry");
@@ -91,17 +94,14 @@ verify_signature_cb (GtkWidget *btn __attribute__((unused)),
     gtk_grid_attach_next_to (GTK_GRID (grid), verify_widgets->spinner, verify_widgets->message_label,
                              GTK_POS_RIGHT, 1, 1);
 
-    gtk_container_add (GTK_CONTAINER (gtk_dialog_get_content_area (GTK_DIALOG (verify_widgets->dialog))), grid);
+    gtk_box_append (GTK_BOX (get_dialog_content_area (verify_widgets->dialog)), grid);
 
     g_signal_connect (verify_widgets->signed_file_entry, "icon-press", G_CALLBACK (select_file_cb), verify_widgets);
     g_signal_connect (verify_widgets->signature_file_entry, "icon-press", G_CALLBACK (select_file_cb), verify_widgets);
-    g_signal_connect (verify_widgets->cancel_btn, "clicked", G_CALLBACK (cancel_btn_clicked_cb), verify_widgets);
     g_signal_connect (verify_widgets->signed_file_entry, "changed", G_CALLBACK (entry_changed_cb), verify_widgets);
     g_signal_connect (verify_widgets->signature_file_entry, "changed", G_CALLBACK (entry_changed_cb), verify_widgets);
 
-    gtk_widget_show_all (verify_widgets->dialog);
-
-    gint result = gtk_dialog_run (GTK_DIALOG (verify_widgets->dialog));
+    gint result = run_dialog (GTK_WINDOW (verify_widgets->dialog));
     switch (result) {
         case GTK_RESPONSE_DELETE_EVENT:
             if (verify_widgets->thread != NULL) {
@@ -118,7 +118,7 @@ verify_signature_cb (GtkWidget *btn __attribute__((unused)),
                     }
                 }
             }
-            gtk_widget_destroy (verify_widgets->dialog);
+            gtk_window_destroy (GTK_WINDOW (verify_widgets->dialog));
             g_free (verify_widgets->entry_data.entry1_filename);
             g_free (verify_widgets->entry_data.entry2_filename);
             g_free (verify_widgets);
@@ -135,7 +135,8 @@ cancel_btn_clicked_cb (GtkWidget *btn __attribute__((unused)),
 {
     VerifyWidgets *verify_widgets = user_data;
 
-    gtk_widget_destroy (verify_widgets->dialog);
+    dialog_set_response (GTK_WINDOW (verify_widgets->dialog), GTK_RESPONSE_CANCEL);
+    gtk_window_destroy (GTK_WINDOW (verify_widgets->dialog));
 
     g_free (verify_widgets);
 }
@@ -160,7 +161,7 @@ select_file_cb (GtkEntry                *entry,
         verify_widgets->entry_data.entry2_filename = g_strdup (filename);
 
     }
-    gtk_entry_set_text (entry, filename);
+    gtk_editable_set_text (GTK_EDITABLE (entry), filename);
 
     g_free (filename);
 }
@@ -181,7 +182,7 @@ entry_changed_cb (GtkWidget *btn,
     if (verify_widgets->entry_data.entry1_changed == TRUE && verify_widgets->entry_data.entry2_changed == TRUE) {
         if (get_file_size (verify_widgets->entry_data.entry2_filename) > MAX_SIG_FILE_SIZE) {
             show_message_dialog (verify_widgets->main_window, "The chosen file is not a detached signature.", GTK_MESSAGE_ERROR);
-            gtk_dialog_response (GTK_DIALOG (verify_widgets->dialog), GTK_RESPONSE_DELETE_EVENT);
+            dialog_finish_response (GTK_WINDOW (verify_widgets->dialog), GTK_RESPONSE_DELETE_EVENT);
         } else {
             ThreadData *thread_data = g_new0 (ThreadData, 1);
             thread_data->dialog = verify_widgets->dialog;
@@ -190,7 +191,7 @@ entry_changed_cb (GtkWidget *btn,
             thread_data->signed_file = verify_widgets->entry_data.entry1_filename;
             thread_data->signature_file = verify_widgets->entry_data.entry2_filename;
 
-            gtk_widget_show (thread_data->spinner);
+            gtk_widget_set_visible (thread_data->spinner, TRUE);
             start_spinner (thread_data->spinner);
 
             if (gtk_widget_get_sensitive (verify_widgets->signed_file_entry) != FALSE) {
@@ -216,7 +217,7 @@ exec_thread (gpointer user_data)
     set_label_message (data->message_label, "Checking signature...");
     gpointer status = verify_signature (data->signed_file, data->signature_file);
 
-    gtk_dialog_response (GTK_DIALOG (data->dialog), GTK_RESPONSE_DELETE_EVENT);
+    dialog_finish_response (GTK_WINDOW (data->dialog), GTK_RESPONSE_DELETE_EVENT);
 
     g_free (data);
 

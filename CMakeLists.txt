@@ -31,17 +31,17 @@ endif()
 find_package(PkgConfig REQUIRED)
 find_package(Gcrypt 1.10.1 REQUIRED)
 find_package(Gpgme 1.8.0 REQUIRED)
-pkg_check_modules(GTK3 REQUIRED gtk+-3.0>=3.24.0)
+pkg_check_modules(GTK4 REQUIRED gtk4>=4.10.0)
 
-include_directories(${GTK3_INCLUDE_DIRS}
+include_directories(${GTK4_INCLUDE_DIRS}
         ${GCRYPT_INCLUDE_DIR}
         ${GPGME_INCLUDE_DIR})
 
-link_directories(${GTK3_LIBRARY_DIRS}
+link_directories(${GTK4_LIBRARY_DIRS}
         ${GCRYPT_LIBRARY_DIR}
         ${GPGME_LIBRARY_DIR})
 
-add_definitions(${GTK3_CFLAGS_OTHER}
+add_definitions(${GTK4_CFLAGS_OTHER}
         ${GCRYPT_CFLAGS_OTHER}
         ${GPGME_CFLAGS_OTHER})
 
@@ -82,11 +82,12 @@ set(SOURCE_FILES
         src/app.c
         src/cleanup.c
         src/text-cb.c
-        src/get-builder.c)
+        src/get-builder.c
+        src/dialog-run.c)
 
 add_executable(${PROJECT_NAME} ${SOURCE_FILES} ${HEADER_FILES})
 target_link_libraries(${PROJECT_NAME}
-        ${GTK3_LIBRARIES}
+        ${GTK4_LIBRARIES}
         ${GCRYPT_LIBRARIES}
         ${GPGME_LIBRARIES})
 

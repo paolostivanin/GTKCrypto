@@ -33,6 +33,18 @@ static gboolean   is_last_thread              (GThreadPool *tp);
 
 static GtkWidget *get_entry_from_check_btn    (GtkWidget *ck_btn, ComputeHashData *data);
 
+static void       cancel_dialog_cb            (GtkWidget *btn, gpointer user_data);
+
+static void
+cancel_dialog_cb (GtkWidget *btn __attribute__((unused)),
+                  gpointer   user_data)
+{
+    GtkWindow *dialog = GTK_WINDOW (user_data);
+
+    dialog_set_response (dialog, GTK_RESPONSE_CANCEL);
+    gtk_window_destroy (dialog);
+}
+
 
 void
 compute_hash_cb (GtkWidget *button __attribute((unused)),
@@ -53,9 +65,14 @@ compute_hash_cb (GtkWidget *button __attribute((unused)),
 
     GtkWidget *dialog = create_dialog (hash_widgets->main_window, "dialog_hash", "Compute Hash");
 
-    hash_widgets->cancel_btn = gtk_dialog_add_button (GTK_DIALOG (dialog), "Cancel", GTK_RESPONSE_CANCEL);
+    GtkWidget *action_area = get_dialog_action_area (dialog);
+
+    hash_widgets->cancel_btn = gtk_button_new_with_label ("Cancel");
     gtk_widget_set_margin_top (hash_widgets->cancel_btn, 10);
-    gtk_widget_set_size_request (dialog, 800, -1);
+    gtk_box_append (GTK_BOX (action_area), hash_widgets->cancel_btn);
+    g_signal_connect (hash_widgets->cancel_btn, "clicked", G_CALLBACK (cancel_dialog_cb), dialog);
+
+    gtk_window_set_default_size (GTK_WINDOW (dialog), 800, -1);
 
     PangoData *pango_data = get_pango_monospace_attr ();
 
@@ -80,9 +97,9 @@ compute_hash_cb (GtkWidget *button __attribute((unused)),
         g_signal_connect (hash_widgets->check_button[i], "toggled", G_CALLBACK (prepare_hash_computation_cb), hash_widgets);
     }
 
-    GtkWidget *content_area = gtk_dialog_get_content_area (GTK_DIALOG (dialog));
+    GtkWidget *content_area = get_dialog_content_area (dialog);
     GtkWidget *grid = gtk_grid_new ();
-    gtk_container_add (GTK_CONTAINER (content_area), grid);
+    gtk_box_append (GTK_BOX (content_area), grid);
     gtk_grid_set_row_spacing (GTK_GRID (grid), 10);
     gtk_grid_set_column_spacing (GTK_GRID (grid), 5);
 
@@ -95,12 +112,10 @@ compute_hash_cb (GtkWidget *button __attribute((unused)),
     hash_widgets->thread_pool = g_thread_pool_new (exec_thread, NULL, (gint)g_get_num_processors (), FALSE, NULL);
     hash_widgets->hash_table = g_hash_table_new_full (g_str_hash, g_str_equal, g_free, g_free);
 
-    gtk_widget_show_all (dialog);
-
-    gint result = gtk_dialog_run (GTK_DIALOG (dialog));
+    gint result = run_dialog (GTK_WINDOW (dialog));
     switch (result) {
         case GTK_RESPONSE_CANCEL:
-            gtk_widget_destroy (dialog);
+            gtk_window_destroy (GTK_WINDOW (dialog));
             pango_data_free (pango_data);
             g_thread_pool_free (hash_widgets->thread_pool, FALSE, FALSE);
             g_hash_table_remove_all (hash_widgets->hash_table);
@@ -120,14 +135,14 @@ prepare_hash_computation_cb (GtkWidget *ck_btn,
 {
     ComputeHashData *data  = user_data;
 
-    if (!gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (ck_btn))) {
-        gtk_entry_set_text (GTK_ENTRY (get_entry_from_check_btn (ck_btn, data)), "");
+    if (!gtk_check_button_get_active (GTK_CHECK_BUTTON (ck_btn))) {
+        gtk_editable_set_text (GTK_EDITABLE (get_entry_from_check_btn (ck_btn, data)), "");
         return;
     }
 
     gpointer value = g_hash_table_lookup (data->hash_table, gtk_widget_get_name (ck_btn));
     if (value != NULL) {
-        gtk_entry_set_text (GTK_ENTRY (get_entry_from_check_btn (ck_btn, data)), (gchar *) value);
+        gtk_editable_set_text (GTK_EDITABLE (get_entry_from_check_btn (ck_btn, data)), (gchar *) value);
         return;
     }
 
@@ -198,7 +213,7 @@ exec_thread (gpointer pushed_data,
     } else {
         for (gint i = 0; i < AVAILABLE_HASH_TYPE; i++) {
             if (g_strcmp0 (gtk_widget_get_name (data->ck_btn), gtk_widget_get_name (data->widgets->hash_entry[i])) == 0) {
-                gtk_entry_set_text (GTK_ENTRY (data->widgets->hash_entry[i]), hash);
+                gtk_editable_set_text (GTK_EDITABLE (data->widgets->hash_entry[i]), hash);
                 g_hash_table_insert (data->widgets->hash_table,
                                      g_strdup ((gchar *) gtk_widget_get_name (data->ck_btn)),
                                      g_strdup (hash));

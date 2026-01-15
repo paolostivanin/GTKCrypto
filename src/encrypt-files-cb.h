@@ -7,8 +7,8 @@ typedef struct encrypt_file_widgets_t {
     GtkWidget *entry_pwd_retype;
     GtkWidget *cancel_btn;
     GtkWidget *ok_btn;
-    GSList *radio_btns_algo_list;
-    GSList *radio_btns_mode_list;
+    GtkWidget *algo_buttons[4];
+    GtkWidget *mode_buttons[2];
     GtkWidget *header_bar_menu;
     GtkWidget *spinner;
     GtkWidget *message_label;

@@ -67,10 +67,8 @@ txt_cb (GtkWidget *btn,
     g_object_unref (builder);
 
     if (g_strcmp0 (gtk_widget_get_name (btn), "dectxt_btn") == 0) {
-        gtk_widget_destroy (txt_data->entry2);
+        gtk_widget_unparent (txt_data->entry2);
     }
-
-    gtk_widget_show_all (txt_data->diag);
 
     if (g_strcmp0 (gtk_widget_get_name (btn), "enctxt_btn") == 0) {
         g_signal_connect (ok_btn, "clicked", G_CALLBACK (enc_txt), txt_data);
@@ -78,11 +76,11 @@ txt_cb (GtkWidget *btn,
         g_signal_connect (ok_btn, "clicked", G_CALLBACK (dec_txt), txt_data);
     }
 
-    gint result = gtk_dialog_run (GTK_DIALOG(txt_data->diag));
+    gint result = run_dialog (GTK_WINDOW (txt_data->diag));
     switch (result) {
         case GTK_RESPONSE_CANCEL:
         default:
-            gtk_widget_destroy (txt_data->diag);
+            gtk_window_destroy (GTK_WINDOW (txt_data->diag));
             g_free (txt_data);
             break;
     }
@@ -181,7 +179,7 @@ enc_txt (GtkWidget *btn __attribute__((unused)),
     gcry_free (crypt_data->salt);
     g_free (crypt_data);
 
-    gtk_dialog_response (GTK_DIALOG(txt_data->diag), GTK_RESPONSE_CANCEL);
+    dialog_finish_response (GTK_WINDOW (txt_data->diag), GTK_RESPONSE_CANCEL);
 }
 
 
@@ -273,7 +271,7 @@ dec_txt (GtkWidget *btn __attribute__((unused)),
     gcry_free (crypt_data->salt);
     g_free (crypt_data);
 
-    gtk_dialog_response (GTK_DIALOG(txt_data->diag), GTK_RESPONSE_CANCEL);
+    dialog_finish_response (GTK_WINDOW (txt_data->diag), GTK_RESPONSE_CANCEL);
 }
 
 
@@ -281,11 +279,12 @@ static gchar *
 check_pwd (GtkEntry *entry1,
            GtkEntry *entry2)
 {
-    if (gtk_entry_get_text_length (entry1) < 8) {
+    if (gtk_entry_get_text_length (GTK_ENTRY (entry1)) < 8) {
         return g_strdup ("Password must be at least 8 characters long\n");
     }
 
-    if (entry2 != NULL && g_strcmp0 (gtk_entry_get_text (entry1), gtk_entry_get_text (entry2)) != 0) {
+    if (entry2 != NULL && g_strcmp0 (gtk_editable_get_text (GTK_EDITABLE (entry1)),
+                                    gtk_editable_get_text (GTK_EDITABLE (entry2))) != 0) {
         return g_strdup ("Passwords do not match\n");
     }
 
@@ -376,7 +375,8 @@ static gpg_error_t
 derive_and_set_cipher_data (TxtData   *txt_data,
                             CryptData *crypt_data)
 {
-    gpg_error_t err = gcry_kdf_derive (gtk_entry_get_text (GTK_ENTRY (txt_data->entry1)), gtk_entry_get_text_length (GTK_ENTRY (txt_data->entry1)) + 1,
+    gpg_error_t err = gcry_kdf_derive (gtk_editable_get_text (GTK_EDITABLE (txt_data->entry1)),
+                                      gtk_editable_get_text_length (GTK_EDITABLE (txt_data->entry1)) + 1,
                                        GCRY_KDF_PBKDF2, GCRY_MD_SHA3_256,
                                        crypt_data->salt, KDF_SALT_SIZE,
                                        TXT_KDF_ITERATIONS,
@@ -414,16 +414,14 @@ show_dialog_with_data (gchar *data)
     GtkTextBuffer *text_buf = GTK_TEXT_BUFFER(gtk_builder_get_object(builder,"data_text_buf"));
     g_object_unref (builder);
 
-    gtk_widget_show_all (diag);
-
     gtk_text_buffer_set_text (text_buf, data, -1);
 
-    gint result = gtk_dialog_run (GTK_DIALOG(diag));
+    gint result = run_dialog (GTK_WINDOW (diag));
     switch (result) {
         case GTK_RESPONSE_OK:
             break;
         default:
             break;
     }
-    gtk_widget_destroy (diag);
+    gtk_window_destroy (GTK_WINDOW (diag));
 }

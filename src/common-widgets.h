@@ -11,6 +11,10 @@ GtkWidget *create_dialog     (GtkWidget   *main_window,
                               const gchar *widget_name,
                               const gchar *title);
 
+GtkWidget *get_dialog_content_area (GtkWidget *dialog);
+
+GtkWidget *get_dialog_action_area  (GtkWidget *dialog);
+
 void       set_label_message (GtkWidget   *message_label,
                               const gchar *message);
 

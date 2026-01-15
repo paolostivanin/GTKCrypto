@@ -15,6 +15,8 @@ typedef struct sign_file_widgets_t {
     gchar *filename;
     GSList *gpg_keys;
     GSList *to_free;
+    GPtrArray *key_fprs;
+    const gchar *selected_fpr;
     GThread *sign_thread;
 } SignFileWidgets;
 
@@ -68,7 +70,10 @@ sign_file_cb (GtkWidget *btn __attribute__((unused)),
         return;
     }
 
-    sign_file_widgets->combo_box = gtk_combo_box_text_new ();
+    GtkStringList *key_list = gtk_string_list_new (NULL);
+    sign_file_widgets->combo_box = gtk_drop_down_new (G_LIST_MODEL (key_list), NULL);
+    sign_file_widgets->key_fprs = g_ptr_array_new_with_free_func (g_free);
+    sign_file_widgets->selected_fpr = NULL;
 
     gtk_widget_set_hexpand (sign_file_widgets->combo_box, TRUE);
     gtk_widget_set_hexpand (sign_file_widgets->message_label, TRUE);
@@ -85,9 +90,13 @@ sign_file_cb (GtkWidget *btn __attribute__((unused)),
         }
         sign_file_widgets->to_free = g_slist_append (sign_file_widgets->to_free, g_strdup (str));
         g_free (str);
-        gtk_combo_box_text_append (GTK_COMBO_BOX_TEXT (sign_file_widgets->combo_box), key_data->key_fpr,
-                                        (gchar *) g_slist_nth_data (sign_file_widgets->to_free, i));
+        gtk_string_list_append (key_list, (gchar *) g_slist_nth_data (sign_file_widgets->to_free, i));
+        g_ptr_array_add (sign_file_widgets->key_fprs, g_strdup (key_data->key_fpr));
     }
+    if (sign_file_widgets->key_fprs->len > 0) {
+        gtk_drop_down_set_selected (GTK_DROP_DOWN (sign_file_widgets->combo_box), 0);
+    }
+    g_object_unref (key_list);
 
     GtkWidget *grid = gtk_grid_new ();
     gtk_grid_set_row_spacing (GTK_GRID (grid), 10);
@@ -96,21 +105,19 @@ sign_file_cb (GtkWidget *btn __attribute__((unused)),
     gtk_grid_attach_next_to (GTK_GRID (grid), sign_file_widgets->spinner, sign_file_widgets->message_label, GTK_POS_RIGHT, 1, 1);
 
     GtkWidget *hbox = gtk_box_new (GTK_ORIENTATION_HORIZONTAL, 5);
-    gtk_box_pack_end (GTK_BOX(hbox), sign_file_widgets->ok_btn, TRUE, TRUE, 0);
-    gtk_box_pack_end (GTK_BOX(hbox), sign_file_widgets->cancel_btn, TRUE, TRUE, 0);
+    gtk_box_append (GTK_BOX(hbox), sign_file_widgets->ok_btn);
+    gtk_box_append (GTK_BOX(hbox), sign_file_widgets->cancel_btn);
     gtk_grid_attach (GTK_GRID (grid), hbox, 3, 4, 1, 1);
 
-    gtk_container_add (GTK_CONTAINER (gtk_dialog_get_content_area (GTK_DIALOG (sign_file_widgets->dialog))), grid);
+    gtk_box_append (GTK_BOX (get_dialog_content_area (sign_file_widgets->dialog)), grid);
 
-    gtk_widget_show_all (sign_file_widgets->dialog);
-
-    gtk_widget_hide (sign_file_widgets->spinner);
+    gtk_widget_set_visible (sign_file_widgets->spinner, FALSE);
 
     g_signal_connect (sign_file_widgets->ok_btn, "clicked", G_CALLBACK (prepare_signing_cb), sign_file_widgets);
-    g_signal_connect (sign_file_widgets->combo_box, "changed", G_CALLBACK (prepare_signing_cb), sign_file_widgets);
+    g_signal_connect (sign_file_widgets->combo_box, "notify::selected", G_CALLBACK (prepare_signing_cb), sign_file_widgets);
     g_signal_connect (sign_file_widgets->cancel_btn, "clicked", G_CALLBACK (cancel_clicked_cb), sign_file_widgets);
 
-    gint result = gtk_dialog_run (GTK_DIALOG (sign_file_widgets->dialog));
+    gint result = run_dialog (GTK_WINDOW (sign_file_widgets->dialog));
     switch (result) {
         case GTK_RESPONSE_DELETE_EVENT:
             if (sign_file_widgets->sign_thread != NULL) {
@@ -120,14 +127,15 @@ sign_file_cb (GtkWidget *btn __attribute__((unused)),
                 }
                 else {
                     gchar *info_message = g_strconcat ("File <b>", sign_file_widgets->filename, "</b> has been successfully signed\n"
-                            "(GPG key fingerprint: ", gtk_combo_box_get_active_id (GTK_COMBO_BOX (sign_file_widgets->combo_box)), ")", NULL);
+                            "(GPG key fingerprint: ", sign_file_widgets->selected_fpr, ")", NULL);
                     show_message_dialog (sign_file_widgets->dialog, info_message, GTK_MESSAGE_INFO);
                     g_free (info_message);
                 }
             }
             g_slist_free_full (sign_file_widgets->gpg_keys, g_free);
             g_slist_free_full (sign_file_widgets->to_free, g_free);
-            gtk_widget_destroy (sign_file_widgets->dialog);
+            g_ptr_array_unref (sign_file_widgets->key_fprs);
+            gtk_window_destroy (GTK_WINDOW (sign_file_widgets->dialog));
             g_free (sign_file_widgets->filename);
             g_free (sign_file_widgets);
             break;
@@ -145,8 +153,10 @@ cancel_clicked_cb (GtkWidget *btn __attribute__((unused)),
 
     g_slist_free_full (data->gpg_keys, g_free);
     g_slist_free_full (data->to_free, g_free);
+    g_ptr_array_unref (data->key_fprs);
 
-    gtk_widget_destroy (data->dialog);
+    dialog_set_response (GTK_WINDOW (data->dialog), GTK_RESPONSE_CANCEL);
+    gtk_window_destroy (GTK_WINDOW (data->dialog));
 
     g_free (data->filename);
     g_free (data);
@@ -164,9 +174,17 @@ prepare_signing_cb (GtkWidget *btn __attribute__((unused)),
     thread_data->spinner = data->spinner;
     thread_data->message_label = data->message_label;
     thread_data->filename = data->filename;
-    thread_data->key_fingerprint = gtk_combo_box_get_active_id (GTK_COMBO_BOX (data->combo_box));
+    guint selected = gtk_drop_down_get_selected (GTK_DROP_DOWN (data->combo_box));
+    if (selected >= data->key_fprs->len) {
+        show_message_dialog (data->dialog, "No GPG key selected", GTK_MESSAGE_ERROR);
+        dialog_finish_response (GTK_WINDOW (data->dialog), GTK_RESPONSE_DELETE_EVENT);
+        g_free (thread_data);
+        return;
+    }
+    data->selected_fpr = g_ptr_array_index (data->key_fprs, selected);
+    thread_data->key_fingerprint = data->selected_fpr;
 
-    gtk_widget_show (thread_data->spinner);
+    gtk_widget_set_visible (thread_data->spinner, TRUE);
     start_spinner (thread_data->spinner);
 
     change_widgets_sensitivity (3, FALSE, &data->ok_btn, &data->cancel_btn, &data->combo_box);
@@ -188,7 +206,7 @@ exec_thread (gpointer user_data)
     set_label_message (data->message_label, message);
     gpointer status = sign_file (data->filename, data->key_fingerprint);
 
-    gtk_dialog_response (GTK_DIALOG (data->dialog), GTK_RESPONSE_DELETE_EVENT);
+    dialog_finish_response (GTK_WINDOW (data->dialog), GTK_RESPONSE_DELETE_EVENT);
 
     g_free (data);
     g_free (basename);

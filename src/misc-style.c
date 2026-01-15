@@ -15,9 +15,11 @@ set_css (gint css_type, GtkWidget *widget)
     } else if (css_type == HASH_OK_CSS) {
         data = "#file1_he_name, #file2_he_name {font-family: \"monospace\"; background: limegreen;}";
     }
-    gtk_css_provider_load_from_data (css, data, -1, &err);
+    gtk_css_provider_load_from_string (css, data);
 
-    gtk_style_context_add_provider (gtk_widget_get_style_context (widget), GTK_STYLE_PROVIDER (css), GTK_STYLE_PROVIDER_PRIORITY_USER);
+    gtk_style_context_add_provider_for_display (gtk_widget_get_display (widget),
+                                                GTK_STYLE_PROVIDER (css),
+                                                GTK_STYLE_PROVIDER_PRIORITY_USER);
     g_object_unref (css);
 }
 

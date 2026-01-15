@@ -22,7 +22,7 @@ Author: Paolo Stivanin
 
 -->
 <interface>
-  <requires lib="gtk+" version="3.20"/>
+  <requires lib="gtk" version="4.10"/>
   <!-- interface-license-type gplv3 -->
   <!-- interface-name GTKCrypto -->
   <!-- interface-authors Paolo Stivanin -->
@@ -64,14 +64,13 @@ Author: Paolo Stivanin
               </packing>
             </child>
             <child>
-              <object class="GtkRadioButton" id="aes_rbtn">
+              <object class="GtkCheckButton" id="aes_rbtn">
                 <property name="label" translatable="yes">AES256</property>
                 <property name="name">aes_rbtn_widget</property>
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
                 <property name="receives_default">False</property>
                 <property name="active">True</property>
-                <property name="draw_indicator">True</property>
               </object>
               <packing>
                 <property name="expand">False</property>
@@ -80,13 +79,12 @@ Author: Paolo Stivanin
               </packing>
             </child>
             <child>
-              <object class="GtkRadioButton" id="twofish_rbtn">
+              <object class="GtkCheckButton" id="twofish_rbtn">
                 <property name="label" translatable="yes">Twofish</property>
                 <property name="name">twofish_rbtn_widget</property>
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
                 <property name="receives_default">False</property>
-                <property name="draw_indicator">True</property>
                 <property name="group">aes_rbtn</property>
               </object>
               <packing>
@@ -96,13 +94,12 @@ Author: Paolo Stivanin
               </packing>
             </child>
             <child>
-              <object class="GtkRadioButton" id="serpent_rbtn">
+              <object class="GtkCheckButton" id="serpent_rbtn">
                 <property name="label" translatable="yes">Serpent</property>
                 <property name="name">serpent_rbtn_widget</property>
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
                 <property name="receives_default">False</property>
-                <property name="draw_indicator">True</property>
                 <property name="group">aes_rbtn</property>
               </object>
               <packing>
@@ -112,13 +109,12 @@ Author: Paolo Stivanin
               </packing>
             </child>
             <child>
-              <object class="GtkRadioButton" id="camellia_rbtn">
+              <object class="GtkCheckButton" id="camellia_rbtn">
                 <property name="label" translatable="yes">Camellia</property>
                 <property name="name">camellia_rbtn_widget</property>
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
                 <property name="receives_default">False</property>
-                <property name="draw_indicator">True</property>
                 <property name="group">aes_rbtn</property>
               </object>
               <packing>
@@ -176,14 +172,13 @@ Author: Paolo Stivanin
               </packing>
             </child>
             <child>
-              <object class="GtkRadioButton" id="ctr_rbtn">
+              <object class="GtkCheckButton" id="ctr_rbtn">
                 <property name="label" translatable="yes">CTR</property>
                 <property name="name">ctr_rbtn_widget</property>
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
                 <property name="receives_default">False</property>
                 <property name="active">True</property>
-                <property name="draw_indicator">True</property>
               </object>
               <packing>
                 <property name="expand">False</property>
@@ -192,13 +187,12 @@ Author: Paolo Stivanin
               </packing>
             </child>
             <child>
-              <object class="GtkRadioButton" id="cbc_rbtn">
+              <object class="GtkCheckButton" id="cbc_rbtn">
                 <property name="label" translatable="yes">CBC</property>
                 <property name="name">cbc_rbtn_widget</property>
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
                 <property name="receives_default">False</property>
-                <property name="draw_indicator">True</property>
                 <property name="group">ctr_rbtn</property>
               </object>
               <packing>
@@ -216,25 +210,19 @@ Author: Paolo Stivanin
         </child>
       </object>
       <packing>
-        <property name="submenu">main</property>
         <property name="position">1</property>
       </packing>
     </child>
   </object>
   <object class="GtkApplicationWindow" id="mainwin">
     <property name="can_focus">False</property>
-    <property name="border_width">10</property>
     <property name="title" translatable="yes">GTKCrypto</property>
-    <property name="window_position">center</property>
     <property name="gravity">center</property>
-    <property name="show_menubar">False</property>
-    <signal name="destroy" handler="gtk_main_quit" swapped="no"/>
     <child type="titlebar">
       <object class="GtkHeaderBar" id="main_hb">
         <property name="visible">True</property>
         <property name="can_focus">False</property>
-        <property name="has_subtitle">False</property>
-        <property name="show_close_button">True</property>
+        <property name="show_title_buttons">True</property>
         <child>
           <placeholder/>
         </child>
@@ -359,11 +347,9 @@ Author: Paolo Stivanin
   <object class="GtkDialog" id="comp_hash_diag">
     <property name="width_request">600</property>
     <property name="can_focus">False</property>
-    <property name="border_width">5</property>
     <property name="title" translatable="yes">Compute Hash</property>
     <property name="modal">True</property>
     <property name="destroy_with_parent">True</property>
-    <property name="type_hint">dialog</property>
     <property name="transient_for">mainwin</property>
     <child>
       <placeholder/>
@@ -375,8 +361,6 @@ Author: Paolo Stivanin
         <property name="spacing">2</property>
         <child internal-child="action_area">
           <object class="GtkButtonBox">
-            <property name="can_focus">False</property>
-            <property name="layout_style">end</property>
             <child>
               <object class="GtkButton" id="cancel_btn_chash">
                 <property name="label" translatable="yes">Cancel</property>
@@ -385,11 +369,6 @@ Author: Paolo Stivanin
                 <property name="receives_default">True</property>
                 <property name="margin_top">4</property>
               </object>
-              <packing>
-                <property name="expand">True</property>
-                <property name="fill">True</property>
-                <property name="position">1</property>
-              </packing>
             </child>
           </object>
           <packing>
@@ -648,11 +627,8 @@ Author: Paolo Stivanin
   <object class="GtkDialog" id="dec_pwd_diag">
     <property name="width_request">300</property>
     <property name="can_focus">False</property>
-    <property name="border_width">4</property>
     <property name="title" translatable="yes">Decryption Password</property>
     <property name="modal">True</property>
-    <property name="window_position">center</property>
-    <property name="type_hint">dialog</property>
     <property name="gravity">center</property>
     <property name="transient_for">mainwin</property>
     <child>
@@ -665,9 +641,6 @@ Author: Paolo Stivanin
         <property name="spacing">2</property>
         <child internal-child="action_area">
           <object class="GtkButtonBox">
-            <property name="can_focus">False</property>
-            <property name="margin_top">4</property>
-            <property name="layout_style">end</property>
             <child>
               <object class="GtkButton" id="cancel_btn_dec_pwd_diag">
                 <property name="label" translatable="yes">Cancel</property>
@@ -675,11 +648,6 @@ Author: Paolo Stivanin
                 <property name="can_focus">True</property>
                 <property name="receives_default">True</property>
               </object>
-              <packing>
-                <property name="expand">True</property>
-                <property name="fill">True</property>
-                <property name="position">0</property>
-              </packing>
             </child>
             <child>
               <object class="GtkButton" id="ok_btn_dec_pwd_diag">
@@ -688,11 +656,6 @@ Author: Paolo Stivanin
                 <property name="can_focus">True</property>
                 <property name="receives_default">True</property>
               </object>
-              <packing>
-                <property name="expand">True</property>
-                <property name="fill">True</property>
-                <property name="position">1</property>
-              </packing>
             </child>
           </object>
           <packing>
@@ -740,7 +703,6 @@ Author: Paolo Stivanin
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
                 <property name="receives_default">False</property>
-                <property name="draw_indicator">True</property>
               </object>
               <packing>
                 <property name="expand">False</property>
@@ -794,18 +756,13 @@ Author: Paolo Stivanin
   <object class="GtkDialog" id="enc_pwd_diag">
     <property name="width_request">300</property>
     <property name="can_focus">False</property>
-    <property name="border_width">4</property>
     <property name="modal">True</property>
-    <property name="window_position">center</property>
-    <property name="type_hint">dialog</property>
     <property name="gravity">center</property>
     <property name="transient_for">mainwin</property>
     <child type="titlebar">
       <object class="GtkHeaderBar" id="hd_bar_enc">
         <property name="visible">True</property>
         <property name="can_focus">False</property>
-        <property name="title">Encryption Password</property>
-        <property name="has_subtitle">False</property>
         <child>
           <object class="GtkMenuButton" id="enc_menu_btn">
             <property name="visible">True</property>
@@ -826,8 +783,6 @@ Author: Paolo Stivanin
         <property name="spacing">2</property>
         <child internal-child="action_area">
           <object class="GtkButtonBox">
-            <property name="can_focus">False</property>
-            <property name="layout_style">end</property>
             <child>
               <object class="GtkButton" id="cancel_btn_pwd_diag">
                 <property name="label" translatable="yes">Cancel</property>
@@ -835,11 +790,6 @@ Author: Paolo Stivanin
                 <property name="can_focus">True</property>
                 <property name="receives_default">True</property>
               </object>
-              <packing>
-                <property name="expand">True</property>
-                <property name="fill">True</property>
-                <property name="position">0</property>
-              </packing>
             </child>
             <child>
               <object class="GtkButton" id="ok_btn_pwd_diag">
@@ -848,11 +798,6 @@ Author: Paolo Stivanin
                 <property name="can_focus">True</property>
                 <property name="receives_default">True</property>
               </object>
-              <packing>
-                <property name="expand">True</property>
-                <property name="fill">True</property>
-                <property name="position">1</property>
-              </packing>
             </child>
           </object>
           <packing>
@@ -966,9 +911,7 @@ Please note that the password &lt;b&gt;can't&lt;/b&gt; be recovered.</property>
     <property name="height_request">350</property>
     <property name="can_focus">False</property>
     <property name="title" translatable="yes">Encrypt/Decrypt Text</property>
-    <property name="window_position">center</property>
     <property name="destroy_with_parent">True</property>
-    <property name="type_hint">dialog</property>
     <property name="gravity">center</property>
     <property name="transient_for">mainwin</property>
     <child>
@@ -981,8 +924,6 @@ Please note that the password &lt;b&gt;can't&lt;/b&gt; be recovered.</property>
         <property name="spacing">5</property>
         <child internal-child="action_area">
           <object class="GtkButtonBox">
-            <property name="can_focus">False</property>
-            <property name="layout_style">end</property>
             <child>
               <object class="GtkButton" id="txt_btn_cancel">
                 <property name="label" translatable="yes">Cancel</property>
@@ -990,11 +931,6 @@ Please note that the password &lt;b&gt;can't&lt;/b&gt; be recovered.</property>
                 <property name="can_focus">True</property>
                 <property name="receives_default">True</property>
               </object>
-              <packing>
-                <property name="expand">True</property>
-                <property name="fill">True</property>
-                <property name="position">0</property>
-              </packing>
             </child>
             <child>
               <object class="GtkButton" id="txt_btn_ok">
@@ -1003,11 +939,6 @@ Please note that the password &lt;b&gt;can't&lt;/b&gt; be recovered.</property>
                 <property name="can_focus">True</property>
                 <property name="receives_default">True</property>
               </object>
-              <packing>
-                <property name="expand">True</property>
-                <property name="fill">True</property>
-                <property name="position">1</property>
-              </packing>
             </child>
           </object>
           <packing>
@@ -1020,7 +951,6 @@ Please note that the password &lt;b&gt;can't&lt;/b&gt; be recovered.</property>
           <object class="GtkScrolledWindow">
             <property name="visible">True</property>
             <property name="can_focus">True</property>
-            <property name="shadow_type">in</property>
             <child>
               <object class="GtkViewport">
                 <property name="visible">True</property>
@@ -1091,9 +1021,7 @@ Please note that the password &lt;b&gt;can't&lt;/b&gt; be recovered.</property>
     <property name="width_request">600</property>
     <property name="height_request">300</property>
     <property name="can_focus">False</property>
-    <property name="window_position">center</property>
     <property name="destroy_with_parent">True</property>
-    <property name="type_hint">dialog</property>
     <property name="gravity">center</property>
     <property name="transient_for">text_diag</property>
     <child>
@@ -1106,8 +1034,6 @@ Please note that the password &lt;b&gt;can't&lt;/b&gt; be recovered.</property>
         <property name="spacing">2</property>
         <child internal-child="action_area">
           <object class="GtkButtonBox">
-            <property name="can_focus">False</property>
-            <property name="layout_style">end</property>
             <child>
               <object class="GtkButton" id="data_diag_ok_btn">
                 <property name="label" translatable="yes">OK</property>
@@ -1115,11 +1041,6 @@ Please note that the password &lt;b&gt;can't&lt;/b&gt; be recovered.</property>
                 <property name="can_focus">True</property>
                 <property name="receives_default">True</property>
               </object>
-              <packing>
-                <property name="expand">True</property>
-                <property name="fill">True</property>
-                <property name="position">1</property>
-              </packing>
             </child>
           </object>
           <packing>
@@ -1132,7 +1053,6 @@ Please note that the password &lt;b&gt;can't&lt;/b&gt; be recovered.</property>
           <object class="GtkScrolledWindow">
             <property name="visible">True</property>
             <property name="can_focus">True</property>
-            <property name="shadow_type">in</property>
             <child>
               <object class="GtkViewport">
                 <property name="visible">True</property>

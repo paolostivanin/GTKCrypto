@@ -53,24 +53,27 @@ encrypt_files_cb (GtkWidget *btn __attribute__((__unused__)),
     encrypt_widgets->message_label = GTK_WIDGET (gtk_builder_get_object (builder, "enc_label"));
     encrypt_widgets->spinner = GTK_WIDGET (gtk_builder_get_object (builder, "enc_spinner"));
     encrypt_widgets->header_bar_menu = GTK_WIDGET (gtk_builder_get_object (builder, "enc_menu_btn"));
-    GtkWidget *popover_menu = GTK_WIDGET (gtk_builder_get_object (builder, "enc_popmenu"));
-    encrypt_widgets->radio_btns_algo_list = gtk_radio_button_get_group (GTK_RADIO_BUTTON (gtk_builder_get_object (builder, "aes_rbtn")));
-    encrypt_widgets->radio_btns_mode_list = gtk_radio_button_get_group (GTK_RADIO_BUTTON (gtk_builder_get_object (builder, "ctr_rbtn")));
-    gtk_container_add (GTK_CONTAINER (encrypt_widgets->header_bar_menu), GTK_WIDGET (gtk_builder_get_object (builder, "menu_image")));
+    GtkWidget *header_bar = GTK_WIDGET (gtk_builder_get_object (builder, "hd_bar_enc"));
+    GtkWidget *header_bar_title = gtk_label_new ("Encryption Password");
+    encrypt_widgets->algo_buttons[0] = GTK_WIDGET (gtk_builder_get_object (builder, "aes_rbtn"));
+    encrypt_widgets->algo_buttons[1] = GTK_WIDGET (gtk_builder_get_object (builder, "twofish_rbtn"));
+    encrypt_widgets->algo_buttons[2] = GTK_WIDGET (gtk_builder_get_object (builder, "serpent_rbtn"));
+    encrypt_widgets->algo_buttons[3] = GTK_WIDGET (gtk_builder_get_object (builder, "camellia_rbtn"));
+    encrypt_widgets->mode_buttons[0] = GTK_WIDGET (gtk_builder_get_object (builder, "ctr_rbtn"));
+    encrypt_widgets->mode_buttons[1] = GTK_WIDGET (gtk_builder_get_object (builder, "cbc_rbtn"));
+    gtk_header_bar_set_title_widget (GTK_HEADER_BAR (header_bar), header_bar_title);
+    gtk_menu_button_set_child (GTK_MENU_BUTTON (encrypt_widgets->header_bar_menu),
+                               GTK_WIDGET (gtk_builder_get_object (builder, "menu_image")));
     g_object_unref (builder);
 
-    gtk_widget_show_all (encrypt_widgets->dialog);
-    gtk_widget_hide (encrypt_widgets->spinner);
+    gtk_widget_set_visible (encrypt_widgets->spinner, FALSE);
 
     g_signal_connect (encrypt_widgets->entry_pwd_retype, "activate", G_CALLBACK (entry_activated_cb), encrypt_widgets);
     g_signal_connect (encrypt_widgets->ok_btn, "clicked", G_CALLBACK (entry_activated_cb), encrypt_widgets);
     g_signal_connect (encrypt_widgets->cancel_btn, "clicked", G_CALLBACK (cancel_clicked_cb), encrypt_widgets);
-    g_signal_connect (encrypt_widgets->header_bar_menu, "toggled", G_CALLBACK (toggle_changed_cb), popover_menu);
-    g_signal_connect_swapped (encrypt_widgets->dialog, "button-press-event", G_CALLBACK (toggle_active_cb), encrypt_widgets->header_bar_menu);
-
     encrypt_widgets->source_id = g_timeout_add (500, check_tp, encrypt_widgets);
 
-    gtk_dialog_run (GTK_DIALOG (encrypt_widgets->dialog));
+    run_dialog (GTK_WINDOW (encrypt_widgets->dialog));
 }
 
 
@@ -103,15 +106,15 @@ entry_activated_cb (GtkWidget *entry __attribute__((unused)),
     if (!check_pwd (encrypt_widgets->main_window, encrypt_widgets->entry_pwd, encrypt_widgets->entry_pwd_retype)) {
         return;
     } else {
-        for (guint i = 0; i < g_slist_length (encrypt_widgets->radio_btns_algo_list); i++) {
-            if (gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (g_slist_nth_data (encrypt_widgets->radio_btns_algo_list, i)))) {
-                algo = gtk_widget_get_name (g_slist_nth_data (encrypt_widgets->radio_btns_algo_list, i));
+        for (guint i = 0; i < G_N_ELEMENTS (encrypt_widgets->algo_buttons); i++) {
+            if (gtk_check_button_get_active (GTK_CHECK_BUTTON (encrypt_widgets->algo_buttons[i]))) {
+                algo = gtk_widget_get_name (encrypt_widgets->algo_buttons[i]);
                 break;
             }
         }
-        for (guint i = 0; i < g_slist_length (encrypt_widgets->radio_btns_mode_list); i++) {
-            if (gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (g_slist_nth_data (encrypt_widgets->radio_btns_mode_list, i)))) {
-                mode = gtk_widget_get_name (g_slist_nth_data (encrypt_widgets->radio_btns_mode_list, i));
+        for (guint i = 0; i < G_N_ELEMENTS (encrypt_widgets->mode_buttons); i++) {
+            if (gtk_check_button_get_active (GTK_CHECK_BUTTON (encrypt_widgets->mode_buttons[i]))) {
+                mode = gtk_widget_get_name (encrypt_widgets->mode_buttons[i]);
                 break;
             }
         }
@@ -125,8 +128,8 @@ check_pwd (GtkWidget *main_window,
            GtkWidget *entry,
            GtkWidget *retype_entry)
 {
-    const gchar *text_entry = gtk_entry_get_text (GTK_ENTRY (entry));
-    const gchar *text_retype_entry = gtk_entry_get_text (GTK_ENTRY (retype_entry));
+    const gchar *text_entry = gtk_editable_get_text (GTK_EDITABLE (entry));
+    const gchar *text_retype_entry = gtk_editable_get_text (GTK_EDITABLE (retype_entry));
 
     gint cmp_retval = g_strcmp0 (text_entry, text_retype_entry);
 
@@ -154,11 +157,11 @@ prepare_multi_encryption (const gchar    *algo,
     thread_data->list_len = g_slist_length (data->files_list);
     thread_data->algo_btn_name = algo;
     thread_data->algo_mode_btn_name = algo_mode;
-    thread_data->pwd = gtk_entry_get_text (GTK_ENTRY (data->entry_pwd));
+    thread_data->pwd = gtk_editable_get_text (GTK_EDITABLE (data->entry_pwd));
     thread_data->widgets = data;
 
     gtk_label_set_label (GTK_LABEL (data->message_label), "Encrypting file(s)...");
-    gtk_widget_show (thread_data->spinner);
+    gtk_widget_set_visible (thread_data->spinner, TRUE);
     start_spinner (thread_data->spinner);
 
     change_widgets_sensitivity (4, FALSE, &data->ok_btn, &data->cancel_btn, &data->entry_pwd, &data->entry_pwd_retype);
@@ -170,7 +173,7 @@ prepare_multi_encryption (const gchar    *algo,
         g_thread_pool_push (data->thread_pool, g_slist_nth_data (data->files_list, i), NULL);
     }
 
-    gtk_dialog_response (GTK_DIALOG (data->dialog), GTK_RESPONSE_DELETE_EVENT);
+    dialog_finish_response (GTK_WINDOW (data->dialog), GTK_RESPONSE_DELETE_EVENT);
 }
 
 
@@ -208,7 +211,8 @@ cancel_clicked_cb (GtkWidget *btn __attribute__((__unused__)),
 
     g_source_remove (encrypt_widgets->source_id);
 
-    gtk_widget_destroy (encrypt_widgets->dialog);
+    dialog_set_response (GTK_WINDOW (encrypt_widgets->dialog), GTK_RESPONSE_CANCEL);
+    gtk_window_destroy (GTK_WINDOW (encrypt_widgets->dialog));
 
     g_slist_free_full (encrypt_widgets->files_list, g_free);
 

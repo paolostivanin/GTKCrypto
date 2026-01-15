@@ -8,7 +8,7 @@ main (gint    argc,
     GtkApplication *app;
     gint status;
 
-    app = gtk_application_new ("com.github.paolostivanin.GTKCrypto", G_APPLICATION_FLAGS_NONE);
+    app = gtk_application_new ("com.github.paolostivanin.GTKCrypto", G_APPLICATION_DEFAULT_FLAGS);
     g_set_application_name (APP_NAME);
     g_set_prgname (APP_NAME);
 

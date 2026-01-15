@@ -23,7 +23,7 @@
 ## Requirements
 |Name|Min Version|
 |----|-----------|
-|GTK+|3.20|
+|GTK|4.10|
 |Glib|2.48.0|
 |libgcrypt|1.7.0|
 |gpgme|1.8.0|

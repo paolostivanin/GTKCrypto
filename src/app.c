@@ -41,7 +41,7 @@ activate (GtkApplication *app,
 
     g_object_unref (builder);
 
-    gtk_widget_show_all (main_window);
+    gtk_window_present (GTK_WINDOW (main_window));
 }
 
 
@@ -54,7 +54,9 @@ get_main_window (GtkBuilder *builder)
     g_snprintf (header_bar_text, strlen (APP_NAME) +1 + strlen (APP_VERSION) + 1, "%s %s", APP_NAME, APP_VERSION);
 
     GtkWidget *header_bar = (GTK_WIDGET (gtk_builder_get_object(builder, "main_hb")));
-    gtk_header_bar_set_title (GTK_HEADER_BAR (header_bar), header_bar_text);
+    GtkWidget *title_label = gtk_label_new (header_bar_text);
+    gtk_header_bar_set_title_widget (GTK_HEADER_BAR (header_bar), title_label);
+    g_free (header_bar_text);
 
     return window;
 }
