@@ -439,7 +439,10 @@
       </object>
     </child>
     <child internal-child="action_area">
-      <object class="GtkButtonBox">
+      <object class="GtkBox">
+        <property name="orientation">horizontal</property>
+        <property name="spacing">6</property>
+        <property name="halign">end</property>
         <child>
           <object class="GtkButton" id="cancel_btn_chash">
             <property name="visible">0</property>
@@ -516,7 +519,10 @@
       </object>
     </child>
     <child internal-child="action_area">
-      <object class="GtkButtonBox">
+      <object class="GtkBox">
+        <property name="orientation">horizontal</property>
+        <property name="spacing">6</property>
+        <property name="halign">end</property>
         <child>
           <object class="GtkButton" id="cancel_btn_dec_pwd_diag">
             <property name="visible">0</property>
@@ -618,7 +624,10 @@ Please note that the password &lt;b&gt;can&apos;t&lt;/b&gt; be recovered.</prope
       </object>
     </child>
     <child internal-child="action_area">
-      <object class="GtkButtonBox">
+      <object class="GtkBox">
+        <property name="orientation">horizontal</property>
+        <property name="spacing">6</property>
+        <property name="halign">end</property>
         <child>
           <object class="GtkButton" id="cancel_btn_pwd_diag">
             <property name="visible">0</property>
@@ -709,7 +718,10 @@ Please note that the password &lt;b&gt;can&apos;t&lt;/b&gt; be recovered.</prope
       <action-widget response="-6">txt_btn_cancel</action-widget>
     </action-widgets>
     <child internal-child="action_area">
-      <object class="GtkButtonBox">
+      <object class="GtkBox">
+        <property name="orientation">horizontal</property>
+        <property name="spacing">6</property>
+        <property name="halign">end</property>
         <child>
           <object class="GtkButton" id="txt_btn_cancel">
             <property name="visible">0</property>
@@ -769,7 +781,10 @@ Please note that the password &lt;b&gt;can&apos;t&lt;/b&gt; be recovered.</prope
       <action-widget response="-5">data_diag_ok_btn</action-widget>
     </action-widgets>
     <child internal-child="action_area">
-      <object class="GtkButtonBox">
+      <object class="GtkBox">
+        <property name="orientation">horizontal</property>
+        <property name="spacing">6</property>
+        <property name="halign">end</property>
         <child>
           <object class="GtkButton" id="data_diag_ok_btn">
             <property name="visible">0</property>
