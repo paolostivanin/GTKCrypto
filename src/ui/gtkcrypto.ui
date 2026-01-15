@@ -112,7 +112,7 @@
     <property name="gravity">center</property>
     <child type="titlebar">
       <object class="GtkHeaderBar" id="main_hb">
-        <property name="visible">0</property>
+        <property name="visible">1</property>
         <child>
           <placeholder/>
         </child>
@@ -120,13 +120,13 @@
     </child>
     <child>
       <object class="GtkBox" id="vbox1">
-        <property name="visible">0</property>
+        <property name="visible">1</property>
         <property name="orientation">vertical</property>
         <property name="spacing">4</property>
         <property name="homogeneous">1</property>
         <child>
           <object class="GtkButton" id="encfile_btn">
-            <property name="visible">0</property>
+            <property name="visible">1</property>
             <property name="label" translatable="1">Encrypt File</property>
             <property name="focusable">1</property>
             <property name="receives_default">1</property>
@@ -134,7 +134,7 @@
         </child>
         <child>
           <object class="GtkButton" id="decfile_btn">
-            <property name="visible">0</property>
+            <property name="visible">1</property>
             <property name="label" translatable="1">Decrypt File</property>
             <property name="focusable">1</property>
             <property name="receives_default">1</property>
@@ -142,7 +142,7 @@
         </child>
         <child>
           <object class="GtkButton" id="sigfile_btn">
-            <property name="visible">0</property>
+            <property name="visible">1</property>
             <property name="label" translatable="1">Sign File</property>
             <property name="focusable">1</property>
             <property name="receives_default">1</property>
@@ -150,7 +150,7 @@
         </child>
         <child>
           <object class="GtkButton" id="versig_btn">
-            <property name="visible">0</property>
+            <property name="visible">1</property>
             <property name="label" translatable="1">Verify Signature</property>
             <property name="focusable">1</property>
             <property name="receives_default">1</property>
@@ -158,7 +158,7 @@
         </child>
         <child>
           <object class="GtkButton" id="enctxt_btn">
-            <property name="visible">0</property>
+            <property name="visible">1</property>
             <property name="label" translatable="1">Encrypt Text</property>
             <property name="name">enctxt_btn</property>
             <property name="focusable">1</property>
@@ -167,7 +167,7 @@
         </child>
         <child>
           <object class="GtkButton" id="dectxt_btn">
-            <property name="visible">0</property>
+            <property name="visible">1</property>
             <property name="label" translatable="1">Decrypt Text</property>
             <property name="name">dectxt_btn</property>
             <property name="focusable">1</property>
@@ -176,7 +176,7 @@
         </child>
         <child>
           <object class="GtkButton" id="chash_btn">
-            <property name="visible">0</property>
+            <property name="visible">1</property>
             <property name="label" translatable="1">Compute Hash</property>
             <property name="focusable">1</property>
             <property name="receives_default">1</property>
@@ -184,7 +184,7 @@
         </child>
         <child>
           <object class="GtkButton" id="cmphash_btn">
-            <property name="visible">0</property>
+            <property name="visible">1</property>
             <property name="label" translatable="1">Compare Hash</property>
             <property name="focusable">1</property>
             <property name="receives_default">1</property>
