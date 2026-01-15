@@ -42,6 +42,11 @@ compute_hash_dialog_response_cb (GObject      *source,
                                  gpointer      user_data);
 
 static void
+compute_hash_choose_file_cb (GObject      *source,
+                             GAsyncResult *result,
+                             gpointer      user_data);
+
+static void
 cancel_dialog_cb (GtkWidget *btn __attribute__((unused)),
                   gpointer   user_data)
 {
@@ -56,13 +61,32 @@ void
 compute_hash_cb (GtkWidget *button __attribute((unused)),
                  gpointer   user_data)
 {
-    const gchar *ck_btn_labels[] = {"MD5", "SHA-1", "GOST94", "SHA-256", "SHA3-256", "SHA-384", "SHA3-384",
-                                    "SHA-512", "SHA3-512", "WHIRLPOOL"};
-
     ComputeHashData *hash_widgets = g_new0 (ComputeHashData, 1);
     hash_widgets->main_window = (GtkWidget *) user_data;
 
-    GSList *list = choose_file (hash_widgets->main_window, "Choose file", FALSE);
+    choose_file_async (GTK_WINDOW (hash_widgets->main_window),
+                       "Choose file",
+                       FALSE,
+                       NULL,
+                       compute_hash_choose_file_cb,
+                       hash_widgets);
+}
+
+static void
+compute_hash_choose_file_cb (GObject      *source,
+                             GAsyncResult *result,
+                             gpointer      user_data)
+{
+    const gchar *ck_btn_labels[] = {"MD5", "SHA-1", "GOST94", "SHA-256", "SHA3-256", "SHA-384", "SHA3-384",
+                                    "SHA-512", "SHA3-512", "WHIRLPOOL"};
+    ComputeHashData *hash_widgets = user_data;
+    GError *error = NULL;
+    GSList *list = choose_file_finish (GTK_WINDOW (source), result, &error);
+
+    if (error != NULL) {
+        g_error_free (error);
+    }
+
     hash_widgets->filename = get_filename_from_list (list);
     if (hash_widgets->filename == NULL) {
         g_free (hash_widgets);

@@ -18,15 +18,14 @@ static void     decrypt_dialog_response_cb  (GObject      *source,
                                              GAsyncResult *result,
                                              gpointer      user_data);
 
+static void     decrypt_choose_files_cb     (GObject      *source,
+                                             GAsyncResult *result,
+                                             gpointer      user_data);
+
 void
 decrypt_files_cb (GtkWidget *btn __attribute__((unused)),
                   gpointer   user_data)
 {
-    GtkBuilder *builder = get_builder_from_path (PARTIAL_PATH_TO_UI_FILE);
-    if (builder == NULL) {
-        return;
-    }
-
     DecryptWidgets *decrypt_widgets = g_new0 (DecryptWidgets, 1);
 
     decrypt_widgets->main_window = (GtkWidget *)user_data;
@@ -34,8 +33,34 @@ decrypt_files_cb (GtkWidget *btn __attribute__((unused)),
     decrypt_widgets->files_not_decrypted = 0;
     decrypt_widgets->first_run = TRUE;
 
-    decrypt_widgets->files_list = choose_file (decrypt_widgets->main_window, "Choose file(s) to decrypt", TRUE);
+    choose_file_async (GTK_WINDOW (decrypt_widgets->main_window),
+                       "Choose file(s) to decrypt",
+                       TRUE,
+                       NULL,
+                       decrypt_choose_files_cb,
+                       decrypt_widgets);
+}
+
+static void
+decrypt_choose_files_cb (GObject      *source,
+                         GAsyncResult *result,
+                         gpointer      user_data)
+{
+    DecryptWidgets *decrypt_widgets = user_data;
+    GtkBuilder *builder = get_builder_from_path (PARTIAL_PATH_TO_UI_FILE);
+    GError *error = NULL;
+
+    decrypt_widgets->files_list = choose_file_finish (GTK_WINDOW (source), result, &error);
+    if (error != NULL) {
+        g_error_free (error);
+    }
     if (decrypt_widgets->files_list == NULL) {
+        g_free (decrypt_widgets);
+        return;
+    }
+
+    if (builder == NULL) {
+        g_slist_free_full (decrypt_widgets->files_list, g_free);
         g_free (decrypt_widgets);
         return;
     }

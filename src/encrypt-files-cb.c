@@ -26,15 +26,14 @@ static void     encrypt_dialog_response_cb  (GObject      *source,
                                              GAsyncResult *result,
                                              gpointer      user_data);
 
+static void     encrypt_choose_files_cb     (GObject      *source,
+                                             GAsyncResult *result,
+                                             gpointer      user_data);
+
 void
 encrypt_files_cb (GtkWidget *btn __attribute__((__unused__)),
                   gpointer   user_data)
 {
-    GtkBuilder *builder = get_builder_from_path (PARTIAL_PATH_TO_UI_FILE);
-    if (builder == NULL) {
-        return;
-    }
-
     EncryptWidgets *encrypt_widgets = g_new0 (EncryptWidgets, 1);
 
     encrypt_widgets->main_window = (GtkWidget *)user_data;
@@ -42,8 +41,34 @@ encrypt_files_cb (GtkWidget *btn __attribute__((__unused__)),
     encrypt_widgets->files_not_encrypted = 0;
     encrypt_widgets->first_run = TRUE;
 
-    encrypt_widgets->files_list = choose_file (encrypt_widgets->main_window, "Choose file(s) to encrypt", TRUE);
+    choose_file_async (GTK_WINDOW (encrypt_widgets->main_window),
+                       "Choose file(s) to encrypt",
+                       TRUE,
+                       NULL,
+                       encrypt_choose_files_cb,
+                       encrypt_widgets);
+}
+
+static void
+encrypt_choose_files_cb (GObject      *source,
+                         GAsyncResult *result,
+                         gpointer      user_data)
+{
+    EncryptWidgets *encrypt_widgets = user_data;
+    GtkBuilder *builder = get_builder_from_path (PARTIAL_PATH_TO_UI_FILE);
+    GError *error = NULL;
+
+    encrypt_widgets->files_list = choose_file_finish (GTK_WINDOW (source), result, &error);
+    if (error != NULL) {
+        g_error_free (error);
+    }
     if (encrypt_widgets->files_list == NULL) {
+        g_free (encrypt_widgets);
+        return;
+    }
+
+    if (builder == NULL) {
+        g_slist_free_full (encrypt_widgets->files_list, g_free);
         g_free (encrypt_widgets);
         return;
     }

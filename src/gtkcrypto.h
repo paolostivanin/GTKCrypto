@@ -6,7 +6,16 @@
 
 void        show_message_dialog             (GtkWidget *parent, const gchar *message, GtkMessageType);
 
-GSList     *choose_file                     (GtkWidget *parent, const gchar *title, gboolean select_multiple);
+void        choose_file_async               (GtkWindow           *parent,
+                                             const gchar         *title,
+                                             gboolean             select_multiple,
+                                             GCancellable        *cancellable,
+                                             GAsyncReadyCallback  callback,
+                                             gpointer             user_data);
+
+GSList     *choose_file_finish              (GtkWindow    *parent,
+                                             GAsyncResult *result,
+                                             GError      **error);
 
 gchar      *get_filename_from_list          (GSList *list);
 

@@ -41,6 +41,10 @@ static void     sign_dialog_response_cb (GObject      *source,
                                          GAsyncResult *result,
                                          gpointer      user_data);
 
+static void     sign_choose_file_cb    (GObject      *source,
+                                        GAsyncResult *result,
+                                        gpointer      user_data);
+
 void
 sign_file_cb (GtkWidget *btn __attribute__((unused)),
               gpointer   user_data)
@@ -50,12 +54,33 @@ sign_file_cb (GtkWidget *btn __attribute__((unused)),
 
     sign_file_widgets->main_window = user_data;
     // TODO multiple files sign
-    GSList *list = choose_file (sign_file_widgets->main_window, "Choose File", FALSE);
+    choose_file_async (GTK_WINDOW (sign_file_widgets->main_window),
+                       "Choose File",
+                       FALSE,
+                       NULL,
+                       sign_choose_file_cb,
+                       sign_file_widgets);
+}
+
+static void
+sign_choose_file_cb (GObject      *source,
+                     GAsyncResult *result,
+                     gpointer      user_data)
+{
+    SignFileWidgets *sign_file_widgets = user_data;
+    GError *error = NULL;
+    GSList *list = choose_file_finish (GTK_WINDOW (source), result, &error);
+
+    if (error != NULL) {
+        g_error_free (error);
+    }
+
     sign_file_widgets->filename = get_filename_from_list (list);
     if (sign_file_widgets->filename == NULL) {
         g_free (sign_file_widgets);
         return;
     }
+
     sign_file_widgets->dialog = create_dialog (sign_file_widgets->main_window, "sign_fl_diag", "Select GPG key");
     sign_file_widgets->cancel_btn = gtk_button_new_with_label ("Cancel");
     sign_file_widgets->ok_btn = gtk_button_new_with_label ("OK");
@@ -69,6 +94,7 @@ sign_file_cb (GtkWidget *btn __attribute__((unused)),
 
     if (sign_file_widgets->gpg_keys == NULL) {
         show_message_dialog (sign_file_widgets->main_window, "No GPG keys available", GTK_MESSAGE_INFO);
+        g_free (sign_file_widgets->filename);
         g_free (sign_file_widgets);
         return;
     }

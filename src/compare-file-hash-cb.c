@@ -28,6 +28,11 @@ typedef struct compare_hash_thread_data_t {
     HashWidgets *widgets_data;
 } ThreadData;
 
+typedef struct compare_hash_choose_data_t {
+    HashWidgets *widgets_data;
+    GtkEntry *entry;
+} ChooseFileData;
+
 static void       select_file_cb    (GtkEntry             *entry,
                                      GtkEntryIconPosition  icon_pos,
                                      GdkEvent             *event,
@@ -51,6 +56,10 @@ static void       popover_choice_cb (GtkWidget *btn, gpointer user_data);
 static void       compare_hash_dialog_response_cb (GObject      *source,
                                                    GAsyncResult *result,
                                                    gpointer      user_data);
+
+static void       compare_choose_file_cb (GObject      *source,
+                                          GAsyncResult *result,
+                                          gpointer      user_data);
 
 static void
 cancel_dialog_cb (GtkWidget *btn __attribute__((unused)),
@@ -159,14 +168,40 @@ select_file_cb (GtkEntry             *entry,
                 GdkEvent             *event     __attribute__((unused)),
                 gpointer              user_data)
 {
-    ThreadData *thread_data = g_new0 (ThreadData, 1);
     HashWidgets *hash_widgets = user_data;
-    thread_data->widgets_data = hash_widgets;
+    ChooseFileData *choose_data = g_new0 (ChooseFileData, 1);
 
-    GSList *list = choose_file (hash_widgets->main_window, "Pick file to compare", FALSE);
-    gchar *filename = get_filename_from_list (list);
+    choose_data->widgets_data = hash_widgets;
+    choose_data->entry = entry;
+
+    choose_file_async (GTK_WINDOW (hash_widgets->main_window),
+                       "Pick file to compare",
+                       FALSE,
+                       NULL,
+                       compare_choose_file_cb,
+                       choose_data);
+}
+
+static void
+compare_choose_file_cb (GObject      *source,
+                        GAsyncResult *result,
+                        gpointer      user_data)
+{
+    ChooseFileData *choose_data = user_data;
+    HashWidgets *hash_widgets = choose_data->widgets_data;
+    ThreadData *thread_data = g_new0 (ThreadData, 1);
+    GError *error = NULL;
+    GSList *list = choose_file_finish (GTK_WINDOW (source), result, &error);
+    gchar *filename = NULL;
+
+    if (error != NULL) {
+        g_error_free (error);
+    }
+
+    filename = get_filename_from_list (list);
     if (filename == NULL) {
         g_free (thread_data);
+        g_free (choose_data);
         return;
     }
 
@@ -200,12 +235,13 @@ select_file_cb (GtkEntry             *entry,
         }
     }
 
-    thread_data->entry = entry;
+    thread_data->entry = choose_data->entry;
     thread_data->digest_size = digest_size;
     thread_data->hash_algo = hash_algo;
     thread_data->filename = filename;
+    thread_data->widgets_data = hash_widgets;
 
-    if (g_strcmp0 (gtk_widget_get_name (GTK_WIDGET (entry)), "file1_he_name") == 0) {
+    if (g_strcmp0 (gtk_widget_get_name (GTK_WIDGET (choose_data->entry)), "file1_he_name") == 0) {
         start_spinner (hash_widgets->spinner_entry1);
     }
     else {
@@ -213,6 +249,7 @@ select_file_cb (GtkEntry             *entry,
     }
 
     g_thread_new (NULL, exec_thread, thread_data);
+    g_free (choose_data);
 }
 
 

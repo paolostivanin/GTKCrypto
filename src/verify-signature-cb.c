@@ -30,6 +30,11 @@ typedef struct verify_signature_thread_data_t {
     gchar *signature_file;
 } ThreadData;
 
+typedef struct verify_choose_file_data_t {
+    GtkEntry *entry;
+    VerifyWidgets *widgets;
+} ChooseFileData;
+
 static void     select_file_cb          (GtkEntry               *entry,
                                          GtkEntryIconPosition    icon_pos,
                                          GdkEvent               *event,
@@ -46,6 +51,10 @@ static gpointer exec_thread             (gpointer user_data);
 static void     verify_signature_dialog_response_cb (GObject      *source,
                                                      GAsyncResult *result,
                                                      gpointer      user_data);
+
+static void     verify_choose_file_cb (GObject      *source,
+                                       GAsyncResult *result,
+                                       gpointer      user_data);
 
 
 void
@@ -166,21 +175,49 @@ select_file_cb (GtkEntry                *entry,
                 gpointer                 user_data)
 {
     VerifyWidgets *verify_widgets = user_data;
-    GSList *list = choose_file (verify_widgets->main_window, "Choose file", FALSE);
-    gchar *filename = get_filename_from_list (list);
+    ChooseFileData *choose_data = g_new0 (ChooseFileData, 1);
+
+    choose_data->entry = entry;
+    choose_data->widgets = verify_widgets;
+
+    choose_file_async (GTK_WINDOW (verify_widgets->main_window),
+                       "Choose file",
+                       FALSE,
+                       NULL,
+                       verify_choose_file_cb,
+                       choose_data);
+}
+
+static void
+verify_choose_file_cb (GObject      *source,
+                       GAsyncResult *result,
+                       gpointer      user_data)
+{
+    ChooseFileData *choose_data = user_data;
+    VerifyWidgets *verify_widgets = choose_data->widgets;
+    GError *error = NULL;
+    GSList *list = choose_file_finish (GTK_WINDOW (source), result, &error);
+    gchar *filename = NULL;
+
+    if (error != NULL) {
+        g_error_free (error);
+    }
+
+    filename = get_filename_from_list (list);
     if (filename == NULL) {
+        g_free (choose_data);
         return;
     }
 
-    if (g_strcmp0 (gtk_widget_get_name (GTK_WIDGET (entry)), "signed_file_entry") == 0) {
+    if (g_strcmp0 (gtk_widget_get_name (GTK_WIDGET (choose_data->entry)), "signed_file_entry") == 0) {
         verify_widgets->entry_data.entry1_filename = g_strdup (filename);
     } else {
         verify_widgets->entry_data.entry2_filename = g_strdup (filename);
-
     }
-    gtk_editable_set_text (GTK_EDITABLE (entry), filename);
+    gtk_editable_set_text (GTK_EDITABLE (choose_data->entry), filename);
 
     g_free (filename);
+    g_free (choose_data);
 }
 
 
