@@ -74,6 +74,9 @@ choose_file (GtkWidget      *main_window,
     }
 
     g_main_loop_run (data.loop);
+    while (g_main_context_pending (NULL)) {
+        g_main_context_iteration (NULL, FALSE);
+    }
     g_main_loop_unref (data.loop);
     g_object_unref (dialog);
 

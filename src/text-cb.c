@@ -47,6 +47,9 @@ static void         show_error_and_cleanup      (GtkWidget      *diag,
                                                  gchar          *err_msg,
                                                  CryptData      *crypt_data);
 
+static void         data_dialog_ok_cb           (GtkWidget      *btn,
+                                                 gpointer        user_data);
+
 
 void
 txt_cb (GtkWidget *btn,
@@ -72,8 +75,10 @@ txt_cb (GtkWidget *btn,
 
     if (g_strcmp0 (gtk_widget_get_name (btn), "enctxt_btn") == 0) {
         g_signal_connect (ok_btn, "clicked", G_CALLBACK (enc_txt), txt_data);
+        g_signal_connect (txt_data->entry2, "activate", G_CALLBACK (enc_txt), txt_data);
     } else {
         g_signal_connect (ok_btn, "clicked", G_CALLBACK (dec_txt), txt_data);
+        g_signal_connect (txt_data->entry1, "activate", G_CALLBACK (dec_txt), txt_data);
     }
 
     gint result = run_dialog (GTK_WINDOW (txt_data->diag));
@@ -412,9 +417,12 @@ show_dialog_with_data (gchar *data)
 
     GtkWidget *diag = GTK_WIDGET(gtk_builder_get_object (builder, "data_diag"));
     GtkTextBuffer *text_buf = GTK_TEXT_BUFFER(gtk_builder_get_object(builder,"data_text_buf"));
+    GtkWidget *ok_btn = GTK_WIDGET (gtk_builder_get_object (builder, "data_diag_ok_btn"));
     g_object_unref (builder);
 
     gtk_text_buffer_set_text (text_buf, data, -1);
+
+    g_signal_connect (ok_btn, "clicked", G_CALLBACK (data_dialog_ok_cb), diag);
 
     gint result = run_dialog (GTK_WINDOW (diag));
     switch (result) {
@@ -424,4 +432,11 @@ show_dialog_with_data (gchar *data)
             break;
     }
     gtk_window_destroy (GTK_WINDOW (diag));
+}
+
+static void
+data_dialog_ok_cb (GtkWidget *btn __attribute__((unused)),
+                   gpointer   user_data)
+{
+    dialog_finish_response (GTK_WINDOW (user_data), GTK_RESPONSE_OK);
 }
