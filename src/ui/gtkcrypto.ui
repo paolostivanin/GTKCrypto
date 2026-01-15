@@ -5,7 +5,7 @@
   <object class="GtkPopoverMenu" id="enc_popmenu">
     <property name="child">
       <object class="GtkBox">
-        <property name="visible">0</property>
+        <property name="visible">1</property>
         <property name="spacing">2</property>
         <child>
           <object class="GtkBox">
@@ -204,7 +204,7 @@
     </child>
     <child internal-child="content_area">
       <object class="GtkBox">
-        <property name="visible">0</property>
+        <property name="visible">1</property>
         <property name="orientation">vertical</property>
         <property name="spacing">2</property>
         <child>
@@ -466,7 +466,7 @@
     </child>
     <child internal-child="content_area">
       <object class="GtkBox">
-        <property name="visible">0</property>
+        <property name="visible">1</property>
         <property name="orientation">vertical</property>
         <property name="spacing">2</property>
         <child>
@@ -565,7 +565,7 @@
     </child>
     <child internal-child="content_area">
       <object class="GtkBox">
-        <property name="visible">0</property>
+        <property name="visible">1</property>
         <property name="orientation">vertical</property>
         <property name="spacing">2</property>
         <child>
@@ -664,20 +664,20 @@ Please note that the password &lt;b&gt;can&apos;t&lt;/b&gt; be recovered.</prope
     </child>
     <child internal-child="content_area">
       <object class="GtkBox">
-        <property name="visible">0</property>
+        <property name="visible">1</property>
         <property name="orientation">vertical</property>
         <property name="spacing">5</property>
         <child>
           <object class="GtkScrolledWindow">
-            <property name="visible">0</property>
+            <property name="visible">1</property>
             <property name="vexpand">1</property>
             <property name="focusable">1</property>
             <property name="child">
               <object class="GtkViewport">
-                <property name="visible">0</property>
+                <property name="visible">1</property>
                 <property name="child">
                   <object class="GtkTextView" id="text_view">
-                    <property name="visible">0</property>
+                    <property name="visible">1</property>
                     <property name="focusable">1</property>
                     <property name="buffer">text_buf</property>
                     <property name="monospace">1</property>
@@ -689,10 +689,10 @@ Please note that the password &lt;b&gt;can&apos;t&lt;/b&gt; be recovered.</prope
         </child>
         <child>
           <object class="GtkBox">
-            <property name="visible">0</property>
+            <property name="visible">1</property>
             <child>
               <object class="GtkEntry" id="pwd_entry1_txt">
-                <property name="visible">0</property>
+                <property name="visible">1</property>
                 <property name="hexpand">1</property>
                 <property name="focusable">1</property>
                 <property name="visibility">0</property>
@@ -702,7 +702,7 @@ Please note that the password &lt;b&gt;can&apos;t&lt;/b&gt; be recovered.</prope
             </child>
             <child>
               <object class="GtkEntry" id="pwd_entry2_txt">
-                <property name="visible">0</property>
+                <property name="visible">1</property>
                 <property name="hexpand">1</property>
                 <property name="focusable">1</property>
                 <property name="visibility">0</property>
@@ -724,7 +724,7 @@ Please note that the password &lt;b&gt;can&apos;t&lt;/b&gt; be recovered.</prope
         <property name="halign">end</property>
         <child>
           <object class="GtkButton" id="txt_btn_cancel">
-            <property name="visible">0</property>
+            <property name="visible">1</property>
             <property name="label" translatable="1">Cancel</property>
             <property name="focusable">1</property>
             <property name="receives_default">1</property>
@@ -732,7 +732,7 @@ Please note that the password &lt;b&gt;can&apos;t&lt;/b&gt; be recovered.</prope
         </child>
         <child>
           <object class="GtkButton" id="txt_btn_ok">
-            <property name="visible">0</property>
+            <property name="visible">1</property>
             <property name="label" translatable="1">OK</property>
             <property name="focusable">1</property>
             <property name="receives_default">1</property>
@@ -752,20 +752,20 @@ Please note that the password &lt;b&gt;can&apos;t&lt;/b&gt; be recovered.</prope
     </child>
     <child internal-child="content_area">
       <object class="GtkBox">
-        <property name="visible">0</property>
+        <property name="visible">1</property>
         <property name="orientation">vertical</property>
         <property name="spacing">2</property>
         <child>
           <object class="GtkScrolledWindow">
-            <property name="visible">0</property>
+            <property name="visible">1</property>
             <property name="vexpand">1</property>
             <property name="focusable">1</property>
             <property name="child">
               <object class="GtkViewport">
-                <property name="visible">0</property>
+                <property name="visible">1</property>
                 <property name="child">
                   <object class="GtkTextView" id="data_diag_text_view">
-                    <property name="visible">0</property>
+                    <property name="visible">1</property>
                     <property name="focusable">1</property>
                     <property name="buffer">data_text_buf</property>
                     <property name="monospace">1</property>
@@ -787,7 +787,7 @@ Please note that the password &lt;b&gt;can&apos;t&lt;/b&gt; be recovered.</prope
         <property name="halign">end</property>
         <child>
           <object class="GtkButton" id="data_diag_ok_btn">
-            <property name="visible">0</property>
+            <property name="visible">1</property>
             <property name="label" translatable="1">OK</property>
             <property name="focusable">1</property>
             <property name="receives_default">1</property>

@@ -38,6 +38,7 @@ decrypt_files_cb (GtkWidget *btn __attribute__((unused)),
     }
 
     decrypt_widgets->dialog = GTK_WIDGET (gtk_builder_get_object (builder, "dec_pwd_diag"));
+    g_object_ref (decrypt_widgets->dialog);
     decrypt_widgets->ok_btn = GTK_WIDGET (gtk_builder_get_object (builder, "ok_btn_dec_pwd_diag"));
     decrypt_widgets->cancel_btn = GTK_WIDGET (gtk_builder_get_object (builder, "cancel_btn_dec_pwd_diag"));
     decrypt_widgets->entry_pwd = GTK_WIDGET (gtk_builder_get_object (builder, "dec_pwd_entry"));
@@ -142,6 +143,7 @@ cancel_clicked_cb (GtkWidget *btn __attribute__((unused)),
 
     dialog_set_response (GTK_WINDOW (decrypt_widgets->dialog), GTK_RESPONSE_CANCEL);
     gtk_window_destroy (GTK_WINDOW (decrypt_widgets->dialog));
+    g_object_unref (decrypt_widgets->dialog);
 
     g_slist_free_full (decrypt_widgets->files_list, g_free);
 

@@ -46,6 +46,7 @@ encrypt_files_cb (GtkWidget *btn __attribute__((__unused__)),
     }
 
     encrypt_widgets->dialog = GTK_WIDGET (gtk_builder_get_object (builder, "enc_pwd_diag"));
+    g_object_ref (encrypt_widgets->dialog);
     encrypt_widgets->ok_btn = GTK_WIDGET (gtk_builder_get_object (builder, "ok_btn_pwd_diag"));
     encrypt_widgets->cancel_btn = GTK_WIDGET (gtk_builder_get_object (builder, "cancel_btn_pwd_diag"));
     encrypt_widgets->entry_pwd = GTK_WIDGET (gtk_builder_get_object (builder, "pwd_entry1"));
@@ -213,6 +214,7 @@ cancel_clicked_cb (GtkWidget *btn __attribute__((__unused__)),
 
     dialog_set_response (GTK_WINDOW (encrypt_widgets->dialog), GTK_RESPONSE_CANCEL);
     gtk_window_destroy (GTK_WINDOW (encrypt_widgets->dialog));
+    g_object_unref (encrypt_widgets->dialog);
 
     g_slist_free_full (encrypt_widgets->files_list, g_free);
 
