@@ -1,12 +1,12 @@
-cmake_minimum_required(VERSION 3.5)
+cmake_minimum_required(VERSION 3.16)
 
 project(GTKCrypto)
 
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
 
 set(GTKCRYPTO_VERSION_MAJOR "1")
-set(GTKCRYPTO_VERSION_MINOR "0")
-set(GTKCRYPTO_VERSION_PATCH "3")
+set(GTKCRYPTO_VERSION_MINOR "1")
+set(GTKCRYPTO_VERSION_PATCH "0")
 set(GTKCRYPTO_VERSION "${GTKCRYPTO_VERSION_MAJOR}.${GTKCRYPTO_VERSION_MINOR}.${GTKCRYPTO_VERSION_PATCH}")
 
 set(CMAKE_C_STANDARD 11)
@@ -29,9 +29,9 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
 endif()
 
 find_package(PkgConfig REQUIRED)
-find_package(Gcrypt 1.7.0 REQUIRED)
+find_package(Gcrypt 1.10.1 REQUIRED)
 find_package(Gpgme 1.8.0 REQUIRED)
-pkg_check_modules(GTK3 REQUIRED gtk+-3.0>=3.20.0)
+pkg_check_modules(GTK3 REQUIRED gtk+-3.0>=3.24.0)
 
 include_directories(${GTK3_INCLUDE_DIRS}
         ${GCRYPT_INCLUDE_DIR}
