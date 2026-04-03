@@ -1,5 +1,8 @@
 #pragma once
 
+#include <glib.h>
+#include <gcrypt.h>
+
 #define HASH_COMPUTED         ((gpointer) 10)
 #define HASH_ERROR            ((gpointer) 11)
 #define MUNMAP_FAILED         ((gpointer) 12)

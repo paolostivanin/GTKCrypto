@@ -1,4 +1,5 @@
-#include <gtk/gtk.h>
+#include <glib.h>
+#include <gio/gio.h>
 #include <gpgme.h>
 #include <locale.h>
 #include <glib/gstdio.h>

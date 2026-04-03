@@ -1,5 +1,9 @@
 #pragma once
 
+#include <glib.h>
+#include <gio/gio.h>
+#include "crypt-common.h"
+
 void crypto_keys_cleanup    (CryptoKeys *encryption_keys);
 
 void gfile_cleanup          (GFile *ifile,

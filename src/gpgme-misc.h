@@ -1,5 +1,7 @@
 #pragma once
 
+#include <glib.h>
+
 #define SIG_MAXLEN 4096
 
 #define SIGNATURE_OK_KEY_NOT_TRUSTED ((gpointer) 2)

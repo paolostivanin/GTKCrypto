@@ -1,4 +1,6 @@
-#include <gtk/gtk.h>
+#include <glib.h>
+#include <glib/gstdio.h>
+#include <gio/gio.h>
 #include <gcrypt.h>
 #include <glib/gstdio.h>
 #include "gtkcrypto.h"

@@ -1,5 +1,8 @@
 #pragma once
 
+#include <glib.h>
+#include <gcrypt.h>
+
 // The encryption/decryption key is derived using PBKDF2 with SHA512 while the HMAC function uses `SHA_3_512`.
 
 #define MAX_IV_SIZE         16

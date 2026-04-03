@@ -5,7 +5,7 @@
   <metadata_license>CC-BY-4.0</metadata_license>
   <project_license>GPL-3.0+</project_license>
   <name>GTKCrypto</name>
-  <summary>GTK+ application for encrypting files and computing hashes</summary>
+  <summary>GTK application for encrypting files and computing hashes</summary>
   <keywords>
     <keyword>aes</keyword>
     <keyword>twofish</keyword>
@@ -63,6 +63,18 @@ Supported hash algorithms: MD5, SHA-1, SHA-2, SHA-3, GOST, Whirlpool.
   </content_rating>
 
   <releases>
+    <release version="2.0.0" date="2026-04-03">
+      <description>
+        <p>GTKCrypto 2.0.0 - Complete rewrite with GTK 4 and libadwaita</p>
+        <ul>
+          <li>Ported from GTK 3 to GTK 4.16+ with libadwaita</li>
+          <li>Modern navigation split view UI with sidebar</li>
+          <li>Async file dialogs and toast notifications</li>
+          <li>Thread-safe UI updates</li>
+          <li>Switched build system from CMake to Meson</li>
+        </ul>
+      </description>
+    </release>
     <release version="1.0.2" date="2022-03-09">
       <description>
         <p>GTKCrypto 1.0.2 brings some fixes</p>

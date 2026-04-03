@@ -1,0 +1,15 @@
+.hash-result {
+  font-family: monospace;
+}
+
+.hash-match {
+  color: @success_color;
+}
+
+.hash-mismatch {
+  color: @error_color;
+}
+
+.text-crypto-view {
+  font-family: monospace;
+}

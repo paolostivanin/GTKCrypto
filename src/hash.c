@@ -1,6 +1,6 @@
-#define _GNU_SOURCE
-
-#include <gtk/gtk.h>
+#include <glib.h>
+#include <glib/gstdio.h>
+#include <gio/gio.h>
 #include <gcrypt.h>
 #include <fcntl.h>
 #include <glib/gstdio.h>
