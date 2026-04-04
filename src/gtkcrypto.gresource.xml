@@ -3,4 +3,7 @@
   <gresource prefix="/com/github/paolostivanin/GTKCrypto">
     <file>gtkcrypto.css</file>
   </gresource>
+  <gresource prefix="/com/github/paolostivanin/GTKCrypto/icons/scalable/apps">
+    <file preprocess="xml-stripblanks" alias="com.github.paolostivanin.GTKCrypto.svg">../data/icons/com.github.paolostivanin.GTKCrypto.svg</file>
+  </gresource>
 </gresources>

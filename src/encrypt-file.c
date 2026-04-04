@@ -1,6 +1,7 @@
 #include <glib.h>
 #include <gio/gio.h>
 #include <gcrypt.h>
+#include <string.h>
 #include "gtkcrypto.h"
 #include "hash.h"
 #include "crypt-common.h"
@@ -30,6 +31,12 @@ static gchar *encrypt_using_ctr_mode                 (Metadata *header_metadata,
                                                       GFileInputStream *in_stream,
                                                       GFileOutputStream *out_stream);
 
+static gchar *encrypt_using_gcm_mode                 (Metadata *header_metadata,
+                                                      gcry_cipher_hd_t *hd,
+                                                      goffset file_size,
+                                                      GFileInputStream *in_stream,
+                                                      GFileOutputStream *out_stream);
+
 
 gpointer
 encrypt_file (const gchar *input_file_path, const gchar *pwd, const gchar *algo, const gchar *algo_mode)
@@ -37,16 +44,25 @@ encrypt_file (const gchar *input_file_path, const gchar *pwd, const gchar *algo,
     Metadata *header_metadata = g_new0 (Metadata, 1);
     CryptoKeys *encryption_keys = g_new0 (CryptoKeys, 1);
 
+    header_metadata->magic[0] = METADATA_MAGIC_0;
+    header_metadata->magic[1] = METADATA_MAGIC_1;
+    header_metadata->magic[2] = METADATA_MAGIC_2;
+    header_metadata->version = METADATA_VERSION;
+
     set_algo_and_mode (header_metadata, algo, algo_mode);
     gsize algo_key_len = gcry_cipher_get_algo_keylen (header_metadata->algo);
     gsize algo_blk_len = gcry_cipher_get_algo_blklen (header_metadata->algo);
 
-    header_metadata->iv_size = algo_blk_len;  // iv must be the same size as the block size
+    if (header_metadata->algo_mode == GCRY_CIPHER_MODE_GCM) {
+        header_metadata->iv_size = GCM_IV_SIZE;
+    } else {
+        header_metadata->iv_size = (guint8)algo_blk_len;
+    }
 
     gcry_create_nonce (header_metadata->iv, header_metadata->iv_size);
     gcry_create_nonce (header_metadata->salt, KDF_SALT_SIZE);
 
-    if (!setup_keys (pwd, algo_key_len, header_metadata, encryption_keys)) {
+    if (!setup_keys (pwd, algo_key_len, KDF_ITERATIONS, header_metadata, encryption_keys)) {
         g_free (encryption_keys);
         g_free (header_metadata);
         return g_strdup ("Couldn't setup the encryption keys, exiting...");
@@ -82,7 +98,14 @@ encrypt_file (const gchar *input_file_path, const gchar *pwd, const gchar *algo,
     }
 
     gcry_cipher_hd_t hd;
-    gcry_cipher_open (&hd, header_metadata->algo, header_metadata->algo_mode, 0);
+    gcry_error_t gcry_err = gcry_cipher_open (&hd, header_metadata->algo, header_metadata->algo_mode, 0);
+    if (gcry_err) {
+        crypto_keys_cleanup (encryption_keys);
+        gfile_cleanup (in_file, out_file);
+        gstream_cleanup (in_stream, out_stream);
+        data_cleanup (header_metadata, output_file_path, NULL);
+        return g_strdup ("Failed to initialize cipher");
+    }
     gcry_cipher_setkey (hd, encryption_keys->crypto_key, algo_key_len);
 
     gint64 number_of_blocks;
@@ -92,6 +115,9 @@ encrypt_file (const gchar *input_file_path, const gchar *pwd, const gchar *algo,
         set_number_of_blocks_and_padding_bytes (filesize, algo_blk_len, &number_of_blocks, &number_of_padding_bytes);
         gcry_cipher_setiv (hd, header_metadata->iv, header_metadata->iv_size);
         ret_msg = encrypt_using_cbc_mode (header_metadata, &hd, filesize, number_of_blocks, number_of_padding_bytes, algo_blk_len, in_stream, out_stream);
+    } else if (header_metadata->algo_mode == GCRY_CIPHER_MODE_GCM) {
+        gcry_cipher_setiv (hd, header_metadata->iv, header_metadata->iv_size);
+        ret_msg = encrypt_using_gcm_mode (header_metadata, &hd, filesize, in_stream, out_stream);
     } else {
         gcry_cipher_setctr (hd, header_metadata->iv, header_metadata->iv_size);
         ret_msg = encrypt_using_ctr_mode (header_metadata, &hd, filesize, in_stream, out_stream);
@@ -106,20 +132,24 @@ encrypt_file (const gchar *input_file_path, const gchar *pwd, const gchar *algo,
 
     gcry_cipher_close (hd);
 
-    guchar *hmac = calculate_hmac (output_file_path, encryption_keys->hmac_key, NULL);
-    gssize written_bytes = g_output_stream_write (G_OUTPUT_STREAM (out_stream), hmac, SHA512_DIGEST_SIZE, NULL, &err);
-    if (written_bytes == -1) {
-        crypto_keys_cleanup (encryption_keys);
-        gfile_cleanup (in_file, out_file);
-        gstream_cleanup (in_stream, out_stream);
-        data_cleanup (header_metadata, output_file_path, hmac);
-        err_msg = g_strdup (err->message);
-        g_clear_error (&err);
-        return err_msg;
+    if (header_metadata->algo_mode != GCRY_CIPHER_MODE_GCM) {
+        guchar *hmac = calculate_hmac (output_file_path, encryption_keys->hmac_key, NULL);
+        gssize written_bytes = g_output_stream_write (G_OUTPUT_STREAM (out_stream), hmac, SHA512_DIGEST_SIZE, NULL, &err);
+        if (written_bytes == -1) {
+            crypto_keys_cleanup (encryption_keys);
+            gfile_cleanup (in_file, out_file);
+            gstream_cleanup (in_stream, out_stream);
+            data_cleanup (header_metadata, output_file_path, hmac);
+            err_msg = g_strdup (err->message);
+            g_clear_error (&err);
+            return err_msg;
+        }
+        g_free (hmac);
     }
 
     crypto_keys_cleanup (encryption_keys);
-    data_cleanup (header_metadata, output_file_path, hmac);
+    g_free (output_file_path);
+    g_free (header_metadata);
     gfile_cleanup (in_file, out_file);
     gstream_cleanup (in_stream, out_stream);
     return NULL;
@@ -143,6 +173,8 @@ set_algo_and_mode (Metadata *header_metadata,
 
     if (g_strcmp0 (algo_mode, "cbc_rbtn_widget") == 0) {
         header_metadata->algo_mode = GCRY_CIPHER_MODE_CBC;
+    } else if (g_strcmp0 (algo_mode, "gcm_rbtn_widget") == 0) {
+        header_metadata->algo_mode = GCRY_CIPHER_MODE_GCM;
     } else {
         header_metadata->algo_mode = GCRY_CIPHER_MODE_CTR;
     }
@@ -232,8 +264,8 @@ encrypt_using_cbc_mode (Metadata *header_metadata,
             return g_strdup ("Error while trying to write encrypted data to the output file");
         }
 
-        memset (buffer, 0, (gsize)read_len);
-        memset (enc_buffer, 0, (gsize)read_len);
+        explicit_bzero (buffer, (gsize)read_len);
+        explicit_bzero (enc_buffer, (gsize)read_len);
     }
 
     g_free (buffer);
@@ -290,10 +322,88 @@ encrypt_using_ctr_mode (Metadata *header_metadata, gcry_cipher_hd_t *hd, goffset
             return err_msg;
         }
 
-        memset (buffer, 0, (gsize)read_len);
-        memset (enc_buffer, 0, (gsize)read_len);
+        explicit_bzero (buffer, (gsize)read_len);
+        explicit_bzero (enc_buffer, (gsize)read_len);
 
         done_size += read_len;
+    }
+
+    g_free (buffer);
+    g_free (enc_buffer);
+
+    return NULL;
+}
+
+
+static gchar *
+encrypt_using_gcm_mode (Metadata *header_metadata, gcry_cipher_hd_t *hd, goffset file_size,
+                        GFileInputStream *in_stream, GFileOutputStream *out_stream)
+{
+    GError *err = NULL;
+    gchar *err_msg = NULL;
+
+    if (g_output_stream_write (G_OUTPUT_STREAM (out_stream), header_metadata, sizeof (Metadata), NULL, &err) == -1) {
+        err_msg = g_strdup (err->message);
+        g_clear_error (&err);
+        return err_msg;
+    }
+
+    guchar *buffer = g_try_malloc0 ((gsize)(file_size < FILE_BUFFER ? file_size : FILE_BUFFER));
+    guchar *enc_buffer = g_try_malloc0 ((gsize)(file_size < FILE_BUFFER ? file_size : FILE_BUFFER));
+    if (buffer == NULL || enc_buffer == NULL) {
+        if (buffer != NULL) g_free (buffer);
+        if (enc_buffer != NULL) g_free (enc_buffer);
+        return g_strdup ("Couldn't allocate memory");
+    }
+
+    goffset done_size = 0;
+    gssize read_len;
+
+    while (done_size < file_size) {
+        goffset remaining = file_size - done_size;
+        gboolean is_last = (remaining <= FILE_BUFFER);
+
+        if (is_last) {
+            read_len = g_input_stream_read (G_INPUT_STREAM (in_stream), buffer, (gsize)remaining, NULL, &err);
+        } else {
+            read_len = g_input_stream_read (G_INPUT_STREAM (in_stream), buffer, FILE_BUFFER, NULL, &err);
+        }
+        if (read_len == -1) {
+            g_free (buffer);
+            g_free (enc_buffer);
+            err_msg = g_strdup (err->message);
+            g_clear_error (&err);
+            return err_msg;
+        }
+
+        if (is_last) {
+            gcry_cipher_final (*hd);
+        }
+
+        gcry_cipher_encrypt (*hd, enc_buffer, (gsize)read_len, buffer, (gsize)read_len);
+        if (g_output_stream_write (G_OUTPUT_STREAM (out_stream), enc_buffer, (gsize)read_len, NULL, &err) == -1) {
+            g_free (buffer);
+            g_free (enc_buffer);
+            err_msg = g_strdup (err->message);
+            g_clear_error (&err);
+            return err_msg;
+        }
+
+        explicit_bzero (buffer, (gsize)read_len);
+        explicit_bzero (enc_buffer, (gsize)read_len);
+
+        done_size += read_len;
+    }
+
+    /* Write GCM authentication tag */
+    guchar tag[TAG_SIZE];
+    gcry_cipher_gettag (*hd, tag, TAG_SIZE);
+    if (g_output_stream_write (G_OUTPUT_STREAM (out_stream), tag, TAG_SIZE, NULL, &err) == -1) {
+        g_free (buffer);
+        g_free (enc_buffer);
+        err_msg = g_strdup (err->message);
+        g_clear_error (&err);
+        return err_msg;
     }
 
     g_free (buffer);

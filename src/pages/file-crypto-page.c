@@ -1,5 +1,6 @@
 #include <gcrypt.h>
 #include <glib/gstdio.h>
+#include <string.h>
 #include "file-crypto-page.h"
 #include "../encrypt-files-cb.h"
 #include "../decrypt-files-cb.h"
@@ -9,8 +10,8 @@
 
 static const gchar *cipher_labels[] = { "AES-256", "Twofish", "Serpent", "Camellia", NULL };
 static const gint cipher_algos[] = { GCRY_CIPHER_AES256, GCRY_CIPHER_TWOFISH, GCRY_CIPHER_SERPENT256, GCRY_CIPHER_CAMELLIA256 };
-static const gchar *mode_labels[] = { "CTR", "CBC", NULL };
-static const gint mode_algos[] = { GCRY_CIPHER_MODE_CTR, GCRY_CIPHER_MODE_CBC };
+static const gchar *mode_labels[] = { "GCM (recommended)", "CTR", "CBC", NULL };
+static const gint mode_algos[] = { GCRY_CIPHER_MODE_GCM, GCRY_CIPHER_MODE_CTR, GCRY_CIPHER_MODE_CBC };
 
 struct _GtkcryptoFileCryptoPage {
     GtkBox parent_instance;
@@ -72,7 +73,9 @@ get_algo_name_for_encrypt (gint algo)
 static const gchar *
 get_mode_name_for_encrypt (gint mode)
 {
-    return (mode == GCRY_CIPHER_MODE_CBC) ? "cbc_rbtn_widget" : "ctr_rbtn_widget";
+    if (mode == GCRY_CIPHER_MODE_CBC) return "cbc_rbtn_widget";
+    if (mode == GCRY_CIPHER_MODE_GCM) return "gcm_rbtn_widget";
+    return "ctr_rbtn_widget";
 }
 
 
@@ -173,7 +176,7 @@ check_job_done (gpointer user_data)
         }
         g_idle_add (job_done_idle, d);
 
-        g_free (job->pwd);
+        gcry_free (job->pwd);
         g_free (job);
         return G_SOURCE_REMOVE;
     }
@@ -197,7 +200,7 @@ enc_files_chosen_cb (GObject *source, GAsyncResult *result, gpointer user_data)
     guint n = g_list_model_get_n_items (files);
     for (guint i = 0; i < n; i++) {
         g_autoptr(GFile) f = g_list_model_get_item (files, i);
-        self->enc_files_list = g_slist_append (self->enc_files_list, g_file_get_path (f));
+        self->enc_files_list = g_slist_prepend (self->enc_files_list, g_file_get_path (f));
     }
 
     gchar *label = g_strdup_printf ("%u file(s) selected", n);
@@ -232,7 +235,7 @@ dec_files_chosen_cb (GObject *source, GAsyncResult *result, gpointer user_data)
     guint n = g_list_model_get_n_items (files);
     for (guint i = 0; i < n; i++) {
         g_autoptr(GFile) f = g_list_model_get_item (files, i);
-        self->dec_files_list = g_slist_append (self->dec_files_list, g_file_get_path (f));
+        self->dec_files_list = g_slist_prepend (self->dec_files_list, g_file_get_path (f));
     }
 
     gchar *label = g_strdup_printf ("%u file(s) selected", n);
@@ -290,7 +293,9 @@ encrypt_clicked_cb (GtkButton *btn, gpointer user_data)
 
     CryptoJobData *job = g_new0 (CryptoJobData, 1);
     job->page = self;
-    job->pwd = g_strdup (pwd);
+    gsize pwd_len = strlen (pwd) + 1;
+    job->pwd = gcry_malloc_secure (pwd_len);
+    memcpy (job->pwd, pwd, pwd_len);
     job->algo = cipher_algos[selected_cipher];
     job->mode = mode_algos[selected_mode];
     job->total = g_slist_length (self->enc_files_list);
@@ -330,7 +335,9 @@ decrypt_clicked_cb (GtkButton *btn, gpointer user_data)
 
     CryptoJobData *job = g_new0 (CryptoJobData, 1);
     job->page = self;
-    job->pwd = g_strdup (pwd);
+    gsize pwd_len = strlen (pwd) + 1;
+    job->pwd = gcry_malloc_secure (pwd_len);
+    memcpy (job->pwd, pwd, pwd_len);
     job->total = g_slist_length (self->dec_files_list);
     job->first_run = TRUE;
     job->is_encrypt = FALSE;
@@ -412,7 +419,11 @@ build_encrypt_page (GtkcryptoFileCryptoPage *self)
     /* Encrypt button */
     GtkWidget *action_box = gtk_box_new (GTK_ORIENTATION_HORIZONTAL, 12);
     gtk_widget_set_halign (action_box, GTK_ALIGN_CENTER);
-    self->encrypt_btn = gtk_button_new_with_label ("Encrypt");
+    self->encrypt_btn = gtk_button_new ();
+    GtkWidget *enc_box = gtk_box_new (GTK_ORIENTATION_HORIZONTAL, 8);
+    gtk_box_append (GTK_BOX (enc_box), gtk_image_new_from_icon_name ("channel-secure-symbolic"));
+    gtk_box_append (GTK_BOX (enc_box), gtk_label_new ("Encrypt"));
+    gtk_button_set_child (GTK_BUTTON (self->encrypt_btn), enc_box);
     gtk_widget_add_css_class (self->encrypt_btn, "suggested-action");
     gtk_widget_add_css_class (self->encrypt_btn, "pill");
     self->enc_spinner = GTK_SPINNER (gtk_spinner_new ());
@@ -485,7 +496,11 @@ build_decrypt_page (GtkcryptoFileCryptoPage *self)
     /* Decrypt button */
     GtkWidget *action_box = gtk_box_new (GTK_ORIENTATION_HORIZONTAL, 12);
     gtk_widget_set_halign (action_box, GTK_ALIGN_CENTER);
-    self->decrypt_btn = gtk_button_new_with_label ("Decrypt");
+    self->decrypt_btn = gtk_button_new ();
+    GtkWidget *dec_box = gtk_box_new (GTK_ORIENTATION_HORIZONTAL, 8);
+    gtk_box_append (GTK_BOX (dec_box), gtk_image_new_from_icon_name ("channel-insecure-symbolic"));
+    gtk_box_append (GTK_BOX (dec_box), gtk_label_new ("Decrypt"));
+    gtk_button_set_child (GTK_BUTTON (self->decrypt_btn), dec_box);
     gtk_widget_add_css_class (self->decrypt_btn, "suggested-action");
     gtk_widget_add_css_class (self->decrypt_btn, "pill");
     self->dec_spinner = GTK_SPINNER (gtk_spinner_new ());
@@ -530,10 +545,12 @@ gtkcrypto_file_crypto_page_init (GtkcryptoFileCryptoPage *self)
     gtk_widget_set_margin_top (switcher, 8);
 
     GtkWidget *enc_page = build_encrypt_page (self);
-    adw_view_stack_add_titled (self->view_stack, enc_page, "encrypt", "Encrypt");
+    AdwViewStackPage *enc_vs_page = adw_view_stack_add_titled (self->view_stack, enc_page, "encrypt", "Encrypt");
+    adw_view_stack_page_set_icon_name (enc_vs_page, "channel-secure-symbolic");
 
     GtkWidget *dec_page = build_decrypt_page (self);
-    adw_view_stack_add_titled (self->view_stack, dec_page, "decrypt", "Decrypt");
+    AdwViewStackPage *dec_vs_page = adw_view_stack_add_titled (self->view_stack, dec_page, "decrypt", "Decrypt");
+    adw_view_stack_page_set_icon_name (dec_vs_page, "channel-insecure-symbolic");
 
     gtk_box_append (GTK_BOX (self), switcher);
     gtk_box_append (GTK_BOX (self), GTK_WIDGET (self->view_stack));

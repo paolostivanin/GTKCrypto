@@ -14,6 +14,29 @@ G_DEFINE_TYPE (GtkcryptoApplication, gtkcrypto_application, ADW_TYPE_APPLICATION
 
 
 static void
+about_action_cb (GSimpleAction *action,
+                 GVariant      *parameter,
+                 gpointer       user_data)
+{
+    (void)action;
+    (void)parameter;
+
+    GtkApplication *app = GTK_APPLICATION (user_data);
+    GtkWindow *window = gtk_application_get_active_window (app);
+
+    AdwAboutDialog *dialog = ADW_ABOUT_DIALOG (adw_about_dialog_new ());
+    adw_about_dialog_set_application_name (dialog, "GTKCrypto");
+    adw_about_dialog_set_application_icon (dialog, "com.github.paolostivanin.GTKCrypto");
+    adw_about_dialog_set_version (dialog, "2.0.0");
+    adw_about_dialog_set_developer_name (dialog, "Paolo Stivanin");
+    adw_about_dialog_set_license_type (dialog, GTK_LICENSE_GPL_3_0);
+    adw_about_dialog_set_issue_url (dialog, "https://github.com/paolostivanin/GTKCrypto/issues");
+
+    adw_dialog_present (ADW_DIALOG (dialog), GTK_WIDGET (window));
+}
+
+
+static void
 gtkcrypto_application_activate (GApplication *app)
 {
     GtkWindow *window = gtk_application_get_active_window (GTK_APPLICATION (app));
@@ -42,6 +65,13 @@ gtkcrypto_application_startup (GApplication *app)
     }
     gcry_control (GCRYCTL_INITIALIZATION_FINISHED, 0);
 
+    GdkDisplay *display = gdk_display_get_default ();
+    GtkIconTheme *icon_theme = gtk_icon_theme_get_for_display (display);
+    gtk_icon_theme_add_resource_path (icon_theme,
+        "/com/github/paolostivanin/GTKCrypto/icons");
+    g_object_set (gtk_settings_get_for_display (display),
+                  "gtk-icon-theme-name", "Adwaita", NULL);
+
     GtkCssProvider *css_provider = gtk_css_provider_new ();
     gtk_css_provider_load_from_resource (css_provider,
                                          "/com/github/paolostivanin/GTKCrypto/gtkcrypto.css");
@@ -63,7 +93,12 @@ gtkcrypto_application_class_init (GtkcryptoApplicationClass *klass)
 static void
 gtkcrypto_application_init (GtkcryptoApplication *self)
 {
-    (void)self;
+    static const GActionEntry app_actions[] = {
+        { "about", about_action_cb, NULL, NULL, NULL, { 0 } },
+    };
+    g_action_map_add_action_entries (G_ACTION_MAP (self),
+                                    app_actions, G_N_ELEMENTS (app_actions),
+                                    self);
 }
 
 

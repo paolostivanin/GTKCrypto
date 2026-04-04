@@ -6,6 +6,7 @@
 gboolean
 setup_keys (const gchar *pwd,
             gsize        algo_key_len,
+            guint        iterations,
             Metadata    *header_metadata,
             CryptoKeys  *keys)
 {
@@ -15,7 +16,7 @@ setup_keys (const gchar *pwd,
     }
 
     if (gcry_kdf_derive (pwd, (gsize) g_utf8_strlen (pwd, -1) + 1, GCRY_KDF_PBKDF2, GCRY_MD_SHA512,
-                         header_metadata->salt, KDF_SALT_SIZE, KDF_ITERATIONS, algo_key_len + HMAC_KEY_SIZE, keys->derived_key) != 0) {
+                         header_metadata->salt, KDF_SALT_SIZE, iterations, algo_key_len + HMAC_KEY_SIZE, keys->derived_key) != 0) {
         return FALSE;
     }
 

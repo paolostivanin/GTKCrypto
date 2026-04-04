@@ -3,7 +3,7 @@
 #include "../hash.h"
 #include "../gtkcrypto.h"
 
-#define NUM_HASH_ALGOS 10
+#define NUM_HASH_ALGOS 12
 
 typedef struct {
     const gchar *label;
@@ -12,27 +12,32 @@ typedef struct {
 } HashAlgoInfo;
 
 static const HashAlgoInfo hash_algos[NUM_HASH_ALGOS] = {
-    { "MD5",       GCRY_MD_MD5,       MD5_DIGEST_SIZE },
-    { "SHA-1",     GCRY_MD_SHA1,      SHA1_DIGEST_SIZE },
-    { "GOST94",    GCRY_MD_GOSTR3411_94, GOST94_DIGEST_SIZE },
-    { "SHA-256",   GCRY_MD_SHA256,    SHA256_DIGEST_SIZE },
-    { "SHA3-256",  GCRY_MD_SHA3_256,  SHA3_256_DIGEST_SIZE },
-    { "SHA-384",   GCRY_MD_SHA384,    SHA384_DIGEST_SIZE },
-    { "SHA3-384",  GCRY_MD_SHA3_384,  SHA3_384_DIGEST_SIZE },
-    { "SHA-512",   GCRY_MD_SHA512,    SHA512_DIGEST_SIZE },
-    { "SHA3-512",  GCRY_MD_SHA3_512,  SHA3_512_DIGEST_SIZE },
-    { "WHIRLPOOL", GCRY_MD_WHIRLPOOL, WHIRLPOOL_DIGEST_SIZE },
+    { "MD5 (insecure)",  GCRY_MD_MD5,          MD5_DIGEST_SIZE },
+    { "SHA-1 (insecure)", GCRY_MD_SHA1,         SHA1_DIGEST_SIZE },
+    { "GOST94",          GCRY_MD_GOSTR3411_94,  GOST94_DIGEST_SIZE },
+    { "SHA-256",         GCRY_MD_SHA256,        SHA256_DIGEST_SIZE },
+    { "SHA3-256",        GCRY_MD_SHA3_256,      SHA3_256_DIGEST_SIZE },
+    { "BLAKE2b-256",     GCRY_MD_BLAKE2B_256,   BLAKE2B_256_DIGEST_SIZE },
+    { "SHA-384",         GCRY_MD_SHA384,        SHA384_DIGEST_SIZE },
+    { "SHA3-384",        GCRY_MD_SHA3_384,      SHA3_384_DIGEST_SIZE },
+    { "SHA-512",         GCRY_MD_SHA512,        SHA512_DIGEST_SIZE },
+    { "SHA3-512",        GCRY_MD_SHA3_512,      SHA3_512_DIGEST_SIZE },
+    { "BLAKE2b-512",     GCRY_MD_BLAKE2B_512,   BLAKE2B_512_DIGEST_SIZE },
+    { "WHIRLPOOL",       GCRY_MD_WHIRLPOOL,     WHIRLPOOL_DIGEST_SIZE },
 };
 
 /* Compare sub-page hash algorithms */
 static const gchar *compare_algo_labels[] = {
-    "MD5", "SHA-1", "SHA-256", "SHA-512", "SHA3-256", "SHA3-512",
+    "MD5 (insecure)", "SHA-1 (insecure)", "SHA-256", "SHA-512", "SHA3-256", "SHA3-512",
+    "BLAKE2b-256", "BLAKE2b-512", NULL,
 };
 static const gint compare_algo_ids[] = {
     GCRY_MD_MD5, GCRY_MD_SHA1, GCRY_MD_SHA256, GCRY_MD_SHA512, GCRY_MD_SHA3_256, GCRY_MD_SHA3_512,
+    GCRY_MD_BLAKE2B_256, GCRY_MD_BLAKE2B_512,
 };
 static const gint compare_digest_sizes[] = {
     MD5_DIGEST_SIZE, SHA1_DIGEST_SIZE, SHA256_DIGEST_SIZE, SHA512_DIGEST_SIZE, SHA3_256_DIGEST_SIZE, SHA3_512_DIGEST_SIZE,
+    BLAKE2B_256_DIGEST_SIZE, BLAKE2B_512_DIGEST_SIZE,
 };
 
 struct _GtkcryptoHashingPage {
@@ -77,42 +82,34 @@ typedef struct {
 } CompareThreadData;
 
 
-/* ---- Idle callbacks for thread-safe UI updates ---- */
-
-typedef struct {
-    GtkWidget *label;
-    gchar     *text;
-} SetLabelData;
-
-static gboolean
-set_label_idle (gpointer user_data)
-{
-    SetLabelData *d = user_data;
-    gtk_label_set_text (GTK_LABEL (d->label), d->text);
-    g_free (d->text);
-    g_free (d);
-    return G_SOURCE_REMOVE;
-}
-
-typedef struct {
-    GtkWidget *spinner;
-    gboolean   start;
-} SpinnerData;
-
-static gboolean
-spinner_idle (gpointer user_data)
-{
-    SpinnerData *d = user_data;
-    if (d->start)
-        gtk_spinner_start (GTK_SPINNER (d->spinner));
-    else
-        gtk_spinner_stop (GTK_SPINNER (d->spinner));
-    g_free (d);
-    return G_SOURCE_REMOVE;
-}
-
-
 /* ---- Compute hash thread ---- */
+
+typedef struct {
+    GtkcryptoHashingPage *page;
+    gint                  algo_index;
+    gchar                *hash;
+} HashDoneData;
+
+static gboolean
+hash_done_idle (gpointer user_data)
+{
+    HashDoneData *hd = user_data;
+
+    if (hd->hash) {
+        gtk_label_set_text (GTK_LABEL (hd->page->hash_result_labels[hd->algo_index]), hd->hash);
+        g_hash_table_insert (hd->page->hash_cache,
+                             g_strdup (hash_algos[hd->algo_index].label),
+                             g_strdup (hd->hash));
+    } else {
+        gtk_label_set_text (GTK_LABEL (hd->page->hash_result_labels[hd->algo_index]), "Error");
+    }
+
+    gtk_spinner_stop (GTK_SPINNER (hd->page->hash_spinners[hd->algo_index]));
+
+    g_free (hd->hash);
+    g_free (hd);
+    return G_SOURCE_REMOVE;
+}
 
 static void
 compute_hash_thread (gpointer data, gpointer user_data)
@@ -122,23 +119,12 @@ compute_hash_thread (gpointer data, gpointer user_data)
 
     gchar *hash = get_file_hash (td->filename, td->hash_algo, td->digest_size);
 
-    SetLabelData *ld = g_new0 (SetLabelData, 1);
-    ld->label = td->page->hash_result_labels[td->algo_index];
-    ld->text = hash ? g_strdup (hash) : g_strdup ("Error");
-    g_idle_add (set_label_idle, ld);
+    HashDoneData *hd = g_new0 (HashDoneData, 1);
+    hd->page = td->page;
+    hd->algo_index = td->algo_index;
+    hd->hash = hash;
+    g_idle_add (hash_done_idle, hd);
 
-    if (hash) {
-        g_hash_table_insert (td->page->hash_cache,
-                             g_strdup (hash_algos[td->algo_index].label),
-                             g_strdup (hash));
-    }
-
-    SpinnerData *sd = g_new0 (SpinnerData, 1);
-    sd->spinner = td->page->hash_spinners[td->algo_index];
-    sd->start = FALSE;
-    g_idle_add (spinner_idle, sd);
-
-    g_free (hash);
     g_free (td->filename);
     g_free (td);
 }
@@ -566,10 +552,12 @@ gtkcrypto_hashing_page_init (GtkcryptoHashingPage *self)
     gtk_widget_set_margin_top (switcher_bar, 8);
 
     GtkWidget *compute_page = build_compute_page (self);
-    adw_view_stack_add_titled (self->view_stack, compute_page, "compute", "Compute");
+    AdwViewStackPage *cp = adw_view_stack_add_titled (self->view_stack, compute_page, "compute", "Compute");
+    adw_view_stack_page_set_icon_name (cp, "accessories-calculator-symbolic");
 
     GtkWidget *compare_page = build_compare_page (self);
-    adw_view_stack_add_titled (self->view_stack, compare_page, "compare", "Compare");
+    AdwViewStackPage *cmp = adw_view_stack_add_titled (self->view_stack, compare_page, "compare", "Compare");
+    adw_view_stack_page_set_icon_name (cmp, "view-dual-symbolic");
 
     gtk_box_append (GTK_BOX (self), switcher_bar);
     gtk_box_append (GTK_BOX (self), GTK_WIDGET (self->view_stack));

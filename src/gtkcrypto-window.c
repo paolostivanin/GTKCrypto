@@ -28,8 +28,8 @@ typedef struct {
 static const SidebarItem sidebar_items[] = {
     { "File Encryption", "channel-secure-symbolic",   "file-crypto" },
     { "Text Encryption", "document-edit-symbolic",    "text-crypto" },
-    { "Hashing",         "fingerprint-symbolic",      "hashing"     },
-    { "GPG Signing",     "signature-symbolic",        "gpg"         },
+    { "Hashing",         "auth-fingerprint-symbolic",       "hashing"     },
+    { "GPG Signing",     "application-certificate-symbolic", "gpg"         },
 };
 
 
@@ -86,6 +86,18 @@ gtkcrypto_window_init (GtkcryptoWindow *self)
     /* Sidebar */
     GtkWidget *sidebar_toolbar = adw_toolbar_view_new ();
     AdwHeaderBar *sidebar_header = ADW_HEADER_BAR (adw_header_bar_new ());
+
+    /* Primary menu with About */
+    GMenu *menu = g_menu_new ();
+    g_menu_append (menu, "About GTKCrypto", "app.about");
+
+    GtkWidget *menu_button = gtk_menu_button_new ();
+    gtk_menu_button_set_icon_name (GTK_MENU_BUTTON (menu_button), "open-menu-symbolic");
+    gtk_menu_button_set_menu_model (GTK_MENU_BUTTON (menu_button), G_MENU_MODEL (menu));
+    gtk_widget_set_tooltip_text (menu_button, "Main Menu");
+    adw_header_bar_pack_end (sidebar_header, menu_button);
+    g_object_unref (menu);
+
     adw_toolbar_view_add_top_bar (ADW_TOOLBAR_VIEW (sidebar_toolbar),
                                   GTK_WIDGET (sidebar_header));
 
@@ -111,6 +123,7 @@ gtkcrypto_window_init (GtkcryptoWindow *self)
     /* Content area */
     GtkWidget *content_toolbar = adw_toolbar_view_new ();
     AdwHeaderBar *content_header = ADW_HEADER_BAR (adw_header_bar_new ());
+    adw_header_bar_set_show_title (content_header, FALSE);
     adw_toolbar_view_add_top_bar (ADW_TOOLBAR_VIEW (content_toolbar),
                                   GTK_WIDGET (content_header));
 
@@ -135,7 +148,7 @@ gtkcrypto_window_init (GtkcryptoWindow *self)
     adw_toolbar_view_set_content (ADW_TOOLBAR_VIEW (content_toolbar),
                                   GTK_WIDGET (self->content_stack));
 
-    AdwNavigationPage *content_page = adw_navigation_page_new (content_toolbar, "");
+    AdwNavigationPage *content_page = adw_navigation_page_new (content_toolbar, "GTKCrypto");
     adw_navigation_split_view_set_content (self->split_view, content_page);
 
     /* Connect sidebar selection */

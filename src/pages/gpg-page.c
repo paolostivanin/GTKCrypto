@@ -249,6 +249,68 @@ verify_clicked_cb (GtkButton *btn, gpointer user_data)
 }
 
 
+/* ---- Key list factory ---- */
+
+static void
+key_list_factory_setup (GtkSignalListItemFactory *factory,
+                        GtkListItem              *item,
+                        gpointer                  user_data)
+{
+    (void)factory;
+    (void)user_data;
+
+    GtkWidget *box = gtk_box_new (GTK_ORIENTATION_VERTICAL, 2);
+    gtk_widget_set_margin_top (box, 6);
+    gtk_widget_set_margin_bottom (box, 6);
+    gtk_widget_set_margin_start (box, 6);
+    gtk_widget_set_margin_end (box, 6);
+
+    GtkWidget *name_label = gtk_label_new (NULL);
+    gtk_label_set_xalign (GTK_LABEL (name_label), 0);
+    gtk_label_set_ellipsize (GTK_LABEL (name_label), PANGO_ELLIPSIZE_END);
+    gtk_widget_add_css_class (name_label, "heading");
+
+    GtkWidget *detail_label = gtk_label_new (NULL);
+    gtk_label_set_xalign (GTK_LABEL (detail_label), 0);
+    gtk_label_set_ellipsize (GTK_LABEL (detail_label), PANGO_ELLIPSIZE_END);
+    gtk_widget_add_css_class (detail_label, "dim-label");
+    gtk_widget_add_css_class (detail_label, "caption");
+
+    gtk_box_append (GTK_BOX (box), name_label);
+    gtk_box_append (GTK_BOX (box), detail_label);
+
+    gtk_list_item_set_child (item, box);
+}
+
+
+static void
+key_list_factory_bind (GtkSignalListItemFactory *factory,
+                       GtkListItem              *item,
+                       gpointer                  user_data)
+{
+    (void)factory;
+    (void)user_data;
+
+    GtkStringObject *obj = GTK_STRING_OBJECT (gtk_list_item_get_item (item));
+    const gchar *str = gtk_string_object_get_string (obj);
+
+    GtkWidget *box = gtk_list_item_get_child (item);
+    GtkWidget *name_label = gtk_widget_get_first_child (box);
+    GtkWidget *detail_label = gtk_widget_get_next_sibling (name_label);
+
+    /* Parse "Name <email> (key_id)" */
+    const gchar *angle = g_strstr_len (str, -1, " <");
+    if (angle != NULL) {
+        g_autofree gchar *name = g_strndup (str, (gsize)(angle - str));
+        gtk_label_set_text (GTK_LABEL (name_label), name);
+        gtk_label_set_text (GTK_LABEL (detail_label), angle + 1);
+    } else {
+        gtk_label_set_text (GTK_LABEL (name_label), str);
+        gtk_label_set_text (GTK_LABEL (detail_label), "");
+    }
+}
+
+
 /* ---- Build UI ---- */
 
 static GtkWidget *
@@ -303,12 +365,23 @@ build_sign_page (GtkcryptoGpgPage *self)
         gtk_string_list_append (key_list, "No keys available");
     }
     adw_combo_row_set_model (self->key_row, G_LIST_MODEL (key_list));
+
+    GtkListItemFactory *list_factory = gtk_signal_list_item_factory_new ();
+    g_signal_connect (list_factory, "setup", G_CALLBACK (key_list_factory_setup), NULL);
+    g_signal_connect (list_factory, "bind", G_CALLBACK (key_list_factory_bind), NULL);
+    adw_combo_row_set_list_factory (self->key_row, list_factory);
+    g_object_unref (list_factory);
+
     adw_preferences_group_add (ADW_PREFERENCES_GROUP (key_group), GTK_WIDGET (self->key_row));
 
     /* Sign button */
     GtkWidget *action_box = gtk_box_new (GTK_ORIENTATION_HORIZONTAL, 12);
     gtk_widget_set_halign (action_box, GTK_ALIGN_CENTER);
-    self->sign_btn = gtk_button_new_with_label ("Sign");
+    self->sign_btn = gtk_button_new ();
+    GtkWidget *sign_box = gtk_box_new (GTK_ORIENTATION_HORIZONTAL, 8);
+    gtk_box_append (GTK_BOX (sign_box), gtk_image_new_from_icon_name ("document-edit-symbolic"));
+    gtk_box_append (GTK_BOX (sign_box), gtk_label_new ("Sign"));
+    gtk_button_set_child (GTK_BUTTON (self->sign_btn), sign_box);
     gtk_widget_add_css_class (self->sign_btn, "suggested-action");
     gtk_widget_add_css_class (self->sign_btn, "pill");
     self->sign_spinner = GTK_SPINNER (gtk_spinner_new ());
@@ -374,7 +447,11 @@ build_verify_page (GtkcryptoGpgPage *self)
     /* Verify button */
     GtkWidget *action_box = gtk_box_new (GTK_ORIENTATION_HORIZONTAL, 12);
     gtk_widget_set_halign (action_box, GTK_ALIGN_CENTER);
-    self->verify_btn = gtk_button_new_with_label ("Verify");
+    self->verify_btn = gtk_button_new ();
+    GtkWidget *verify_box = gtk_box_new (GTK_ORIENTATION_HORIZONTAL, 8);
+    gtk_box_append (GTK_BOX (verify_box), gtk_image_new_from_icon_name ("object-select-symbolic"));
+    gtk_box_append (GTK_BOX (verify_box), gtk_label_new ("Verify"));
+    gtk_button_set_child (GTK_BUTTON (self->verify_btn), verify_box);
     gtk_widget_add_css_class (self->verify_btn, "suggested-action");
     gtk_widget_add_css_class (self->verify_btn, "pill");
     self->verify_spinner = GTK_SPINNER (gtk_spinner_new ());
@@ -419,10 +496,12 @@ gtkcrypto_gpg_page_init (GtkcryptoGpgPage *self)
     gtk_widget_set_margin_top (switcher, 8);
 
     GtkWidget *sign_page = build_sign_page (self);
-    adw_view_stack_add_titled (self->view_stack, sign_page, "sign", "Sign");
+    AdwViewStackPage *sign_vs_page = adw_view_stack_add_titled (self->view_stack, sign_page, "sign", "Sign");
+    adw_view_stack_page_set_icon_name (sign_vs_page, "document-edit-symbolic");
 
     GtkWidget *verify_page = build_verify_page (self);
-    adw_view_stack_add_titled (self->view_stack, verify_page, "verify", "Verify");
+    AdwViewStackPage *verify_vs_page = adw_view_stack_add_titled (self->view_stack, verify_page, "verify", "Verify");
+    adw_view_stack_page_set_icon_name (verify_vs_page, "object-select-symbolic");
 
     gtk_box_append (GTK_BOX (self), switcher);
     gtk_box_append (GTK_BOX (self), GTK_WIDGET (self->view_stack));

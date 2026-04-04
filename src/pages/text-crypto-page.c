@@ -1,8 +1,7 @@
 #include <gcrypt.h>
+#include <string.h>
 #include "text-crypto-page.h"
 #include "../crypt-common.h"
-
-#define TXT_KDF_ITERATIONS 150000
 
 struct _GtkcryptoTextCryptoPage {
     GtkBox parent_instance;
@@ -16,6 +15,7 @@ struct _GtkcryptoTextCryptoPage {
     GtkWidget               *enc_btn;
     GtkTextBuffer           *enc_output_buf;
     AdwToastOverlay         *enc_toast_overlay;
+    GtkSpinner              *enc_spinner;
 
     /* Decrypt */
     GtkTextBuffer           *dec_input_buf;
@@ -23,6 +23,7 @@ struct _GtkcryptoTextCryptoPage {
     GtkWidget               *dec_btn;
     GtkTextBuffer           *dec_output_buf;
     AdwToastOverlay         *dec_toast_overlay;
+    GtkSpinner              *dec_spinner;
 };
 
 G_DEFINE_TYPE (GtkcryptoTextCryptoPage, gtkcrypto_text_crypto_page, GTK_TYPE_BOX)
@@ -59,6 +60,129 @@ is_b64_encoded (const gchar *text)
         }
     }
     return (found == data_len);
+}
+
+
+/* ---- Thread data structures ---- */
+
+typedef struct {
+    GtkcryptoTextCryptoPage *page;
+    gchar *pwd;
+    gchar *input_text;
+    gchar *result_b64;
+    gchar *error_msg;
+} EncryptTextData;
+
+typedef struct {
+    GtkcryptoTextCryptoPage *page;
+    gchar *pwd;
+    guchar *encrypted_buf;
+    gsize encrypted_len;
+    gchar *result_plain;
+    gchar *error_msg;
+} DecryptTextData;
+
+
+/* ---- Encrypt thread ---- */
+
+static gpointer
+encrypt_text_thread (gpointer user_data)
+{
+    EncryptTextData *d = user_data;
+    const gchar *pwd = d->pwd;
+    gchar *text = d->input_text;
+
+    gint text_size = (gint)strlen (text) + 1;
+    gint algo = gcry_cipher_map_name ("aes256");
+    guint8 *iv = gcry_calloc (AES256_IV_SIZE, 1);
+    guint8 *salt = gcry_calloc (KDF_SALT_SIZE, 1);
+    guint8 *derived_key = gcry_calloc_secure (AES256_KEY_SIZE, 1);
+
+    gcry_create_nonce (iv, AES256_IV_SIZE);
+    gcry_create_nonce (salt, KDF_SALT_SIZE);
+
+    gcry_cipher_hd_t hd;
+    gcry_cipher_open (&hd, algo, GCRY_CIPHER_MODE_GCM, 0);
+
+    gpg_error_t err = gcry_kdf_derive (pwd, g_utf8_strlen (pwd, -1) + 1,
+                                        GCRY_KDF_PBKDF2, GCRY_MD_SHA512,
+                                        salt, KDF_SALT_SIZE,
+                                        KDF_ITERATIONS,
+                                        AES256_KEY_SIZE, derived_key);
+    if (err) {
+        d->error_msg = g_strdup ("Key derivation failed");
+        gcry_free (iv); gcry_free (salt); gcry_free (derived_key);
+        gcry_cipher_close (hd);
+        return NULL;
+    }
+
+    gcry_cipher_setkey (hd, derived_key, AES256_KEY_SIZE);
+    gcry_cipher_setiv (hd, iv, AES256_IV_SIZE);
+
+    guchar *enc_buf = gcry_calloc ((gsize)text_size, 1);
+    err = gcry_cipher_encrypt (hd, enc_buf, (gsize)text_size, text, (gsize)text_size);
+
+    if (err) {
+        d->error_msg = g_strdup ("Encryption failed");
+        gcry_free (iv); gcry_free (salt); gcry_free (derived_key); gcry_free (enc_buf);
+        gcry_cipher_close (hd);
+        return NULL;
+    }
+
+    gsize final_size = (gsize)text_size + TAG_SIZE + AES256_IV_SIZE + KDF_SALT_SIZE;
+    guchar *final_buf = gcry_calloc (final_size, 1);
+    memcpy (final_buf, iv, AES256_IV_SIZE);
+    memcpy (final_buf + AES256_IV_SIZE, salt, KDF_SALT_SIZE);
+    memcpy (final_buf + AES256_IV_SIZE + KDF_SALT_SIZE, enc_buf, (gsize)text_size);
+
+    guint8 tag[TAG_SIZE];
+    gcry_cipher_gettag (hd, tag, TAG_SIZE);
+    gcry_cipher_close (hd);
+
+    memcpy (final_buf + AES256_IV_SIZE + KDF_SALT_SIZE + text_size, tag, TAG_SIZE);
+
+    d->result_b64 = g_base64_encode (final_buf, final_size);
+
+    gcry_free (final_buf);
+    gcry_free (enc_buf);
+    gcry_free (derived_key);
+    gcry_free (iv);
+    gcry_free (salt);
+
+    return NULL;
+}
+
+
+static gboolean
+encrypt_text_done_idle (gpointer user_data)
+{
+    EncryptTextData *d = user_data;
+
+    gtk_spinner_stop (d->page->enc_spinner);
+    gtk_widget_set_sensitive (d->page->enc_btn, TRUE);
+
+    if (d->error_msg) {
+        show_toast (d->page->enc_toast_overlay, d->error_msg);
+        g_free (d->error_msg);
+    } else {
+        gtk_text_buffer_set_text (d->page->enc_output_buf, d->result_b64, -1);
+        show_toast (d->page->enc_toast_overlay, "Text encrypted successfully");
+        g_free (d->result_b64);
+    }
+
+    gcry_free (d->pwd);
+    g_free (d->input_text);
+    g_free (d);
+    return G_SOURCE_REMOVE;
+}
+
+
+static gpointer
+encrypt_text_thread_wrapper (gpointer user_data)
+{
+    encrypt_text_thread (user_data);
+    g_idle_add (encrypt_text_done_idle, user_data);
+    return NULL;
 }
 
 
@@ -100,67 +224,118 @@ encrypt_text_clicked_cb (GtkButton *btn, gpointer user_data)
         return;
     }
 
-    gint algo = gcry_cipher_map_name ("aes256");
+    gtk_widget_set_sensitive (self->enc_btn, FALSE);
+    gtk_spinner_start (self->enc_spinner);
+
+    EncryptTextData *d = g_new0 (EncryptTextData, 1);
+    d->page = self;
+    gsize pwd_len = strlen (pwd) + 1;
+    d->pwd = gcry_malloc_secure (pwd_len);
+    memcpy (d->pwd, pwd, pwd_len);
+    d->input_text = text;
+
+    g_thread_new ("text-encrypt", encrypt_text_thread_wrapper, d);
+}
+
+
+/* ---- Decrypt thread ---- */
+
+static gpointer
+decrypt_text_thread (gpointer user_data)
+{
+    DecryptTextData *d = user_data;
+    const gchar *pwd = d->pwd;
+    guchar *encrypted_buf = d->encrypted_buf;
+    gsize out_len = d->encrypted_len;
+
     guint8 *iv = gcry_calloc (AES256_IV_SIZE, 1);
     guint8 *salt = gcry_calloc (KDF_SALT_SIZE, 1);
     guint8 *derived_key = gcry_calloc_secure (AES256_KEY_SIZE, 1);
 
-    gcry_create_nonce (iv, AES256_IV_SIZE);
-    gcry_create_nonce (salt, KDF_SALT_SIZE);
+    memcpy (iv, encrypted_buf, AES256_IV_SIZE);
+    memcpy (salt, encrypted_buf + AES256_IV_SIZE, KDF_SALT_SIZE);
 
+    gint algo = gcry_cipher_map_name ("aes256");
     gcry_cipher_hd_t hd;
     gcry_cipher_open (&hd, algo, GCRY_CIPHER_MODE_GCM, 0);
 
     gpg_error_t err = gcry_kdf_derive (pwd, g_utf8_strlen (pwd, -1) + 1,
-                                        GCRY_KDF_PBKDF2, GCRY_MD_SHA3_256,
+                                        GCRY_KDF_PBKDF2, GCRY_MD_SHA512,
                                         salt, KDF_SALT_SIZE,
-                                        TXT_KDF_ITERATIONS,
+                                        KDF_ITERATIONS,
                                         AES256_KEY_SIZE, derived_key);
     if (err) {
-        show_toast (self->enc_toast_overlay, "Key derivation failed");
+        d->error_msg = g_strdup ("Key derivation failed");
         gcry_free (iv); gcry_free (salt); gcry_free (derived_key);
         gcry_cipher_close (hd);
-        g_free (text);
-        return;
+        return NULL;
     }
 
     gcry_cipher_setkey (hd, derived_key, AES256_KEY_SIZE);
     gcry_cipher_setiv (hd, iv, AES256_IV_SIZE);
 
-    guchar *enc_buf = gcry_calloc ((gsize)text_size, 1);
-    err = gcry_cipher_encrypt (hd, enc_buf, (gsize)text_size, text, (gsize)text_size);
-    g_free (text);
+    gsize enc_body_len = out_len - AES256_IV_SIZE - KDF_SALT_SIZE - TAG_SIZE;
+    guchar *enc_body = g_malloc0 (enc_body_len);
+    memcpy (enc_body, encrypted_buf + AES256_IV_SIZE + KDF_SALT_SIZE, enc_body_len);
 
-    if (err) {
-        show_toast (self->enc_toast_overlay, "Encryption failed");
-        gcry_free (iv); gcry_free (salt); gcry_free (derived_key); gcry_free (enc_buf);
-        gcry_cipher_close (hd);
-        return;
-    }
-
-    gsize final_size = (gsize)text_size + TAG_SIZE + AES256_IV_SIZE + KDF_SALT_SIZE;
-    guchar *final_buf = gcry_calloc (final_size, 1);
-    memcpy (final_buf, iv, AES256_IV_SIZE);
-    memcpy (final_buf + AES256_IV_SIZE, salt, KDF_SALT_SIZE);
-    memcpy (final_buf + AES256_IV_SIZE + KDF_SALT_SIZE, enc_buf, (gsize)text_size);
+    gchar *plain_buf = gcry_calloc_secure (enc_body_len, 1);
+    gcry_cipher_decrypt (hd, plain_buf, enc_body_len, enc_body, enc_body_len);
 
     guint8 tag[TAG_SIZE];
-    gcry_cipher_gettag (hd, tag, TAG_SIZE);
+    memcpy (tag, encrypted_buf + (out_len - TAG_SIZE), TAG_SIZE);
+    err = gcry_cipher_checktag (hd, tag, TAG_SIZE);
     gcry_cipher_close (hd);
 
-    memcpy (final_buf + AES256_IV_SIZE + KDF_SALT_SIZE + text_size, tag, TAG_SIZE);
+    if (err) {
+        d->error_msg = g_strdup ("Wrong password or corrupted data");
+        gcry_free (iv); gcry_free (salt); gcry_free (derived_key);
+        gcry_free (plain_buf);
+        g_free (enc_body);
+        return NULL;
+    }
 
-    gchar *b64 = g_base64_encode (final_buf, final_size);
-    gtk_text_buffer_set_text (self->enc_output_buf, b64, -1);
+    d->result_plain = g_strdup (plain_buf);
 
-    g_free (b64);
-    gcry_free (final_buf);
-    gcry_free (enc_buf);
-    gcry_free (derived_key);
+    gcry_free (plain_buf);
     gcry_free (iv);
     gcry_free (salt);
+    gcry_free (derived_key);
+    g_free (enc_body);
 
-    show_toast (self->enc_toast_overlay, "Text encrypted successfully");
+    return NULL;
+}
+
+
+static gboolean
+decrypt_text_done_idle (gpointer user_data)
+{
+    DecryptTextData *d = user_data;
+
+    gtk_spinner_stop (d->page->dec_spinner);
+    gtk_widget_set_sensitive (d->page->dec_btn, TRUE);
+
+    if (d->error_msg) {
+        show_toast (d->page->dec_toast_overlay, d->error_msg);
+        g_free (d->error_msg);
+    } else {
+        gtk_text_buffer_set_text (d->page->dec_output_buf, d->result_plain, -1);
+        show_toast (d->page->dec_toast_overlay, "Text decrypted successfully");
+        g_free (d->result_plain);
+    }
+
+    gcry_free (d->pwd);
+    g_free (d->encrypted_buf);
+    g_free (d);
+    return G_SOURCE_REMOVE;
+}
+
+
+static gpointer
+decrypt_text_thread_wrapper (gpointer user_data)
+{
+    decrypt_text_thread (user_data);
+    g_idle_add (decrypt_text_done_idle, user_data);
+    return NULL;
 }
 
 
@@ -205,64 +380,18 @@ decrypt_text_clicked_cb (GtkButton *btn, gpointer user_data)
         return;
     }
 
-    guint8 *iv = gcry_calloc (AES256_IV_SIZE, 1);
-    guint8 *salt = gcry_calloc (KDF_SALT_SIZE, 1);
-    guint8 *derived_key = gcry_calloc_secure (AES256_KEY_SIZE, 1);
+    gtk_widget_set_sensitive (self->dec_btn, FALSE);
+    gtk_spinner_start (self->dec_spinner);
 
-    memcpy (iv, encrypted_buf, AES256_IV_SIZE);
-    memcpy (salt, encrypted_buf + AES256_IV_SIZE, KDF_SALT_SIZE);
+    DecryptTextData *d = g_new0 (DecryptTextData, 1);
+    d->page = self;
+    gsize pwd_len = strlen (pwd) + 1;
+    d->pwd = gcry_malloc_secure (pwd_len);
+    memcpy (d->pwd, pwd, pwd_len);
+    d->encrypted_buf = encrypted_buf;
+    d->encrypted_len = out_len;
 
-    gint algo = gcry_cipher_map_name ("aes256");
-    gcry_cipher_hd_t hd;
-    gcry_cipher_open (&hd, algo, GCRY_CIPHER_MODE_GCM, 0);
-
-    gpg_error_t err = gcry_kdf_derive (pwd, g_utf8_strlen (pwd, -1) + 1,
-                                        GCRY_KDF_PBKDF2, GCRY_MD_SHA3_256,
-                                        salt, KDF_SALT_SIZE,
-                                        TXT_KDF_ITERATIONS,
-                                        AES256_KEY_SIZE, derived_key);
-    if (err) {
-        show_toast (self->dec_toast_overlay, "Key derivation failed");
-        gcry_free (iv); gcry_free (salt); gcry_free (derived_key);
-        gcry_cipher_close (hd);
-        g_free (encrypted_buf);
-        return;
-    }
-
-    gcry_cipher_setkey (hd, derived_key, AES256_KEY_SIZE);
-    gcry_cipher_setiv (hd, iv, AES256_IV_SIZE);
-
-    gsize enc_body_len = out_len - AES256_IV_SIZE - KDF_SALT_SIZE - TAG_SIZE;
-    guchar *enc_body = g_malloc0 (enc_body_len);
-    memcpy (enc_body, encrypted_buf + AES256_IV_SIZE + KDF_SALT_SIZE, enc_body_len);
-
-    gchar *plain_buf = gcry_calloc_secure (enc_body_len, 1);
-    gcry_cipher_decrypt (hd, plain_buf, enc_body_len, enc_body, enc_body_len);
-
-    guint8 tag[TAG_SIZE];
-    memcpy (tag, encrypted_buf + (out_len - TAG_SIZE), TAG_SIZE);
-    err = gcry_cipher_checktag (hd, tag, TAG_SIZE);
-    gcry_cipher_close (hd);
-
-    if (err) {
-        show_toast (self->dec_toast_overlay, "Wrong password or corrupted data");
-        gcry_free (iv); gcry_free (salt); gcry_free (derived_key);
-        gcry_free (plain_buf);
-        g_free (enc_body);
-        g_free (encrypted_buf);
-        return;
-    }
-
-    gtk_text_buffer_set_text (self->dec_output_buf, plain_buf, -1);
-
-    gcry_free (plain_buf);
-    gcry_free (iv);
-    gcry_free (salt);
-    gcry_free (derived_key);
-    g_free (enc_body);
-    g_free (encrypted_buf);
-
-    show_toast (self->dec_toast_overlay, "Text decrypted successfully");
+    g_thread_new ("text-decrypt", decrypt_text_thread_wrapper, d);
 }
 
 
@@ -332,11 +461,19 @@ build_text_encrypt_page (GtkcryptoTextCryptoPage *self)
     adw_preferences_row_set_title (ADW_PREFERENCES_ROW (self->enc_pwd_confirm_row), "Confirm Password");
     adw_preferences_group_add (ADW_PREFERENCES_GROUP (pwd_group), GTK_WIDGET (self->enc_pwd_confirm_row));
 
-    /* Encrypt button */
-    self->enc_btn = gtk_button_new_with_label ("Encrypt");
+    /* Encrypt button + spinner */
+    GtkWidget *action_box = gtk_box_new (GTK_ORIENTATION_HORIZONTAL, 12);
+    gtk_widget_set_halign (action_box, GTK_ALIGN_CENTER);
+    self->enc_btn = gtk_button_new ();
+    GtkWidget *enc_box = gtk_box_new (GTK_ORIENTATION_HORIZONTAL, 8);
+    gtk_box_append (GTK_BOX (enc_box), gtk_image_new_from_icon_name ("channel-secure-symbolic"));
+    gtk_box_append (GTK_BOX (enc_box), gtk_label_new ("Encrypt"));
+    gtk_button_set_child (GTK_BUTTON (self->enc_btn), enc_box);
     gtk_widget_add_css_class (self->enc_btn, "suggested-action");
     gtk_widget_add_css_class (self->enc_btn, "pill");
-    gtk_widget_set_halign (self->enc_btn, GTK_ALIGN_CENTER);
+    self->enc_spinner = GTK_SPINNER (gtk_spinner_new ());
+    gtk_box_append (GTK_BOX (action_box), self->enc_btn);
+    gtk_box_append (GTK_BOX (action_box), GTK_WIDGET (self->enc_spinner));
     g_signal_connect (self->enc_btn, "clicked", G_CALLBACK (encrypt_text_clicked_cb), self);
 
     /* Output */
@@ -352,7 +489,7 @@ build_text_encrypt_page (GtkcryptoTextCryptoPage *self)
 
     gtk_box_append (GTK_BOX (inner), input_group);
     gtk_box_append (GTK_BOX (inner), pwd_group);
-    gtk_box_append (GTK_BOX (inner), self->enc_btn);
+    gtk_box_append (GTK_BOX (inner), action_box);
     gtk_box_append (GTK_BOX (inner), output_group);
     gtk_box_append (GTK_BOX (inner), copy_btn);
 
@@ -394,11 +531,19 @@ build_text_decrypt_page (GtkcryptoTextCryptoPage *self)
     adw_preferences_row_set_title (ADW_PREFERENCES_ROW (self->dec_pwd_row), "Password");
     adw_preferences_group_add (ADW_PREFERENCES_GROUP (pwd_group), GTK_WIDGET (self->dec_pwd_row));
 
-    /* Decrypt button */
-    self->dec_btn = gtk_button_new_with_label ("Decrypt");
+    /* Decrypt button + spinner */
+    GtkWidget *action_box = gtk_box_new (GTK_ORIENTATION_HORIZONTAL, 12);
+    gtk_widget_set_halign (action_box, GTK_ALIGN_CENTER);
+    self->dec_btn = gtk_button_new ();
+    GtkWidget *dec_box = gtk_box_new (GTK_ORIENTATION_HORIZONTAL, 8);
+    gtk_box_append (GTK_BOX (dec_box), gtk_image_new_from_icon_name ("channel-insecure-symbolic"));
+    gtk_box_append (GTK_BOX (dec_box), gtk_label_new ("Decrypt"));
+    gtk_button_set_child (GTK_BUTTON (self->dec_btn), dec_box);
     gtk_widget_add_css_class (self->dec_btn, "suggested-action");
     gtk_widget_add_css_class (self->dec_btn, "pill");
-    gtk_widget_set_halign (self->dec_btn, GTK_ALIGN_CENTER);
+    self->dec_spinner = GTK_SPINNER (gtk_spinner_new ());
+    gtk_box_append (GTK_BOX (action_box), self->dec_btn);
+    gtk_box_append (GTK_BOX (action_box), GTK_WIDGET (self->dec_spinner));
     g_signal_connect (self->dec_btn, "clicked", G_CALLBACK (decrypt_text_clicked_cb), self);
 
     /* Output */
@@ -414,7 +559,7 @@ build_text_decrypt_page (GtkcryptoTextCryptoPage *self)
 
     gtk_box_append (GTK_BOX (inner), input_group);
     gtk_box_append (GTK_BOX (inner), pwd_group);
-    gtk_box_append (GTK_BOX (inner), self->dec_btn);
+    gtk_box_append (GTK_BOX (inner), action_box);
     gtk_box_append (GTK_BOX (inner), output_group);
     gtk_box_append (GTK_BOX (inner), copy_btn);
 
@@ -423,6 +568,20 @@ build_text_decrypt_page (GtkcryptoTextCryptoPage *self)
 
     adw_toast_overlay_set_child (self->dec_toast_overlay, page);
     return GTK_WIDGET (self->dec_toast_overlay);
+}
+
+
+static void
+gtkcrypto_text_crypto_page_finalize (GObject *object)
+{
+    GtkcryptoTextCryptoPage *self = GTKCRYPTO_TEXT_CRYPTO_PAGE (object);
+
+    g_clear_object (&self->enc_input_buf);
+    g_clear_object (&self->enc_output_buf);
+    g_clear_object (&self->dec_input_buf);
+    g_clear_object (&self->dec_output_buf);
+
+    G_OBJECT_CLASS (gtkcrypto_text_crypto_page_parent_class)->finalize (object);
 }
 
 
@@ -440,10 +599,12 @@ gtkcrypto_text_crypto_page_init (GtkcryptoTextCryptoPage *self)
     gtk_widget_set_margin_top (switcher, 8);
 
     GtkWidget *enc_page = build_text_encrypt_page (self);
-    adw_view_stack_add_titled (self->view_stack, enc_page, "encrypt", "Encrypt");
+    AdwViewStackPage *enc_vs_page = adw_view_stack_add_titled (self->view_stack, enc_page, "encrypt", "Encrypt");
+    adw_view_stack_page_set_icon_name (enc_vs_page, "channel-secure-symbolic");
 
     GtkWidget *dec_page = build_text_decrypt_page (self);
-    adw_view_stack_add_titled (self->view_stack, dec_page, "decrypt", "Decrypt");
+    AdwViewStackPage *dec_vs_page = adw_view_stack_add_titled (self->view_stack, dec_page, "decrypt", "Decrypt");
+    adw_view_stack_page_set_icon_name (dec_vs_page, "channel-insecure-symbolic");
 
     gtk_box_append (GTK_BOX (self), switcher);
     gtk_box_append (GTK_BOX (self), GTK_WIDGET (self->view_stack));
@@ -454,7 +615,8 @@ gtkcrypto_text_crypto_page_init (GtkcryptoTextCryptoPage *self)
 static void
 gtkcrypto_text_crypto_page_class_init (GtkcryptoTextCryptoPageClass *klass)
 {
-    (void)klass;
+    GObjectClass *object_class = G_OBJECT_CLASS (klass);
+    object_class->finalize = gtkcrypto_text_crypto_page_finalize;
 }
 
 

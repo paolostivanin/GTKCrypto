@@ -25,7 +25,6 @@ add_project_arguments(
     '-Wpointer-arith',
     '-Wbad-function-cast',
     '-Wcast-align',
-    '-Werror=format-security',
     '-Werror=implicit-function-declaration',
     '-Wno-sign-compare',
     '-D_LARGEFILE_SOURCE',
