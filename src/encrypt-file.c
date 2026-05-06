@@ -86,7 +86,7 @@ encrypt_file (const gchar *input_file_path, const gchar *pwd, const gchar *algo,
 
     gchar *output_file_path = g_strconcat (input_file_path, ".enc", NULL);
     GFile *out_file = g_file_new_for_path (output_file_path);
-    GFileOutputStream *out_stream = g_file_append_to (out_file, G_FILE_CREATE_REPLACE_DESTINATION, NULL, &err);
+    GFileOutputStream *out_stream = g_file_replace (out_file, NULL, FALSE, G_FILE_CREATE_REPLACE_DESTINATION, NULL, &err);
     if (err != NULL) {
         crypto_keys_cleanup (encryption_keys);
         gfile_cleanup (in_file, out_file);

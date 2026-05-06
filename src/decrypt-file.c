@@ -90,7 +90,7 @@ decrypt_file (const gchar *input_file_path,
         output_file_path = g_strndup (input_file_path, (gsize) g_utf8_strlen (input_file_path, -1) - 4);
     }
     GFile *out_file = g_file_new_for_path (output_file_path);
-    GFileOutputStream *out_stream = g_file_append_to (out_file, G_FILE_CREATE_REPLACE_DESTINATION, NULL, &err);
+    GFileOutputStream *out_stream = g_file_replace (out_file, NULL, FALSE, G_FILE_CREATE_REPLACE_DESTINATION, NULL, &err);
     if (err != NULL) {
         err_msg = g_strdup (err->message);
         g_clear_error (&err);
