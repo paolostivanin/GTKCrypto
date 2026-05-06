@@ -13,3 +13,13 @@
 .text-crypto-view {
   font-family: monospace;
 }
+
+.drop-target-active {
+  background-color: alpha(@accent_bg_color, 0.15);
+  border: 2px dashed @accent_color;
+  border-radius: 12px;
+}
+
+row.hash-match {
+  background-color: alpha(@success_color, 0.15);
+}

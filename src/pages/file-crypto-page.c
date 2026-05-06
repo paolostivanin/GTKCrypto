@@ -187,25 +187,55 @@ check_job_done (gpointer user_data)
 /* ---- File chooser ---- */
 
 static void
+set_enc_files (GtkcryptoFileCryptoPage *self, GSList *paths /* takes ownership */)
+{
+    g_slist_free_full (self->enc_files_list, g_free);
+    self->enc_files_list = paths;
+    guint n = g_slist_length (paths);
+    g_autofree gchar *label = g_strdup_printf ("%u file(s) selected", n);
+    gtk_label_set_text (self->enc_file_label, label);
+}
+
+static void
+set_dec_files (GtkcryptoFileCryptoPage *self, GSList *paths /* takes ownership */)
+{
+    g_slist_free_full (self->dec_files_list, g_free);
+    self->dec_files_list = paths;
+    guint n = g_slist_length (paths);
+    g_autofree gchar *label = g_strdup_printf ("%u file(s) selected", n);
+    gtk_label_set_text (self->dec_file_label, label);
+}
+
+static GSList *
+paths_from_list_model (GListModel *files)
+{
+    GSList *paths = NULL;
+    guint n = g_list_model_get_n_items (files);
+    for (guint i = 0; i < n; i++) {
+        g_autoptr(GFile) f = g_list_model_get_item (files, i);
+        paths = g_slist_prepend (paths, g_file_get_path (f));
+    }
+    return g_slist_reverse (paths);
+}
+
+static GSList *
+paths_from_file_list (GdkFileList *file_list)
+{
+    GSList *paths = NULL;
+    for (GSList *l = gdk_file_list_get_files (file_list); l; l = l->next) {
+        paths = g_slist_prepend (paths, g_file_get_path (G_FILE (l->data)));
+    }
+    return g_slist_reverse (paths);
+}
+
+static void
 enc_files_chosen_cb (GObject *source, GAsyncResult *result, gpointer user_data)
 {
     GtkcryptoFileCryptoPage *self = user_data;
     GtkFileDialog *dialog = GTK_FILE_DIALOG (source);
     g_autoptr(GListModel) files = gtk_file_dialog_open_multiple_finish (dialog, result, NULL);
     if (files == NULL) return;
-
-    g_slist_free_full (self->enc_files_list, g_free);
-    self->enc_files_list = NULL;
-
-    guint n = g_list_model_get_n_items (files);
-    for (guint i = 0; i < n; i++) {
-        g_autoptr(GFile) f = g_list_model_get_item (files, i);
-        self->enc_files_list = g_slist_prepend (self->enc_files_list, g_file_get_path (f));
-    }
-
-    gchar *label = g_strdup_printf ("%u file(s) selected", n);
-    gtk_label_set_text (self->enc_file_label, label);
-    g_free (label);
+    set_enc_files (self, paths_from_list_model (files));
 }
 
 static void
@@ -228,19 +258,7 @@ dec_files_chosen_cb (GObject *source, GAsyncResult *result, gpointer user_data)
     GtkFileDialog *dialog = GTK_FILE_DIALOG (source);
     g_autoptr(GListModel) files = gtk_file_dialog_open_multiple_finish (dialog, result, NULL);
     if (files == NULL) return;
-
-    g_slist_free_full (self->dec_files_list, g_free);
-    self->dec_files_list = NULL;
-
-    guint n = g_list_model_get_n_items (files);
-    for (guint i = 0; i < n; i++) {
-        g_autoptr(GFile) f = g_list_model_get_item (files, i);
-        self->dec_files_list = g_slist_prepend (self->dec_files_list, g_file_get_path (f));
-    }
-
-    gchar *label = g_strdup_printf ("%u file(s) selected", n);
-    gtk_label_set_text (self->dec_file_label, label);
-    g_free (label);
+    set_dec_files (self, paths_from_list_model (files));
 }
 
 static void
@@ -253,6 +271,56 @@ dec_choose_files_cb (GtkButton *btn, gpointer user_data)
     GtkWidget *toplevel = GTK_WIDGET (gtk_widget_get_root (GTK_WIDGET (self)));
     gtk_file_dialog_open_multiple (dialog, GTK_WINDOW (toplevel), NULL,
                                    dec_files_chosen_cb, self);
+}
+
+
+/* ---- Drag and drop ---- */
+
+static GdkDragAction
+file_drop_enter_cb (GtkDropTarget *target, double x, double y, gpointer user_data)
+{
+    (void)target; (void)x; (void)y;
+    gtk_widget_add_css_class (GTK_WIDGET (user_data), "drop-target-active");
+    return GDK_ACTION_COPY;
+}
+
+static void
+file_drop_leave_cb (GtkDropTarget *target, gpointer user_data)
+{
+    (void)target;
+    gtk_widget_remove_css_class (GTK_WIDGET (user_data), "drop-target-active");
+}
+
+static gboolean
+enc_files_drop_cb (GtkDropTarget *target, const GValue *value, double x, double y, gpointer user_data)
+{
+    (void)target; (void)x; (void)y;
+    if (!G_VALUE_HOLDS (value, GDK_TYPE_FILE_LIST)) return FALSE;
+    GdkFileList *fl = g_value_get_boxed (value);
+    if (fl == NULL) return FALSE;
+    set_enc_files (user_data, paths_from_file_list (fl));
+    return TRUE;
+}
+
+static gboolean
+dec_files_drop_cb (GtkDropTarget *target, const GValue *value, double x, double y, gpointer user_data)
+{
+    (void)target; (void)x; (void)y;
+    if (!G_VALUE_HOLDS (value, GDK_TYPE_FILE_LIST)) return FALSE;
+    GdkFileList *fl = g_value_get_boxed (value);
+    if (fl == NULL) return FALSE;
+    set_dec_files (user_data, paths_from_file_list (fl));
+    return TRUE;
+}
+
+static void
+attach_files_drop (GtkWidget *target_widget, GCallback drop_cb, gpointer user_data)
+{
+    GtkDropTarget *target = gtk_drop_target_new (GDK_TYPE_FILE_LIST, GDK_ACTION_COPY);
+    g_signal_connect (target, "drop", drop_cb, user_data);
+    g_signal_connect (target, "enter", G_CALLBACK (file_drop_enter_cb), target_widget);
+    g_signal_connect (target, "leave", G_CALLBACK (file_drop_leave_cb), target_widget);
+    gtk_widget_add_controller (target_widget, GTK_EVENT_CONTROLLER (target));
 }
 
 
@@ -389,6 +457,7 @@ build_encrypt_page (GtkcryptoFileCryptoPage *self)
     adw_action_row_add_suffix (ADW_ACTION_ROW (file_row), file_btn);
     adw_preferences_group_add (ADW_PREFERENCES_GROUP (file_group), file_row);
     g_signal_connect (file_btn, "clicked", G_CALLBACK (enc_choose_files_cb), self);
+    attach_files_drop (file_row, G_CALLBACK (enc_files_drop_cb), self);
 
     /* Cipher and mode */
     GtkWidget *crypto_group = adw_preferences_group_new ();
@@ -474,6 +543,7 @@ build_decrypt_page (GtkcryptoFileCryptoPage *self)
     adw_action_row_add_suffix (ADW_ACTION_ROW (file_row), file_btn);
     adw_preferences_group_add (ADW_PREFERENCES_GROUP (file_group), file_row);
     g_signal_connect (file_btn, "clicked", G_CALLBACK (dec_choose_files_cb), self);
+    attach_files_drop (file_row, G_CALLBACK (dec_files_drop_cb), self);
 
     /* Password */
     GtkWidget *pwd_group = adw_preferences_group_new ();

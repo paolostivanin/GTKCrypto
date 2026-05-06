@@ -29,6 +29,34 @@ struct _GtkcryptoGpgPage {
 G_DEFINE_TYPE (GtkcryptoGpgPage, gtkcrypto_gpg_page, GTK_TYPE_BOX)
 
 
+/* ---- Drag and drop helpers ---- */
+
+static GdkDragAction
+gpg_drop_enter_cb (GtkDropTarget *target, double x, double y, gpointer user_data)
+{
+    (void)target; (void)x; (void)y;
+    gtk_widget_add_css_class (GTK_WIDGET (user_data), "drop-target-active");
+    return GDK_ACTION_COPY;
+}
+
+static void
+gpg_drop_leave_cb (GtkDropTarget *target, gpointer user_data)
+{
+    (void)target;
+    gtk_widget_remove_css_class (GTK_WIDGET (user_data), "drop-target-active");
+}
+
+static void
+attach_gpg_file_drop (GtkWidget *target_widget, GCallback drop_cb, gpointer user_data)
+{
+    GtkDropTarget *target = gtk_drop_target_new (G_TYPE_FILE, GDK_ACTION_COPY);
+    g_signal_connect (target, "drop", drop_cb, user_data);
+    g_signal_connect (target, "enter", G_CALLBACK (gpg_drop_enter_cb), target_widget);
+    g_signal_connect (target, "leave", G_CALLBACK (gpg_drop_leave_cb), target_widget);
+    gtk_widget_add_controller (target_widget, GTK_EVENT_CONTROLLER (target));
+}
+
+
 /* ---- Sign callbacks ---- */
 
 typedef struct {
@@ -76,17 +104,33 @@ sign_thread_func (gpointer user_data)
 
 
 static void
+set_sign_file (GtkcryptoGpgPage *self, gchar *path /* takes ownership */)
+{
+    g_free (self->sign_filename);
+    self->sign_filename = path;
+    g_autofree gchar *basename = g_path_get_basename (path);
+    gtk_label_set_text (self->sign_file_label, basename);
+}
+
+static void
 sign_file_chosen_cb (GObject *source, GAsyncResult *result, gpointer user_data)
 {
     GtkcryptoGpgPage *self = user_data;
     GtkFileDialog *dialog = GTK_FILE_DIALOG (source);
     g_autoptr(GFile) file = gtk_file_dialog_open_finish (dialog, result, NULL);
     if (file == NULL) return;
+    set_sign_file (self, g_file_get_path (file));
+}
 
-    g_free (self->sign_filename);
-    self->sign_filename = g_file_get_path (file);
-    g_autofree gchar *basename = g_file_get_basename (file);
-    gtk_label_set_text (self->sign_file_label, basename);
+static gboolean
+sign_file_drop_cb (GtkDropTarget *target, const GValue *value, double x, double y, gpointer user_data)
+{
+    (void)target; (void)x; (void)y;
+    if (!G_VALUE_HOLDS (value, G_TYPE_FILE)) return FALSE;
+    GFile *file = g_value_get_object (value);
+    if (file == NULL) return FALSE;
+    set_sign_file (user_data, g_file_get_path (file));
+    return TRUE;
 }
 
 
@@ -173,17 +217,31 @@ verify_thread_func (gpointer user_data)
 
 
 static void
+set_verify_signed_file (GtkcryptoGpgPage *self, gchar *path /* takes ownership */)
+{
+    g_free (self->verify_signed_file);
+    self->verify_signed_file = path;
+    g_autofree gchar *basename = g_path_get_basename (path);
+    gtk_label_set_text (self->verify_file_label, basename);
+}
+
+static void
+set_verify_sig_file (GtkcryptoGpgPage *self, gchar *path /* takes ownership */)
+{
+    g_free (self->verify_sig_file);
+    self->verify_sig_file = path;
+    g_autofree gchar *basename = g_path_get_basename (path);
+    gtk_label_set_text (self->verify_sig_label, basename);
+}
+
+static void
 verify_signed_file_chosen_cb (GObject *source, GAsyncResult *result, gpointer user_data)
 {
     GtkcryptoGpgPage *self = user_data;
     GtkFileDialog *dialog = GTK_FILE_DIALOG (source);
     g_autoptr(GFile) file = gtk_file_dialog_open_finish (dialog, result, NULL);
     if (file == NULL) return;
-
-    g_free (self->verify_signed_file);
-    self->verify_signed_file = g_file_get_path (file);
-    g_autofree gchar *basename = g_file_get_basename (file);
-    gtk_label_set_text (self->verify_file_label, basename);
+    set_verify_signed_file (self, g_file_get_path (file));
 }
 
 
@@ -194,11 +252,29 @@ verify_sig_file_chosen_cb (GObject *source, GAsyncResult *result, gpointer user_
     GtkFileDialog *dialog = GTK_FILE_DIALOG (source);
     g_autoptr(GFile) file = gtk_file_dialog_open_finish (dialog, result, NULL);
     if (file == NULL) return;
+    set_verify_sig_file (self, g_file_get_path (file));
+}
 
-    g_free (self->verify_sig_file);
-    self->verify_sig_file = g_file_get_path (file);
-    g_autofree gchar *basename = g_file_get_basename (file);
-    gtk_label_set_text (self->verify_sig_label, basename);
+static gboolean
+verify_signed_drop_cb (GtkDropTarget *target, const GValue *value, double x, double y, gpointer user_data)
+{
+    (void)target; (void)x; (void)y;
+    if (!G_VALUE_HOLDS (value, G_TYPE_FILE)) return FALSE;
+    GFile *file = g_value_get_object (value);
+    if (file == NULL) return FALSE;
+    set_verify_signed_file (user_data, g_file_get_path (file));
+    return TRUE;
+}
+
+static gboolean
+verify_sig_drop_cb (GtkDropTarget *target, const GValue *value, double x, double y, gpointer user_data)
+{
+    (void)target; (void)x; (void)y;
+    if (!G_VALUE_HOLDS (value, G_TYPE_FILE)) return FALSE;
+    GFile *file = g_value_get_object (value);
+    if (file == NULL) return FALSE;
+    set_verify_sig_file (user_data, g_file_get_path (file));
+    return TRUE;
 }
 
 
@@ -343,6 +419,7 @@ build_sign_page (GtkcryptoGpgPage *self)
     adw_action_row_add_suffix (ADW_ACTION_ROW (file_row), file_btn);
     adw_preferences_group_add (ADW_PREFERENCES_GROUP (file_group), file_row);
     g_signal_connect (file_btn, "clicked", G_CALLBACK (sign_choose_file_cb), self);
+    attach_gpg_file_drop (file_row, G_CALLBACK (sign_file_drop_cb), self);
 
     /* Key selection */
     GtkWidget *key_group = adw_preferences_group_new ();
@@ -432,6 +509,7 @@ build_verify_page (GtkcryptoGpgPage *self)
     adw_action_row_add_suffix (ADW_ACTION_ROW (file_row), file_btn);
     adw_preferences_group_add (ADW_PREFERENCES_GROUP (file_group), file_row);
     g_signal_connect (file_btn, "clicked", G_CALLBACK (verify_choose_file_cb), self);
+    attach_gpg_file_drop (file_row, G_CALLBACK (verify_signed_drop_cb), self);
 
     GtkWidget *sig_row = adw_action_row_new ();
     adw_preferences_row_set_title (ADW_PREFERENCES_ROW (sig_row), "Signature (.sig) file");
@@ -443,6 +521,7 @@ build_verify_page (GtkcryptoGpgPage *self)
     adw_action_row_add_suffix (ADW_ACTION_ROW (sig_row), sig_btn);
     adw_preferences_group_add (ADW_PREFERENCES_GROUP (file_group), sig_row);
     g_signal_connect (sig_btn, "clicked", G_CALLBACK (verify_choose_sig_cb), self);
+    attach_gpg_file_drop (sig_row, G_CALLBACK (verify_sig_drop_cb), self);
 
     /* Verify button */
     GtkWidget *action_box = gtk_box_new (GTK_ORIENTATION_HORIZONTAL, 12);

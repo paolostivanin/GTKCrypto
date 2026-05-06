@@ -21,6 +21,7 @@ sources = files(
   'get-file-size.c',
   'gpgme-misc.c',
   'cleanup.c',
+  'state.c',
 
   # Pages
   'pages/hashing-page.c',
