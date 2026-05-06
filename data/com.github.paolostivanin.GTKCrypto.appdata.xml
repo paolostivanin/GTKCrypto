@@ -63,6 +63,18 @@ Supported hash algorithms: MD5, SHA-1, SHA-2, SHA-3, GOST, Whirlpool.
   </content_rating>
 
   <releases>
+    <release version="2.1.0" date="2026-05-06">
+      <description>
+        <p>GTKCrypto 2.1.0 - UX improvements</p>
+        <ul>
+          <li>Hash all enabled algorithms in parallel as soon as a file is selected</li>
+          <li>Switch selection on the Compute tab is now persisted across sessions</li>
+          <li>Verify a file against an expected hash by pasting it into the new field</li>
+          <li>Drag-and-drop files onto every file input (hash, compare, encrypt, decrypt, GPG sign/verify)</li>
+          <li>Toast feedback on the hashing page (copy and errors)</li>
+        </ul>
+      </description>
+    </release>
     <release version="2.0.0" date="2026-04-03">
       <description>
         <p>GTKCrypto 2.0.0 - Complete rewrite with GTK 4 and libadwaita</p>
