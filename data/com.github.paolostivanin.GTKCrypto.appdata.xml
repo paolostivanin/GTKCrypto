@@ -63,6 +63,17 @@ Supported hash algorithms: MD5, SHA-1, SHA-2, SHA-3, GOST, Whirlpool.
   </content_rating>
 
   <releases>
+    <release version="2.2.0" date="2026-05-06">
+      <description>
+        <p>GTKCrypto 2.2.0 - Command-line companion</p>
+        <ul>
+          <li>New gtkcrypto-cli binary with hash, encrypt, and decrypt subcommands</li>
+          <li>CLI hash output is sha256sum-compatible and supports multi-algorithm requests</li>
+          <li>CLI password input via interactive prompt or --password-file</li>
+          <li>Fix: re-encrypting or re-decrypting onto an existing destination file now replaces it instead of appending</li>
+        </ul>
+      </description>
+    </release>
     <release version="2.1.0" date="2026-05-06">
       <description>
         <p>GTKCrypto 2.1.0 - UX improvements</p>
