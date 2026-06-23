@@ -1,0 +1,61 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        cc: [gcc, clang]
+    runs-on: ubuntu-24.04
+    env:
+      CC: ${{ matrix.cc }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y meson ninja-build appstream gnupg libgtk-4-dev libadwaita-1-dev libgcrypt20-dev libgpgme-dev
+      - name: Configure
+        run: meson setup build --buildtype=release -Dwerror=true
+      - name: Build
+        run: meson compile -C build
+      - name: Test
+        run: meson test -C build --print-errorlogs
+      - name: Install smoke test
+        run: DESTDIR="$PWD/stage" meson install -C build
+      - name: Distribution archive
+        run: meson dist -C build --no-tests
+
+  sanitizers:
+    runs-on: ubuntu-24.04
+    env:
+      CC: clang
+      ASAN_OPTIONS: detect_leaks=1
+    steps:
+      - uses: actions/checkout@v4
+      - run: |
+          sudo apt-get update
+          sudo apt-get install -y meson ninja-build appstream gnupg libgtk-4-dev libadwaita-1-dev libgcrypt20-dev libgpgme-dev
+      - run: meson setup build -Db_sanitize=address,undefined -Db_lundef=false
+      - run: meson compile -C build
+      - run: meson test -C build --print-errorlogs
+
+  fuzz-smoke:
+    runs-on: ubuntu-24.04
+    env:
+      CC: clang
+    steps:
+      - uses: actions/checkout@v4
+      - run: |
+          sudo apt-get update
+          sudo apt-get install -y meson ninja-build appstream gnupg libgtk-4-dev libadwaita-1-dev libgcrypt20-dev libgpgme-dev
+      - run: meson setup build -Dfuzzing=true -Db_lundef=false
+      - run: meson compile -C build fuzz-v3-text
+      - run: ASAN_OPTIONS=detect_leaks=0 ./build/tests/fuzz-v3-text -max_total_time=20

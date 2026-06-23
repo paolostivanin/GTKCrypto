@@ -1,5 +1,5 @@
 project('gtkcrypto', 'c',
-  version: '2.2.0',
+  version: '3.0.0',
   meson_version: '>= 0.62.0',
   default_options: [
     'c_std=c11',
@@ -60,3 +60,4 @@ gpgme_dep = dependency('gpgme', version: '>= 1.8.0')
 
 subdir('src')
 subdir('data')
+subdir('tests')

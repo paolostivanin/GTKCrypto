@@ -6,12 +6,6 @@
 #include "../decrypt-files-cb.h"
 #include "../hash.h"
 #include "../crypt-common.h"
-#include "../cleanup.h"
-
-static const gchar *cipher_labels[] = { "AES-256", "Twofish", "Serpent", "Camellia", NULL };
-static const gint cipher_algos[] = { GCRY_CIPHER_AES256, GCRY_CIPHER_TWOFISH, GCRY_CIPHER_SERPENT256, GCRY_CIPHER_CAMELLIA256 };
-static const gchar *mode_labels[] = { "GCM (recommended)", "CTR", "CBC", NULL };
-static const gint mode_algos[] = { GCRY_CIPHER_MODE_GCM, GCRY_CIPHER_MODE_CTR, GCRY_CIPHER_MODE_CBC };
 
 struct _GtkcryptoFileCryptoPage {
     GtkBox parent_instance;
@@ -21,8 +15,6 @@ struct _GtkcryptoFileCryptoPage {
     /* Encrypt sub-page */
     GtkLabel      *enc_file_label;
     GSList        *enc_files_list;
-    AdwComboRow   *cipher_row;
-    AdwComboRow   *mode_row;
     AdwPasswordEntryRow *enc_pwd_row;
     AdwPasswordEntryRow *enc_pwd_confirm_row;
     GtkWidget     *encrypt_btn;
@@ -48,80 +40,73 @@ typedef struct {
     guint                    failed;
     guint                    total;
     gchar                   *pwd;
-    gint                     algo;
-    gint                     mode;
     gboolean                 first_run;
     GThreadPool             *pool;
     guint                    source_id;
     gboolean                 is_encrypt;
     gboolean                 delete_file;
+    gboolean                 overwrite;
 } CryptoJobData;
 
-
-static const gchar *
-get_algo_name_for_encrypt (gint algo)
-{
-    switch (algo) {
-        case GCRY_CIPHER_AES256:       return "aes_rbtn_widget";
-        case GCRY_CIPHER_TWOFISH:      return "twofish_rbtn_widget";
-        case GCRY_CIPHER_SERPENT256:    return "serpent_rbtn_widget";
-        case GCRY_CIPHER_CAMELLIA256:   return "camellia_rbtn_widget";
-        default: return "aes_rbtn_widget";
-    }
-}
-
-static const gchar *
-get_mode_name_for_encrypt (gint mode)
-{
-    if (mode == GCRY_CIPHER_MODE_CBC) return "cbc_rbtn_widget";
-    if (mode == GCRY_CIPHER_MODE_GCM) return "gcm_rbtn_widget";
-    return "ctr_rbtn_widget";
-}
+static void start_encrypt_job (GtkcryptoFileCryptoPage *self,
+                               gboolean overwrite);
+static void start_decrypt_job (GtkcryptoFileCryptoPage *self,
+                               gboolean overwrite);
 
 
 static void
 enc_exec_thread (gpointer data, gpointer user_data)
 {
-    const gchar *filename = data;
+    gchar *filename = data;
     CryptoJobData *job = user_data;
 
     g_mutex_lock (&job->mutex);
     job->running++;
     g_mutex_unlock (&job->mutex);
 
-    gpointer ret = encrypt_file (filename, job->pwd,
-                                  get_algo_name_for_encrypt (job->algo),
-                                  get_mode_name_for_encrypt (job->mode));
-    if (ret != NULL) {
+    g_autofree gchar *output = g_strconcat (filename, ".enc", NULL);
+    GError *error = NULL;
+    gboolean ok = gtkcrypto_encrypt_file (
+        filename, output, (const guint8 *)job->pwd, strlen (job->pwd),
+        job->overwrite, NULL, &error);
+    if (!ok) {
         g_mutex_lock (&job->mutex);
         job->failed++;
         g_mutex_unlock (&job->mutex);
-        g_free (ret);
+        g_clear_error (&error);
     }
 
     g_mutex_lock (&job->mutex);
     job->running--;
     job->first_run = FALSE;
     g_mutex_unlock (&job->mutex);
+    g_free (filename);
 }
 
 
 static void
 dec_exec_thread (gpointer data, gpointer user_data)
 {
-    const gchar *filename = data;
+    gchar *filename = data;
     CryptoJobData *job = user_data;
 
     g_mutex_lock (&job->mutex);
     job->running++;
     g_mutex_unlock (&job->mutex);
+    g_free (filename);
 
-    gpointer ret = decrypt_file (filename, job->pwd);
-    if (ret != NULL) {
+    g_autofree gchar *output = g_str_has_suffix (filename, ".enc") ?
+        g_strndup (filename, strlen (filename) - 4) :
+        g_strconcat (filename, ".decrypted", NULL);
+    GError *error = NULL;
+    gboolean ok = gtkcrypto_decrypt_file (
+        filename, output, (const guint8 *)job->pwd, strlen (job->pwd),
+        job->overwrite, NULL, &error);
+    if (!ok) {
         g_mutex_lock (&job->mutex);
         job->failed++;
         g_mutex_unlock (&job->mutex);
-        g_free (ret);
+        g_clear_error (&error);
     } else if (job->delete_file) {
         g_unlink (filename);
     }
@@ -147,6 +132,8 @@ job_done_idle (gpointer user_data)
     gtk_spinner_stop (d->spinner);
     adw_toast_overlay_add_toast (d->overlay, adw_toast_new (d->message));
     g_free (d->message);
+    g_object_unref (d->spinner);
+    g_object_unref (d->overlay);
     g_free (d);
     return G_SOURCE_REMOVE;
 }
@@ -166,17 +153,19 @@ check_job_done (gpointer user_data)
                                        job->is_encrypt ? "encrypted" : "decrypted");
 
         if (job->is_encrypt) {
-            d->spinner = job->page->enc_spinner;
-            d->overlay = job->page->enc_toast_overlay;
+            d->spinner = g_object_ref (job->page->enc_spinner);
+            d->overlay = g_object_ref (job->page->enc_toast_overlay);
             gtk_widget_set_sensitive (job->page->encrypt_btn, TRUE);
         } else {
-            d->spinner = job->page->dec_spinner;
-            d->overlay = job->page->dec_toast_overlay;
+            d->spinner = g_object_ref (job->page->dec_spinner);
+            d->overlay = g_object_ref (job->page->dec_toast_overlay);
             gtk_widget_set_sensitive (job->page->decrypt_btn, TRUE);
         }
         g_idle_add (job_done_idle, d);
 
         gcry_free (job->pwd);
+        g_mutex_clear (&job->mutex);
+        g_object_unref (job->page);
         g_free (job);
         return G_SOURCE_REMOVE;
     }
@@ -334,16 +323,8 @@ show_toast (AdwToastOverlay *overlay, const gchar *msg)
 
 
 static void
-encrypt_clicked_cb (GtkButton *btn, gpointer user_data)
+start_encrypt_job (GtkcryptoFileCryptoPage *self, gboolean overwrite)
 {
-    (void)btn;
-    GtkcryptoFileCryptoPage *self = user_data;
-
-    if (self->enc_files_list == NULL) {
-        show_toast (self->enc_toast_overlay, "No files selected");
-        return;
-    }
-
     const gchar *pwd = gtk_editable_get_text (GTK_EDITABLE (self->enc_pwd_row));
     const gchar *pwd_confirm = gtk_editable_get_text (GTK_EDITABLE (self->enc_pwd_confirm_row));
 
@@ -356,45 +337,119 @@ encrypt_clicked_cb (GtkButton *btn, gpointer user_data)
         return;
     }
 
-    guint selected_cipher = adw_combo_row_get_selected (self->cipher_row);
-    guint selected_mode = adw_combo_row_get_selected (self->mode_row);
-
     CryptoJobData *job = g_new0 (CryptoJobData, 1);
-    job->page = self;
+    job->page = g_object_ref (self);
     gsize pwd_len = strlen (pwd) + 1;
     job->pwd = gcry_malloc_secure (pwd_len);
     memcpy (job->pwd, pwd, pwd_len);
-    job->algo = cipher_algos[selected_cipher];
-    job->mode = mode_algos[selected_mode];
+    gtk_editable_set_text (GTK_EDITABLE (self->enc_pwd_row), "");
+    gtk_editable_set_text (GTK_EDITABLE (self->enc_pwd_confirm_row), "");
     job->total = g_slist_length (self->enc_files_list);
     job->first_run = TRUE;
     job->is_encrypt = TRUE;
+    job->overwrite = overwrite;
     g_mutex_init (&job->mutex);
 
     gtk_widget_set_sensitive (self->encrypt_btn, FALSE);
     gtk_spinner_start (self->enc_spinner);
 
+    GError *pool_error = NULL;
     job->pool = g_thread_pool_new (enc_exec_thread, job,
-                                    (gint)g_get_num_processors (), TRUE, NULL);
+                                    (gint)MIN (4, g_get_num_processors ()),
+                                    TRUE, &pool_error);
+    if (job->pool == NULL) {
+        show_toast (self->enc_toast_overlay, pool_error->message);
+        g_clear_error (&pool_error);
+        gtk_widget_set_sensitive (self->encrypt_btn, TRUE);
+        gtk_spinner_stop (self->enc_spinner);
+        gcry_free (job->pwd);
+        g_mutex_clear (&job->mutex);
+        g_object_unref (job->page);
+        g_free (job);
+        return;
+    }
     for (GSList *l = self->enc_files_list; l; l = l->next) {
-        g_thread_pool_push (job->pool, l->data, NULL);
+        g_thread_pool_push (job->pool, g_strdup (l->data), NULL);
     }
 
     job->source_id = g_timeout_add (500, check_job_done, job);
 }
 
+typedef struct {
+    GtkcryptoFileCryptoPage *page;
+    gboolean encrypt;
+} OverwritePromptData;
 
 static void
-decrypt_clicked_cb (GtkButton *btn, gpointer user_data)
+overwrite_prompt_done (GObject *source, GAsyncResult *result,
+                       gpointer user_data)
+{
+    OverwritePromptData *data = user_data;
+    const gchar *response = adw_alert_dialog_choose_finish (
+        ADW_ALERT_DIALOG (source), result);
+    if (g_strcmp0 (response, "replace") == 0) {
+        if (data->encrypt) {
+            start_encrypt_job (data->page, TRUE);
+        } else {
+            start_decrypt_job (data->page, TRUE);
+        }
+    }
+    g_object_unref (data->page);
+    g_free (data);
+}
+
+static void
+prompt_overwrite (GtkcryptoFileCryptoPage *self, gboolean encrypt)
+{
+    AdwAlertDialog *dialog = ADW_ALERT_DIALOG (adw_alert_dialog_new (
+        "Replace existing files?",
+        "One or more destination files already exist. Replacement occurs "
+        "atomically only after the operation succeeds."));
+    adw_alert_dialog_add_response (dialog, "cancel", "Cancel");
+    adw_alert_dialog_add_response (dialog, "replace", "Replace");
+    adw_alert_dialog_set_default_response (dialog, "cancel");
+    adw_alert_dialog_set_close_response (dialog, "cancel");
+    adw_alert_dialog_set_response_appearance (
+        dialog, "replace", ADW_RESPONSE_DESTRUCTIVE);
+    OverwritePromptData *data = g_new0 (OverwritePromptData, 1);
+    data->page = g_object_ref (self);
+    data->encrypt = encrypt;
+    adw_alert_dialog_choose (dialog, GTK_WIDGET (self), NULL,
+                             overwrite_prompt_done, data);
+}
+
+static gboolean
+encryption_destination_exists (GtkcryptoFileCryptoPage *self)
+{
+    for (GSList *l = self->enc_files_list; l; l = l->next) {
+        g_autofree gchar *output = g_strconcat (l->data, ".enc", NULL);
+        if (g_file_test (output, G_FILE_TEST_EXISTS)) {
+            return TRUE;
+        }
+    }
+    return FALSE;
+}
+
+static void
+encrypt_clicked_cb (GtkButton *btn, gpointer user_data)
 {
     (void)btn;
     GtkcryptoFileCryptoPage *self = user_data;
-
-    if (self->dec_files_list == NULL) {
-        show_toast (self->dec_toast_overlay, "No files selected");
+    if (self->enc_files_list == NULL) {
+        show_toast (self->enc_toast_overlay, "No files selected");
         return;
     }
+    if (encryption_destination_exists (self)) {
+        prompt_overwrite (self, TRUE);
+        return;
+    }
+    start_encrypt_job (self, FALSE);
+}
 
+
+static void
+start_decrypt_job (GtkcryptoFileCryptoPage *self, gboolean overwrite)
+{
     const gchar *pwd = gtk_editable_get_text (GTK_EDITABLE (self->dec_pwd_row));
     if (g_utf8_strlen (pwd, -1) < 8) {
         show_toast (self->dec_toast_overlay, "Password must be at least 8 characters");
@@ -402,26 +457,72 @@ decrypt_clicked_cb (GtkButton *btn, gpointer user_data)
     }
 
     CryptoJobData *job = g_new0 (CryptoJobData, 1);
-    job->page = self;
+    job->page = g_object_ref (self);
     gsize pwd_len = strlen (pwd) + 1;
     job->pwd = gcry_malloc_secure (pwd_len);
     memcpy (job->pwd, pwd, pwd_len);
+    gtk_editable_set_text (GTK_EDITABLE (self->dec_pwd_row), "");
     job->total = g_slist_length (self->dec_files_list);
     job->first_run = TRUE;
     job->is_encrypt = FALSE;
     job->delete_file = gtk_switch_get_active (self->delete_switch);
+    job->overwrite = overwrite;
     g_mutex_init (&job->mutex);
 
     gtk_widget_set_sensitive (self->decrypt_btn, FALSE);
     gtk_spinner_start (self->dec_spinner);
 
+    GError *pool_error = NULL;
     job->pool = g_thread_pool_new (dec_exec_thread, job,
-                                    (gint)g_get_num_processors (), TRUE, NULL);
+                                    (gint)MIN (4, g_get_num_processors ()),
+                                    TRUE, &pool_error);
+    if (job->pool == NULL) {
+        show_toast (self->dec_toast_overlay, pool_error->message);
+        g_clear_error (&pool_error);
+        gtk_widget_set_sensitive (self->decrypt_btn, TRUE);
+        gtk_spinner_stop (self->dec_spinner);
+        gcry_free (job->pwd);
+        g_mutex_clear (&job->mutex);
+        g_object_unref (job->page);
+        g_free (job);
+        return;
+    }
     for (GSList *l = self->dec_files_list; l; l = l->next) {
-        g_thread_pool_push (job->pool, l->data, NULL);
+        g_thread_pool_push (job->pool, g_strdup (l->data), NULL);
     }
 
     job->source_id = g_timeout_add (500, check_job_done, job);
+}
+
+static gboolean
+decryption_destination_exists (GtkcryptoFileCryptoPage *self)
+{
+    for (GSList *l = self->dec_files_list; l; l = l->next) {
+        const gchar *input = l->data;
+        g_autofree gchar *output = g_str_has_suffix (input, ".enc") ?
+            g_strndup (input, strlen (input) - 4) :
+            g_strconcat (input, ".decrypted", NULL);
+        if (g_file_test (output, G_FILE_TEST_EXISTS)) {
+            return TRUE;
+        }
+    }
+    return FALSE;
+}
+
+static void
+decrypt_clicked_cb (GtkButton *btn, gpointer user_data)
+{
+    (void)btn;
+    GtkcryptoFileCryptoPage *self = user_data;
+    if (self->dec_files_list == NULL) {
+        show_toast (self->dec_toast_overlay, "No files selected");
+        return;
+    }
+    if (decryption_destination_exists (self)) {
+        prompt_overwrite (self, FALSE);
+        return;
+    }
+    start_decrypt_job (self, FALSE);
 }
 
 
@@ -463,15 +564,21 @@ build_encrypt_page (GtkcryptoFileCryptoPage *self)
     GtkWidget *crypto_group = adw_preferences_group_new ();
     adw_preferences_group_set_title (ADW_PREFERENCES_GROUP (crypto_group), "Encryption Settings");
 
-    self->cipher_row = ADW_COMBO_ROW (adw_combo_row_new ());
-    adw_preferences_row_set_title (ADW_PREFERENCES_ROW (self->cipher_row), "Cipher");
-    adw_combo_row_set_model (self->cipher_row, G_LIST_MODEL (gtk_string_list_new (cipher_labels)));
-    adw_preferences_group_add (ADW_PREFERENCES_GROUP (crypto_group), GTK_WIDGET (self->cipher_row));
+    GtkWidget *cipher_row = adw_action_row_new ();
+    adw_preferences_row_set_title (ADW_PREFERENCES_ROW (cipher_row),
+                                   "AES-256-GCM");
+    adw_action_row_set_subtitle (ADW_ACTION_ROW (cipher_row),
+                                 "Authenticated encryption");
+    adw_preferences_group_add (ADW_PREFERENCES_GROUP (crypto_group),
+                               cipher_row);
 
-    self->mode_row = ADW_COMBO_ROW (adw_combo_row_new ());
-    adw_preferences_row_set_title (ADW_PREFERENCES_ROW (self->mode_row), "Mode");
-    adw_combo_row_set_model (self->mode_row, G_LIST_MODEL (gtk_string_list_new (mode_labels)));
-    adw_preferences_group_add (ADW_PREFERENCES_GROUP (crypto_group), GTK_WIDGET (self->mode_row));
+    GtkWidget *kdf_row = adw_action_row_new ();
+    adw_preferences_row_set_title (ADW_PREFERENCES_ROW (kdf_row),
+                                   "Argon2id");
+    adw_action_row_set_subtitle (ADW_ACTION_ROW (kdf_row),
+                                 "Memory-hard password derivation");
+    adw_preferences_group_add (ADW_PREFERENCES_GROUP (crypto_group),
+                               kdf_row);
 
     /* Password */
     GtkWidget *pwd_group = adw_preferences_group_new ();

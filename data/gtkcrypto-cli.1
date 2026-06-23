@@ -1,0 +1,44 @@
+.TH GTKCRYPTO-CLI 1 "June 2026" "GTKCrypto 3.0.0"
+.SH NAME
+gtkcrypto-cli \- hash, encrypt, and decrypt files
+.SH SYNOPSIS
+.B gtkcrypto-cli
+.I SUBCOMMAND
+.RI [ OPTIONS ]
+.I FILE
+.SH DESCRIPTION
+New encrypted files use GTC3 with AES-256-GCM and Argon2id. Existing
+destinations are not replaced unless
+.B --force
+is supplied.
+.SH SUBCOMMANDS
+.TP
+.B hash
+Compute one or more file hashes.
+.TP
+.B encrypt
+Encrypt FILE to FILE.enc or the path selected with
+.BR --output .
+.TP
+.B decrypt
+Decrypt a v1, v2, or v3 GTKCrypto file.
+.SH OPTIONS
+.TP
+.BR -p ", " --password-file " PATH"
+Read the password from the first line of PATH.
+.TP
+.BR -o ", " --output " PATH"
+Select the destination path.
+.TP
+.BR -f ", " --force
+Atomically replace an existing destination after success.
+.TP
+.BR -d ", " --delete
+For decryption, delete the encrypted source after successful publication.
+.SH SECURITY
+GTKCrypto does not provide secure deletion. Protect password files with
+appropriate filesystem permissions.
+.SH EXIT STATUS
+0 indicates success, 1 an operational failure, 2 invalid command-line usage,
+3 failed authentication, and 4 an existing destination without
+.BR --force .

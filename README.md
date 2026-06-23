@@ -1,83 +1,98 @@
 # GTKCrypto
 
-A GTK 4 / libadwaita application for encrypting files and text, computing hashes, and signing files with GPG. Ships with a command-line companion (`gtkcrypto-cli`) for hashing and file encryption from the terminal.
+GTKCrypto is a GTK 4/libadwaita application for authenticated file and text
+encryption, file hashing, and detached OpenPGP signatures. A headless
+`gtkcrypto-cli` companion is installed with the GUI.
 
-## Features
+## Encryption
 
-- **File Encryption/Decryption** -- AES-256, Twofish, Serpent, or Camellia in GCM (recommended), CTR, or CBC mode. Multi-file support with threaded operations.
-- **Text Encryption/Decryption** -- AES-256-GCM with PBKDF2 key derivation. Output is base64-encoded.
-- **File Hashing** -- MD5, SHA-1, GOST94, SHA-256, SHA3-256, BLAKE2b-256, SHA-384, SHA3-384, SHA-512, SHA3-512, BLAKE2b-512, and Whirlpool. All enabled algorithms compute in parallel as soon as a file is selected; the selection is remembered across sessions.
-- **Verify against an expected hash** -- paste a known-good hash and the matching algorithm row is highlighted.
-- **Hash Comparison** -- Compare two files by hash to verify integrity.
-- **GPG Signing & Verification** -- Sign files with your GPG keys and verify detached signatures.
-- **Drag-and-drop everywhere** -- drop files onto any file input (hashing, encrypt/decrypt, GPG sign/verify).
-- **Command-line interface** -- `gtkcrypto-cli` for hashing and file encrypt/decrypt without the GUI.
+New files use the portable GTC3 format:
 
-## Security
+- AES-256-GCM authenticated encryption
+- Argon2id password derivation (19 MiB, two passes, one lane)
+- random 32-byte salt and 12-byte nonce
+- authenticated, fixed-width, network-byte-order metadata
+- transactional mode-0600 output files
 
-### File Encryption
-- **GCM mode (recommended):** authenticated encryption with built-in integrity via GCM tag. No separate HMAC needed.
-- **CBC/CTR modes:** encrypt-then-MAC with HMAC-SHA3-512 computed over the full file (metadata + ciphertext).
-- Confidentiality: AES/Twofish/Serpent/Camellia with 256-bit keys.
-- Key derivation: PBKDF2 with 600,000 iterations using SHA-512 (OWASP 2024 recommendation).
-- Passwords and keys are stored in gcrypt secure memory and cleared with `explicit_bzero`.
-- Encrypted file format (v2): `magic ("GTC") | version | metadata (IV + salt + algo + mode + padding) | ciphertext | GCM tag or HMAC-SHA3-512`
-- Backward compatible: files encrypted with v1 (100,000 iterations, no magic header) are still decryptable.
+GTKCrypto can decrypt historical v1 and v2 files. New v1/v2 files cannot be
+created. The byte-level format is documented in
+[`docs/file-format.md`](docs/file-format.md).
 
-### Text Encryption
-- AES-256-GCM (authenticated encryption).
-- Key derivation: PBKDF2 with 600,000 iterations using SHA-512.
-- All sensitive data stored in gcrypt secure memory.
-- Output format: `base64(IV | salt | ciphertext | GCM tag)`
+Existing destinations are never replaced implicitly:
+
+- the CLI requires `--force`;
+- the GUI asks before replacing a batch;
+- replacement occurs only after authentication, flushing, and closing succeed.
+
+GTKCrypto does not provide secure deletion. Filesystems, snapshots, SSD wear
+levelling, backups, and journaling make portable secure erasure unreliable.
+
+Passwords are copied to libgcrypt secure memory for cryptographic work and
+cleared afterwards. They necessarily exist briefly in GTK widgets or terminal
+input buffers; copied plaintext also remains under the desktop clipboard’s
+control.
+
+## Other features
+
+- Text encryption using `GTC3:` followed by a base64 GTC3 container
+- Legacy unprefixed encrypted-text decryption
+- MD5, SHA-1, GOST94, SHA-2, SHA-3, BLAKE2b, and Whirlpool hashing
+- Expected-hash verification and two-file comparison
+- Detached OpenPGP signing and verification through GPGME
+- Parallel background operations and drag-and-drop
+
+MD5, SHA-1, and GOST94 are provided for compatibility, not for new security
+decisions.
 
 ## Requirements
 
-| Dependency | Minimum Version |
-|------------|-----------------|
-| GTK        | 4.16            |
-| libadwaita | 1.6             |
-| GLib       | 2.76            |
-| libgcrypt  | 1.10.1          |
-| gpgme      | 1.8.0           |
-| Meson      | 0.62            |
+| Dependency | Minimum |
+|---|---:|
+| GTK | 4.16 |
+| libadwaita | 1.6 |
+| GLib | 2.76 |
+| libgcrypt | 1.10.1 |
+| GPGME | 1.8 |
+| Meson | 0.62 |
 
-## Building
-
-```sh
-git clone https://github.com/paolostivanin/GTKCrypto.git
-cd GTKCrypto
-meson setup builddir
-ninja -C builddir
-sudo ninja -C builddir install
-```
-
-## Command-line interface
-
-Both `gtkcrypto` (GUI) and `gtkcrypto-cli` (CLI) are installed by `meson install`. The CLI does not link against GTK or libadwaita and is suitable for headless use.
+## Build and test
 
 ```sh
-# Hash (output matches sha256sum)
-gtkcrypto-cli hash README.md
-gtkcrypto-cli hash --algo sha256,sha512,blake2b-256 README.md
-
-# Encrypt (prompts for password; defaults to AES-256-GCM)
-gtkcrypto-cli encrypt secret.pdf
-gtkcrypto-cli encrypt --cipher twofish --mode ctr secret.pdf
-
-# Decrypt (use --delete to remove the .enc after success)
-gtkcrypto-cli decrypt secret.pdf.enc
-
-# Non-interactive: read the password from a file
-gtkcrypto-cli encrypt --password-file ~/.secrets/pw secret.pdf
+meson setup build
+meson compile -C build
+meson test -C build --print-errorlogs
+sudo meson install -C build
 ```
 
-Run `gtkcrypto-cli --help` or `gtkcrypto-cli SUBCOMMAND --help` for the full reference.
+For a sanitizer build:
 
-Files encrypted with the GUI can be decrypted with the CLI and vice versa -- both share the same crypto core.
+```sh
+meson setup build-sanitize -Db_sanitize=address,undefined -Db_lundef=false
+meson compile -C build-sanitize
+meson test -C build-sanitize --print-errorlogs
+```
 
-## Verifying the Encryption
+## CLI
 
-Don't trust the program blindly -- trust the code. You can encrypt a file with GTKCrypto and write your own decryption tool. The encrypted file structure is documented in [`src/crypt-common.h`](src/crypt-common.h).
+```sh
+gtkcrypto-cli hash --algo sha256,sha512 FILE
+gtkcrypto-cli encrypt FILE
+gtkcrypto-cli encrypt --output ARCHIVE.enc --force FILE
+gtkcrypto-cli decrypt FILE.enc
+gtkcrypto-cli decrypt --output FILE --force --delete FILE.enc
+```
+
+Passwords are prompted for by default. `--password-file PATH` reads the first
+line for non-interactive use; protect that file with appropriate permissions.
+Run `gtkcrypto-cli SUBCOMMAND --help` for complete options.
+
+## Security
+
+Do not use a release solely because it compiles. Releases require passing the
+Meson regression suite, GCC and Clang builds, ASan/UBSan, AppStream validation,
+installation smoke tests, and the parser fuzz smoke job.
+
+Report vulnerabilities according to [`SECURITY.md`](SECURITY.md).
 
 ## License
 

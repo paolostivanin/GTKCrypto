@@ -4,6 +4,7 @@
 #include <locale.h>
 #include <glib/gstdio.h>
 #include "gpgme-misc.h"
+#include "crypt-common.h"
 
 
 static void init_gpgme  (void);
@@ -20,6 +21,7 @@ gpointer
 sign_file (const gchar *input_file_path,
            const gchar *fpr)
 {
+    init_gpgme ();
     gpgme_ctx_t context;
 
     gpgme_error_t error = gpgme_new (&context);
@@ -60,7 +62,7 @@ sign_file (const gchar *input_file_path,
         return GPGME_ERROR;
     }
 
-    FILE *infp = g_fopen (input_file_path, "r");
+    FILE *infp = g_fopen (input_file_path, "rb");
     if (infp == NULL) {
         g_printerr ("Couldn't open input file\n");
         cleanup (NULL, NULL, NULL, NULL, &signing_key, &context);
@@ -115,39 +117,69 @@ sign_file (const gchar *input_file_path,
         return MEMORY_ALLOCATION_ERROR;
     }
 
-    gssize nbytes = gpgme_data_read (signed_text, buffer, SIG_MAXLEN);
-    if (nbytes == -1) {
-        g_printerr ("Error while reading data\n");
-        cleanup (infp, NULL, NULL, NULL, &signing_key, &context);
-        return GPGME_ERROR;
-    }
-
-    GError *gerr = NULL;
     gchar *output_file_path = g_strconcat (input_file_path, ".sig", NULL);
-    GFile *fpout = g_file_new_for_path (output_file_path);
-    GFileOutputStream *ostream = g_file_append_to (fpout, G_FILE_CREATE_REPLACE_DESTINATION, NULL, &gerr);
-    if (gerr != NULL) {
-        g_printerr ("Couldn't open output file for writing\n");
-        cleanup (infp, fpout, NULL, output_file_path, &signing_key, &context);
+    GError *gerr = NULL;
+    GtkcryptoAtomicOutput atomic = { .fd = -1 };
+    if (!gtkcrypto_atomic_output_open (&atomic, output_file_path, FALSE, &gerr)) {
+        g_printerr ("%s\n", gerr->message);
         g_clear_error (&gerr);
+        g_free (buffer);
+        g_free (output_file_path);
+        gpgme_data_release (clear_text);
+        gpgme_data_release (signed_text);
+        cleanup (infp, NULL, NULL, NULL, &signing_key, &context);
         return FILE_OPEN_ERROR;
     }
 
-    gssize wbytes = g_output_stream_write (G_OUTPUT_STREAM (ostream), buffer, (gsize)nbytes, NULL, &gerr);
-    if (wbytes == -1) {
-        g_printerr ("Couldn't write the request number of bytes (%s)\n", gerr->message);
-        cleanup (infp, fpout, ostream, output_file_path, &signing_key, &context);
-        return FILE_WRITE_ERROR;
+    gboolean write_ok = TRUE;
+    for (;;) {
+        gssize nbytes = gpgme_data_read (signed_text, buffer, SIG_MAXLEN);
+        if (nbytes == 0) {
+            break;
+        }
+        if (nbytes < 0 ||
+            !gtkcrypto_write_full (atomic.fd, buffer, (gsize)nbytes,
+                                   NULL, &gerr)) {
+            write_ok = FALSE;
+            break;
+        }
+    }
+    if (write_ok) {
+        write_ok = gtkcrypto_atomic_output_commit (&atomic, &gerr);
+    }
+    if (!write_ok) {
+        g_printerr ("%s\n", gerr != NULL ? gerr->message :
+                    "Unable to write complete signature");
+        g_clear_error (&gerr);
+        gtkcrypto_atomic_output_abort (&atomic);
     }
 
-    cleanup (infp, fpout, ostream, output_file_path, &signing_key, &context);
+    gtkcrypto_secure_clear (buffer, SIG_MAXLEN);
+    g_free (buffer);
+    g_free (output_file_path);
+    gpgme_data_release (clear_text);
+    gpgme_data_release (signed_text);
+    cleanup (infp, NULL, NULL, NULL, &signing_key, &context);
 
-    return SIGN_OK;
+    return write_ok ? SIGN_OK : FILE_WRITE_ERROR;
+}
+
+void
+key_info_free (KeyInfo *key_info)
+{
+    if (key_info == NULL) {
+        return;
+    }
+    g_free (key_info->name);
+    g_free (key_info->email);
+    g_free (key_info->key_id);
+    g_free (key_info->key_fpr);
+    g_free (key_info);
 }
 
 
 GSList *
-get_available_keys ()
+get_available_keys (void)
 {
     init_gpgme ();
 
@@ -175,6 +207,12 @@ get_available_keys ()
         if (err) {
             break;
         }
+        if (key->subkeys == NULL || key->subkeys->keyid == NULL ||
+            key->subkeys->fpr == NULL || key->revoked ||
+            key->expired || key->disabled || key->invalid) {
+            gpgme_key_release (key);
+            continue;
+        }
 
         key_info = g_new0 (KeyInfo, 1);
         key_info->key_id = g_strdup (key->subkeys->keyid);
@@ -190,12 +228,7 @@ get_available_keys ()
         }
         key_info->key_fpr = g_strdup (key->subkeys->fpr);
 
-        gssize bytes_to_copy = (gssize)sizeof(KeyInfo) + g_utf8_strlen (key_info->name, -1) + g_utf8_strlen (key_info->email, -1) +
-                g_utf8_strlen (key_info->key_id, -1) + g_utf8_strlen (key_info->key_fpr, -1) + 4;
-
-        list = g_slist_append (list, g_memdupX (key_info, (guint)bytes_to_copy));
-
-        g_free (key_info);
+        list = g_slist_append (list, key_info);
 
         gpgme_key_release (key);
     }
@@ -238,14 +271,14 @@ verify_signature (const gchar *signed_file_path,
         return GPGME_ERROR;
     }
 
-    FILE *sig_fp = g_fopen (detached_signature_path, "r");
+    FILE *sig_fp = g_fopen (detached_signature_path, "rb");
     if (sig_fp == NULL) {
         g_printerr ("Couldn't open detached signature file\n");
         gpgme_release (ctx);
         return FILE_OPEN_ERROR;
     }
 
-    FILE *sig_data_fp = g_fopen (signed_file_path, "r");
+    FILE *sig_data_fp = g_fopen (signed_file_path, "rb");
     if (sig_data_fp == NULL) {
         g_printerr ("Couldn't open signed file\n");
         gpgme_release (ctx);
@@ -315,14 +348,19 @@ verify_signature (const gchar *signed_file_path,
 
 
 static void
-init_gpgme ()
+init_gpgme (void)
 {
-    setlocale (LC_ALL, "");
+    static gsize initialized;
+    if (!g_once_init_enter (&initialized)) {
+        return;
+    }
+
     gpgme_check_version (NULL);
     gpgme_set_locale (NULL, LC_CTYPE, setlocale (LC_CTYPE, NULL));
 #ifdef LC_MESSAGES
     gpgme_set_locale (NULL, LC_MESSAGES, setlocale (LC_MESSAGES, NULL));
 #endif
+    g_once_init_leave (&initialized, 1);
 }
 
 

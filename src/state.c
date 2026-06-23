@@ -22,8 +22,14 @@ static void
 flush (void)
 {
     g_autofree gchar *dir = g_path_get_dirname (state_path);
-    g_mkdir_with_parents (dir, 0700);
-    g_key_file_save_to_file (kf, state_path, NULL);
+    if (g_mkdir_with_parents (dir, 0700) != 0) {
+        g_warning ("Unable to create GTKCrypto state directory");
+        return;
+    }
+    g_autoptr(GError) error = NULL;
+    if (!g_key_file_save_to_file (kf, state_path, &error)) {
+        g_warning ("Unable to save GTKCrypto state: %s", error->message);
+    }
 }
 
 gboolean

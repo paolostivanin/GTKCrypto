@@ -11,16 +11,12 @@ crypto_sources = files(
   'encrypt-file.c',
   'decrypt-file.c',
   'hash.c',
-  'hmac.c',
   'crypt-common.c',
-  'get-file-size.c',
-  'gpgme-misc.c',
-  'cleanup.c',
 )
 
 crypto_lib = static_library('gtkcrypto-core',
   crypto_sources,
-  dependencies: [glib_dep, gio_dep, gcrypt_dep, gpgme_dep],
+  dependencies: [glib_dep, gio_dep, gcrypt_dep],
   install: false,
 )
 
@@ -29,6 +25,7 @@ gui_sources = files(
   'gtkcrypto-application.c',
   'gtkcrypto-window.c',
   'state.c',
+  'gpgme-misc.c',
   'pages/hashing-page.c',
   'pages/file-crypto-page.c',
   'pages/text-crypto-page.c',
@@ -43,9 +40,9 @@ executable('gtkcrypto',
   install: true,
 )
 
-executable('gtkcrypto-cli',
+cli_exe = executable('gtkcrypto-cli',
   files('cli/cli-main.c'),
   link_with: crypto_lib,
-  dependencies: [glib_dep, gio_dep, gcrypt_dep, gpgme_dep],
+  dependencies: [glib_dep, gio_dep, gcrypt_dep],
   install: true,
 )

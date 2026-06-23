@@ -6,10 +6,6 @@
 #define HASH_COMPUTED         ((gpointer) 10)
 #define HASH_ERROR            ((gpointer) 11)
 #define MUNMAP_FAILED         ((gpointer) 12)
-#define HMAC_OK               ((gpointer) 13)
-#define HMAC_MISMATCH         ((gpointer) 14)
-
-#define FILE_BUFFER           67108864 // 64 MiB
 
 #define AVAILABLE_HASH_TYPE   12
 
@@ -33,7 +29,3 @@ gpointer compute_hash   (gcry_md_hd_t *hd,
 gchar *finalize_hash    (gcry_md_hd_t *hd,
                          gint          algo,
                          gint          digest_size);
-
-guchar *calculate_hmac  (const gchar  *file_path,
-                         const guchar *key,
-                         guchar       *user_hmac);

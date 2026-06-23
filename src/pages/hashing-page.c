@@ -60,6 +60,7 @@ struct _GtkcryptoHashingPage {
     GtkWidget       *hash_spinners[NUM_HASH_ALGOS];
     GThreadPool     *compute_pool;
     GHashTable      *hash_cache;
+    guint64          compute_generation;
 
     /* Compare sub-page */
     GtkLabel        *file1_label;
@@ -80,10 +81,15 @@ typedef struct {
     gchar                *filename;
     gint                  hash_algo;
     gint                  digest_size;
+    guint64               generation;
 } ComputeThreadData;
 
 typedef struct {
     GtkcryptoHashingPage *page;
+    gchar *file1;
+    gchar *file2;
+    gint algo;
+    gint digest;
     gchar *hash1;
     gchar *hash2;
 } CompareThreadData;
@@ -141,12 +147,20 @@ typedef struct {
     GtkcryptoHashingPage *page;
     gint                  algo_index;
     gchar                *hash;
+    guint64               generation;
 } HashDoneData;
 
 static gboolean
 hash_done_idle (gpointer user_data)
 {
     HashDoneData *hd = user_data;
+
+    if (hd->generation != hd->page->compute_generation) {
+        g_object_unref (hd->page);
+        g_free (hd->hash);
+        g_free (hd);
+        return G_SOURCE_REMOVE;
+    }
 
     if (hd->hash) {
         gtk_label_set_text (GTK_LABEL (hd->page->hash_result_labels[hd->algo_index]), hd->hash);
@@ -164,6 +178,7 @@ hash_done_idle (gpointer user_data)
     update_expected_match (hd->page);
 
     g_free (hd->hash);
+    g_object_unref (hd->page);
     g_free (hd);
     return G_SOURCE_REMOVE;
 }
@@ -180,6 +195,7 @@ compute_hash_thread (gpointer data, gpointer user_data)
     hd->page = td->page;
     hd->algo_index = td->algo_index;
     hd->hash = hash;
+    hd->generation = td->generation;
     g_idle_add (hash_done_idle, hd);
 
     g_free (td->filename);
@@ -205,10 +221,12 @@ start_compute_for_index (GtkcryptoHashingPage *self, gint idx)
 
     ComputeThreadData *td = g_new0 (ComputeThreadData, 1);
     td->page = self;
+    g_object_ref (td->page);
     td->algo_index = idx;
     td->filename = g_strdup (self->compute_filename);
     td->hash_algo = hash_algos[idx].algo;
     td->digest_size = hash_algos[idx].digest_size;
+    td->generation = self->compute_generation;
 
     g_thread_pool_push (self->compute_pool, td, NULL);
 }
@@ -262,6 +280,7 @@ set_compute_file (GtkcryptoHashingPage *self, gchar *path /* takes ownership */)
 {
     g_free (self->compute_filename);
     self->compute_filename = path;
+    self->compute_generation++;
 
     g_autofree gchar *basename = g_path_get_basename (self->compute_filename);
     gtk_label_set_text (self->compute_file_label, basename);
@@ -478,6 +497,9 @@ compare_result_idle (gpointer user_data)
 
     g_free (cd->hash1);
     g_free (cd->hash2);
+    g_free (cd->file1);
+    g_free (cd->file2);
+    g_object_unref (cd->page);
     g_free (cd);
     return G_SOURCE_REMOVE;
 }
@@ -487,14 +509,8 @@ static gpointer
 compare_thread_func (gpointer user_data)
 {
     CompareThreadData *cd = user_data;
-    GtkcryptoHashingPage *self = cd->page;
-
-    guint selected = adw_combo_row_get_selected (self->compare_algo_row);
-    gint algo = compare_algo_ids[selected];
-    gint digest = compare_digest_sizes[selected];
-
-    cd->hash1 = get_file_hash (self->compare_file1, algo, digest);
-    cd->hash2 = get_file_hash (self->compare_file2, algo, digest);
+    cd->hash1 = get_file_hash (cd->file1, cd->algo, cd->digest);
+    cd->hash2 = get_file_hash (cd->file2, cd->algo, cd->digest);
 
     g_idle_add (compare_result_idle, cd);
     return NULL;
@@ -517,8 +533,13 @@ compare_btn_clicked_cb (GtkButton *btn, gpointer user_data)
     gtk_label_set_text (self->compare_result_label, "Computing...");
 
     CompareThreadData *cd = g_new0 (CompareThreadData, 1);
-    cd->page = self;
-    g_thread_new ("compare-hash", compare_thread_func, cd);
+    cd->page = g_object_ref (self);
+    cd->file1 = g_strdup (self->compare_file1);
+    cd->file2 = g_strdup (self->compare_file2);
+    guint selected = adw_combo_row_get_selected (self->compare_algo_row);
+    cd->algo = compare_algo_ids[selected];
+    cd->digest = compare_digest_sizes[selected];
+    g_thread_unref (g_thread_new ("compare-hash", compare_thread_func, cd));
 }
 
 

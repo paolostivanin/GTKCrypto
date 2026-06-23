@@ -1,7 +1,9 @@
 #include <stdio.h>
+#include <errno.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#include <sys/stat.h>
 #include <glib.h>
 #include <glib/gstdio.h>
 #include <gcrypt.h>
@@ -11,11 +13,27 @@
 #include "../encrypt-files-cb.h"
 #include "../decrypt-files-cb.h"
 
-#define GCRYPT_MIN_VER  "1.7.0"
+#define GCRYPT_MIN_VER  "1.10.1"
 #define SECMEM_SIZE     32768
 #define MIN_PWD_LEN     8
 
 #define EXIT_USAGE 2
+#define EXIT_AUTHENTICATION 3
+#define EXIT_EXISTS 4
+
+static int
+exit_code_for_error (const GError *error)
+{
+    if (error != NULL && error->domain == GTKCRYPTO_ERROR) {
+        if (error->code == GTKCRYPTO_ERROR_AUTHENTICATION) {
+            return EXIT_AUTHENTICATION;
+        }
+        if (error->code == GTKCRYPTO_ERROR_EXISTS) {
+            return EXIT_EXISTS;
+        }
+    }
+    return 1;
+}
 
 typedef struct {
     const gchar *cli_name;
@@ -37,27 +55,6 @@ static const HashName HASH_NAMES[] = {
     { "gost94",       GCRY_MD_GOSTR3411_94, GOST94_DIGEST_SIZE      },
     { "whirlpool",    GCRY_MD_WHIRLPOOL,    WHIRLPOOL_DIGEST_SIZE   },
 };
-
-typedef struct {
-    const gchar *cli_name;
-    const gchar *internal_name;
-} NameMap;
-
-/* The core API still takes legacy widget-name strings (GTK 3 holdover);
-   the CLI translates clean user-facing names into them. */
-static const NameMap CIPHER_NAMES[] = {
-    { "aes",      "aes_rbtn_widget"      },
-    { "twofish",  "twofish_rbtn_widget"  },
-    { "serpent",  "serpent_rbtn_widget"  },
-    { "camellia", "camellia_rbtn_widget" },
-};
-
-static const NameMap MODE_NAMES[] = {
-    { "gcm", "gcm_rbtn_widget" },
-    { "ctr", "ctr_rbtn_widget" },
-    { "cbc", "cbc_rbtn_widget" },
-};
-
 
 /* ---- Init ---- */
 
@@ -90,17 +87,6 @@ lookup_hash (const gchar *name)
     return NULL;
 }
 
-static const gchar *
-lookup_internal (const NameMap *map, gsize n, const gchar *name)
-{
-    for (gsize i = 0; i < n; i++) {
-        if (g_ascii_strcasecmp (name, map[i].cli_name) == 0) {
-            return map[i].internal_name;
-        }
-    }
-    return NULL;
-}
-
 static gchar *
 join_names (const HashName *names, gsize n)
 {
@@ -111,18 +97,6 @@ join_names (const HashName *names, gsize n)
     }
     return g_string_free (s, FALSE);
 }
-
-static gchar *
-join_namemap (const NameMap *map, gsize n)
-{
-    GString *s = g_string_new (NULL);
-    for (gsize i = 0; i < n; i++) {
-        if (i > 0) g_string_append (s, ", ");
-        g_string_append (s, map[i].cli_name);
-    }
-    return g_string_free (s, FALSE);
-}
-
 
 /* ---- Password helpers ---- */
 
@@ -151,6 +125,24 @@ to_secure (const gchar *src)
 static gchar *
 read_password_file (const gchar *path, GError **err)
 {
+    struct stat st;
+    if (g_lstat (path, &st) != 0) {
+        g_set_error (err, G_FILE_ERROR, g_file_error_from_errno (errno),
+                     "Unable to inspect password file: %s",
+                     g_strerror (errno));
+        return NULL;
+    }
+    if (!S_ISREG (st.st_mode) || S_ISLNK (st.st_mode)) {
+        g_set_error_literal (err, G_FILE_ERROR, G_FILE_ERROR_INVAL,
+                             "Password file must be a regular file, not a symlink");
+        return NULL;
+    }
+    if ((st.st_mode & 0077) != 0) {
+        g_set_error_literal (err, G_FILE_ERROR, G_FILE_ERROR_ACCES,
+                             "Password file must not be accessible by group or others");
+        return NULL;
+    }
+
     gchar *contents = NULL;
     gsize len = 0;
     if (!g_file_get_contents (path, &contents, &len, err)) return NULL;
@@ -290,25 +282,26 @@ cmd_hash (int argc, char **argv)
 static int
 cmd_encrypt (int argc, char **argv)
 {
-    g_autofree gchar *cipher_arg = NULL;
-    g_autofree gchar *mode_arg = NULL;
     g_autofree gchar *pwd_file = NULL;
+    g_autofree gchar *output_arg = NULL;
+    gboolean force = FALSE;
     g_auto(GStrv) files = NULL;
 
     GOptionEntry entries[] = {
-        { "cipher", 'c', 0, G_OPTION_ARG_STRING, &cipher_arg,
-          "Cipher: aes (default), twofish, serpent, camellia.", "NAME" },
-        { "mode", 'm', 0, G_OPTION_ARG_STRING, &mode_arg,
-          "Mode: gcm (default), ctr, cbc.", "NAME" },
         { "password-file", 'p', 0, G_OPTION_ARG_FILENAME, &pwd_file,
           "Read password from PATH (first line). Otherwise prompt interactively.", "PATH" },
+        { "output", 'o', 0, G_OPTION_ARG_FILENAME, &output_arg,
+          "Write encrypted data to PATH. Default: FILE.enc.", "PATH" },
+        { "force", 'f', 0, G_OPTION_ARG_NONE, &force,
+          "Replace an existing output atomically.", NULL },
         { G_OPTION_REMAINING, 0, 0, G_OPTION_ARG_FILENAME_ARRAY, &files, NULL, NULL },
         { 0 },
     };
 
     g_autoptr(GOptionContext) ctx = g_option_context_new ("FILE");
     g_option_context_set_summary (ctx,
-        "Encrypt FILE in place; the result is written to FILE.enc next to the source.\n"
+        "Encrypt FILE using the portable GTC3 format (AES-256-GCM + Argon2id).\n"
+        "The result is written to FILE.enc unless --output is supplied.\n"
         "The password is asked interactively (and confirmed) unless --password-file is given.");
     g_option_context_add_main_entries (ctx, entries, NULL);
 
@@ -323,32 +316,24 @@ cmd_encrypt (int argc, char **argv)
         return EXIT_USAGE;
     }
 
-    const gchar *cipher = lookup_internal (CIPHER_NAMES, G_N_ELEMENTS (CIPHER_NAMES),
-                                           cipher_arg ? cipher_arg : "aes");
-    if (cipher == NULL) {
-        g_autofree gchar *valid = join_namemap (CIPHER_NAMES, G_N_ELEMENTS (CIPHER_NAMES));
-        fprintf (stderr, "Unknown cipher: %s\nValid: %s\n", cipher_arg, valid);
-        return EXIT_USAGE;
-    }
-    const gchar *mode = lookup_internal (MODE_NAMES, G_N_ELEMENTS (MODE_NAMES),
-                                         mode_arg ? mode_arg : "gcm");
-    if (mode == NULL) {
-        g_autofree gchar *valid = join_namemap (MODE_NAMES, G_N_ELEMENTS (MODE_NAMES));
-        fprintf (stderr, "Unknown mode: %s\nValid: %s\n", mode_arg, valid);
-        return EXIT_USAGE;
-    }
-
     gchar *pwd = obtain_password (pwd_file, TRUE);
     if (pwd == NULL) return 1;
 
-    gpointer ret = encrypt_file (files[0], pwd, cipher, mode);
+    g_autofree gchar *default_output = output_arg == NULL ?
+        g_strconcat (files[0], ".enc", NULL) : NULL;
+    const gchar *output = output_arg != NULL ? output_arg : default_output;
+    GError *crypto_error = NULL;
+    gboolean ok = gtkcrypto_encrypt_file (files[0], output,
+                                          (const guint8 *)pwd, strlen (pwd),
+                                          force, NULL, &crypto_error);
     secure_wipe (pwd, strlen (pwd));
     gcry_free (pwd);
 
-    if (ret != NULL) {
-        fprintf (stderr, "%s\n", (gchar *)ret);
-        g_free (ret);
-        return 1;
+    if (!ok) {
+        int rc = exit_code_for_error (crypto_error);
+        fprintf (stderr, "%s\n", crypto_error->message);
+        g_error_free (crypto_error);
+        return rc;
     }
     return 0;
 }
@@ -360,7 +345,9 @@ static int
 cmd_decrypt (int argc, char **argv)
 {
     g_autofree gchar *pwd_file = NULL;
+    g_autofree gchar *output_arg = NULL;
     gboolean delete_after = FALSE;
+    gboolean force = FALSE;
     g_auto(GStrv) files = NULL;
 
     GOptionEntry entries[] = {
@@ -368,6 +355,10 @@ cmd_decrypt (int argc, char **argv)
           "Read password from PATH (first line). Otherwise prompt interactively.", "PATH" },
         { "delete", 'd', 0, G_OPTION_ARG_NONE, &delete_after,
           "Delete the encrypted FILE after a successful decryption.", NULL },
+        { "output", 'o', 0, G_OPTION_ARG_FILENAME, &output_arg,
+          "Write plaintext to PATH.", "PATH" },
+        { "force", 'f', 0, G_OPTION_ARG_NONE, &force,
+          "Replace an existing output atomically.", NULL },
         { G_OPTION_REMAINING, 0, 0, G_OPTION_ARG_FILENAME_ARRAY, &files, NULL, NULL },
         { 0 },
     };
@@ -392,14 +383,25 @@ cmd_decrypt (int argc, char **argv)
     gchar *pwd = obtain_password (pwd_file, FALSE);
     if (pwd == NULL) return 1;
 
-    gpointer ret = decrypt_file (files[0], pwd);
+    g_autofree gchar *default_output = NULL;
+    if (output_arg == NULL) {
+        default_output = g_str_has_suffix (files[0], ".enc") ?
+            g_strndup (files[0], strlen (files[0]) - 4) :
+            g_strconcat (files[0], ".decrypted", NULL);
+    }
+    const gchar *output = output_arg != NULL ? output_arg : default_output;
+    GError *crypto_error = NULL;
+    gboolean ok = gtkcrypto_decrypt_file (files[0], output,
+                                          (const guint8 *)pwd, strlen (pwd),
+                                          force, NULL, &crypto_error);
     secure_wipe (pwd, strlen (pwd));
     gcry_free (pwd);
 
-    if (ret != NULL) {
-        fprintf (stderr, "%s\n", (gchar *)ret);
-        g_free (ret);
-        return 1;
+    if (!ok) {
+        int rc = exit_code_for_error (crypto_error);
+        fprintf (stderr, "%s\n", crypto_error->message);
+        g_error_free (crypto_error);
+        return rc;
     }
 
     if (delete_after) {

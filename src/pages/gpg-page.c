@@ -61,6 +61,9 @@ attach_gpg_file_drop (GtkWidget *target_widget, GCallback drop_cb, gpointer user
 
 typedef struct {
     GtkcryptoGpgPage *page;
+    gchar *filename;
+    gchar *fingerprint;
+    gchar *key_id;
     gchar *message;
     gboolean success;
 } SignResultData;
@@ -74,6 +77,10 @@ sign_result_idle (gpointer user_data)
     gtk_widget_set_sensitive (d->page->sign_btn, TRUE);
     adw_toast_overlay_add_toast (d->page->sign_toast_overlay, adw_toast_new (d->message));
     g_free (d->message);
+    g_free (d->filename);
+    g_free (d->fingerprint);
+    g_free (d->key_id);
+    g_object_unref (d->page);
     g_free (d);
     return G_SOURCE_REMOVE;
 }
@@ -83,15 +90,11 @@ static gpointer
 sign_thread_func (gpointer user_data)
 {
     SignResultData *d = user_data;
-    GtkcryptoGpgPage *self = d->page;
-
-    guint selected = adw_combo_row_get_selected (self->key_row);
-    KeyInfo *key_info = g_slist_nth_data (self->gpg_keys, selected);
-
-    gpointer status = sign_file (self->sign_filename, key_info->key_fpr);
+    gpointer status = sign_file (d->filename, d->fingerprint);
 
     if (status == SIGN_OK) {
-        d->message = g_strdup_printf ("File signed successfully (key: %s)", key_info->key_id);
+        d->message = g_strdup_printf ("File signed successfully (key: %s)",
+                                      d->key_id);
         d->success = TRUE;
     } else {
         d->message = g_strdup ("Failed to sign file");
@@ -167,8 +170,21 @@ sign_clicked_cb (GtkButton *btn, gpointer user_data)
     gtk_spinner_start (self->sign_spinner);
 
     SignResultData *d = g_new0 (SignResultData, 1);
-    d->page = self;
-    g_thread_new ("sign-file", sign_thread_func, d);
+    guint selected = adw_combo_row_get_selected (self->key_row);
+    KeyInfo *key_info = g_slist_nth_data (self->gpg_keys, selected);
+    if (key_info == NULL) {
+        gtk_widget_set_sensitive (self->sign_btn, TRUE);
+        gtk_spinner_stop (self->sign_spinner);
+        adw_toast_overlay_add_toast (self->sign_toast_overlay,
+                                     adw_toast_new ("Invalid signing key"));
+        g_free (d);
+        return;
+    }
+    d->page = g_object_ref (self);
+    d->filename = g_strdup (self->sign_filename);
+    d->fingerprint = g_strdup (key_info->key_fpr);
+    d->key_id = g_strdup (key_info->key_id);
+    g_thread_unref (g_thread_new ("sign-file", sign_thread_func, d));
 }
 
 
@@ -176,6 +192,8 @@ sign_clicked_cb (GtkButton *btn, gpointer user_data)
 
 typedef struct {
     GtkcryptoGpgPage *page;
+    gchar *signed_file;
+    gchar *signature_file;
     gchar *message;
 } VerifyResultData;
 
@@ -188,6 +206,9 @@ verify_result_idle (gpointer user_data)
     gtk_widget_set_sensitive (d->page->verify_btn, TRUE);
     adw_toast_overlay_add_toast (d->page->verify_toast_overlay, adw_toast_new (d->message));
     g_free (d->message);
+    g_free (d->signed_file);
+    g_free (d->signature_file);
+    g_object_unref (d->page);
     g_free (d);
     return G_SOURCE_REMOVE;
 }
@@ -197,9 +218,7 @@ static gpointer
 verify_thread_func (gpointer user_data)
 {
     VerifyResultData *d = user_data;
-    GtkcryptoGpgPage *self = d->page;
-
-    gpointer status = verify_signature (self->verify_signed_file, self->verify_sig_file);
+    gpointer status = verify_signature (d->signed_file, d->signature_file);
 
     if (status == SIGNATURE_OK) {
         d->message = g_strdup ("Signature is valid");
@@ -320,8 +339,10 @@ verify_clicked_cb (GtkButton *btn, gpointer user_data)
     gtk_spinner_start (self->verify_spinner);
 
     VerifyResultData *d = g_new0 (VerifyResultData, 1);
-    d->page = self;
-    g_thread_new ("verify-sig", verify_thread_func, d);
+    d->page = g_object_ref (self);
+    d->signed_file = g_strdup (self->verify_signed_file);
+    d->signature_file = g_strdup (self->verify_sig_file);
+    g_thread_unref (g_thread_new ("verify-sig", verify_thread_func, d));
 }
 
 
@@ -556,7 +577,7 @@ gtkcrypto_gpg_page_finalize (GObject *object)
     g_free (self->sign_filename);
     g_free (self->verify_signed_file);
     g_free (self->verify_sig_file);
-    g_slist_free_full (self->gpg_keys, g_free);
+    g_slist_free_full (self->gpg_keys, (GDestroyNotify)key_info_free);
     G_OBJECT_CLASS (gtkcrypto_gpg_page_parent_class)->finalize (object);
 }
 

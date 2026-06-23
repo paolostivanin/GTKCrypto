@@ -1,127 +1,86 @@
-#include <glib.h>
-#include <glib/gstdio.h>
-#include <gio/gio.h>
-#include <gcrypt.h>
+#include <errno.h>
 #include <fcntl.h>
 #include <glib/gstdio.h>
-#include <sys/mman.h>
-#include <errno.h>
+#include <gcrypt.h>
+#include <unistd.h>
+
+#include "crypt-common.h"
 #include "hash.h"
 #include "gtkcrypto.h"
 
-
 gchar *
 get_file_hash (const gchar *filename,
-               gint         hash_algo,
-               gint         digest_size)
+               gint hash_algo,
+               gint digest_size)
 {
-    const gchar *name = gcry_md_algo_name (hash_algo);
-    gint algo = gcry_md_map_name (name);
-
-    gcry_md_hd_t hd;
-    gcry_md_open (&hd, algo, 0);
+    gcry_md_hd_t hd = NULL;
+    gcry_error_t gerr = gcry_md_open (&hd, hash_algo, 0);
+    if (gerr != 0) {
+        g_printerr ("Unable to initialize hash: %s\n", gcry_strerror (gerr));
+        return NULL;
+    }
 
     gpointer status = compute_hash (&hd, filename);
-    if (status == MAP_FAILED) {
-        g_printerr ("mmap error\n");
+    if (status != HASH_COMPUTED) {
+        gcry_md_close (hd);
         return NULL;
-    } else if (status == MUNMAP_FAILED) {
-        g_printerr ("munmap error\n");
-        return NULL;
-    } else if (status == HASH_ERROR) {
-        return NULL;
-    } else {
-        return finalize_hash (&hd, algo, digest_size);
     }
+    return finalize_hash (&hd, hash_algo, digest_size);
 }
-
 
 gpointer
-compute_hash (gcry_md_hd_t  *hd,
-              const gchar   *filename)
+compute_hash (gcry_md_hd_t *hd, const gchar *filename)
 {
-    guint8 *addr;
-    gint ret_val = 0;
-    gsize done_size = 0, diff = 0, offset = 0;
-
-    goffset file_size = get_file_size (filename);
-    if (file_size == -1) {
-        g_printerr ("Error while getting file size\n");
+    gint fd = g_open (filename, O_RDONLY | O_CLOEXEC | O_NOFOLLOW, 0);
+    if (fd < 0) {
+        g_printerr ("%s: %s\n", filename, g_strerror (errno));
         return HASH_ERROR;
     }
 
-    gint fd = g_open (filename, O_RDONLY | O_NOFOLLOW);
-    if (fd == -1) {
-        g_printerr ("%s\n", g_strerror (errno));
+    guint8 *buffer = g_try_malloc (FILE_BUFFER);
+    if (buffer == NULL) {
+        close (fd);
         return HASH_ERROR;
     }
-    if (file_size < FILE_BUFFER) {
-        addr = mmap (NULL, (gsize)file_size, PROT_READ, MAP_FILE | MAP_SHARED, fd, 0);
-        if (addr == MAP_FAILED) {
-            g_close (fd, NULL);
-            return MAP_FAILED;
+
+    gpointer result = HASH_COMPUTED;
+    for (;;) {
+        ssize_t n = read (fd, buffer, FILE_BUFFER);
+        if (n == 0) {
+            break;
         }
-        gcry_md_write (*hd, addr, (gsize) file_size);
-        ret_val = munmap (addr, (gsize) file_size);
-        if (ret_val == -1) {
-            g_close (fd, NULL);
-            return MUNMAP_FAILED;
+        if (n < 0) {
+            if (errno == EINTR) {
+                continue;
+            }
+            g_printerr ("%s: %s\n", filename, g_strerror (errno));
+            result = HASH_ERROR;
+            break;
         }
-        g_close (fd, NULL);
-        return HASH_COMPUTED;
-    } else {
-        while (file_size > done_size) {
-            addr = mmap (NULL, FILE_BUFFER, PROT_READ, MAP_FILE | MAP_SHARED, fd, (off64_t)offset);
-            if (addr == MAP_FAILED) {
-                g_close (fd, NULL);
-                return MAP_FAILED;
-            }
-            gcry_md_write (*hd, addr, FILE_BUFFER);
-            done_size += FILE_BUFFER;
-            diff = file_size - done_size;
-            offset += FILE_BUFFER;
-            if (diff < FILE_BUFFER) {
-                addr = mmap (NULL, diff, PROT_READ, MAP_FILE | MAP_SHARED, fd, (off64_t)offset);
-                if (addr == MAP_FAILED) {
-                    g_close (fd, NULL);
-                    return MAP_FAILED;
-                }
-                gcry_md_write (*hd, addr, diff);
-                ret_val = munmap (addr, diff);
-                if (ret_val == -1) {
-                    g_close (fd, NULL);
-                    return MUNMAP_FAILED;
-                }
-                break;
-            }
-            ret_val = munmap (addr, FILE_BUFFER);
-            if (ret_val == -1) {
-                g_close (fd, NULL);
-                return MUNMAP_FAILED;
-            }
-        }
-        g_close (fd, NULL);
-        return HASH_COMPUTED;
+        gcry_md_write (*hd, buffer, (gsize)n);
     }
+
+    gtkcrypto_secure_clear (buffer, FILE_BUFFER);
+    g_free (buffer);
+    close (fd);
+    return result;
 }
 
-
 gchar *
-finalize_hash (gcry_md_hd_t *hd,
-               gint          algo,
-               gint          digest_size)
+finalize_hash (gcry_md_hd_t *hd, gint algo, gint digest_size)
 {
     gcry_md_final (*hd);
-    gchar *finalized_hash = g_malloc0 ((gsize) digest_size * 2 + 1);
-    guchar *hash = gcry_md_read (*hd, algo);
-
-    for (gint i = 0; i < digest_size; i++) {
-        g_sprintf (finalized_hash + (i * 2), "%02x", hash[i]);
+    const guchar *hash = gcry_md_read (*hd, algo);
+    if (hash == NULL) {
+        gcry_md_close (*hd);
+        return NULL;
     }
 
-    finalized_hash[digest_size * 2] = '\0';
-
+    gchar *result = g_malloc ((gsize)digest_size * 2 + 1);
+    for (gint i = 0; i < digest_size; i++) {
+        g_snprintf (result + (i * 2), 3, "%02x", hash[i]);
+    }
+    result[digest_size * 2] = '\0';
     gcry_md_close (*hd);
-
-    return finalized_hash;
+    return result;
 }

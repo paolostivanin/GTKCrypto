@@ -2,8 +2,8 @@
 #include "gtkcrypto-application.h"
 #include "gtkcrypto-window.h"
 
-#define APP_ID          "com.github.paolostivanin.GTKCrypto"
-#define GCRYPT_MIN_VER  "1.7.0"
+#define APP_ID          "com.github.paolostivanin.gtkcrypto"
+#define GCRYPT_MIN_VER  "1.10.1"
 #define SECMEM_SIZE     32768
 
 struct _GtkcryptoApplication {
@@ -26,8 +26,8 @@ about_action_cb (GSimpleAction *action,
 
     AdwAboutDialog *dialog = ADW_ABOUT_DIALOG (adw_about_dialog_new ());
     adw_about_dialog_set_application_name (dialog, "GTKCrypto");
-    adw_about_dialog_set_application_icon (dialog, "com.github.paolostivanin.GTKCrypto");
-    adw_about_dialog_set_version (dialog, "2.0.0");
+    adw_about_dialog_set_application_icon (dialog, APP_ID);
+    adw_about_dialog_set_version (dialog, GTKCRYPTO_VERSION);
     adw_about_dialog_set_developer_name (dialog, "Paolo Stivanin");
     adw_about_dialog_set_license_type (dialog, GTK_LICENSE_GPL_3_0);
     adw_about_dialog_set_issue_url (dialog, "https://github.com/paolostivanin/GTKCrypto/issues");
@@ -68,13 +68,11 @@ gtkcrypto_application_startup (GApplication *app)
     GdkDisplay *display = gdk_display_get_default ();
     GtkIconTheme *icon_theme = gtk_icon_theme_get_for_display (display);
     gtk_icon_theme_add_resource_path (icon_theme,
-        "/com/github/paolostivanin/GTKCrypto/icons");
-    g_object_set (gtk_settings_get_for_display (display),
-                  "gtk-icon-theme-name", "Adwaita", NULL);
+        "/com/github/paolostivanin/gtkcrypto/icons");
 
     GtkCssProvider *css_provider = gtk_css_provider_new ();
     gtk_css_provider_load_from_resource (css_provider,
-                                         "/com/github/paolostivanin/GTKCrypto/gtkcrypto.css");
+                                         "/com/github/paolostivanin/gtkcrypto/gtkcrypto.css");
     gtk_style_context_add_provider_for_display (gdk_display_get_default (),
                                                 GTK_STYLE_PROVIDER (css_provider),
                                                 GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);

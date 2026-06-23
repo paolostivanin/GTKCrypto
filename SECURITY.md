@@ -1,18 +1,21 @@
 # Security Policy
 
-## Supported Versions
+## Supported versions
 
-| Version | Supported          |
-|---------|--------------------|
-| 2.2.x   | :heavy_check_mark: |
-| 2.1.x   | :x:                |
-| 2.0.x   | :x:                |
-| 1.0.x   | :x:                |
+| Version | Supported |
+|---|---|
+| 3.x | Yes |
+| 2.x and older | No |
 
-## Reporting a Vulnerability
+Versions before 3.0.0 contain output-integrity, compatibility, and data-loss
+defects. Upgrade before processing untrusted encrypted files.
 
-If you find a security vulnerability, please report it privately via [e-mail](mailto:paolostivanin@users.noreply.github.com).
+## Reporting a vulnerability
 
-- Within 24 hours I will acknowledge your report and assess severity.
-- Within 15 days I will develop and release a fix.
-- Once the fix is released, a [security advisory](https://github.com/paolostivanin/GTKCrypto/security/advisories) will be published.
+Report vulnerabilities privately to
+[paolostivanin@users.noreply.github.com](mailto:paolostivanin@users.noreply.github.com)
+or through a private GitHub security advisory.
+
+Reports are acknowledged within 24 hours. A remediation timeline is provided
+after severity and affected versions have been established. Public disclosure
+is coordinated after a fixed release is available.

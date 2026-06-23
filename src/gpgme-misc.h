@@ -27,10 +27,12 @@ typedef struct key_info_t {
     gchar *key_fpr;
 } KeyInfo;
 
+void         key_info_free      (KeyInfo *key_info);
+
 GSList      *get_available_keys (void);
 
 gpointer     sign_file          (const gchar *input_file_path,
                                  const gchar *fpr);
 
-gpointer     verify_signature   (const gchar *detached_signature_path,
-                                 const gchar *signed_file_path);
+gpointer     verify_signature   (const gchar *signed_file_path,
+                                 const gchar *detached_signature_path);

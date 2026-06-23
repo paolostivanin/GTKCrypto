@@ -1,413 +1,245 @@
-#include <glib.h>
-#include <gio/gio.h>
-#include <gcrypt.h>
+#include "encrypt-files-cb.h"
+
+#include <errno.h>
+#include <fcntl.h>
+#include <glib/gstdio.h>
 #include <string.h>
-#include "gtkcrypto.h"
-#include "hash.h"
-#include "crypt-common.h"
-#include "cleanup.h"
+#include <sys/stat.h>
+#include <unistd.h>
 
-static void   set_algo_and_mode                      (Metadata *header_metadata,
-                                                      const gchar *algo,
-                                                      const gchar *algo_mode);
+enum {
+    V3_OFFSET_VERSION = 4,
+    V3_OFFSET_HEADER_LENGTH = 5,
+    V3_OFFSET_FLAGS = 7,
+    V3_OFFSET_CIPHER = 8,
+    V3_OFFSET_KDF = 9,
+    V3_OFFSET_SALT_LENGTH = 10,
+    V3_OFFSET_NONCE_LENGTH = 11,
+    V3_OFFSET_TAG_LENGTH = 12,
+    V3_OFFSET_RESERVED = 13,
+    V3_OFFSET_TIME = 16,
+    V3_OFFSET_MEMORY = 20,
+    V3_OFFSET_LANES = 24,
+    V3_OFFSET_PLAINTEXT_SIZE = 28,
+    V3_OFFSET_SALT = 36,
+    V3_OFFSET_NONCE = 68,
+};
 
-static void   set_number_of_blocks_and_padding_bytes (goffset file_size,
-                                                      gsize block_length,
-                                                      gint64 *num_of_blocks,
-                                                      gint *num_of_padding_bytes);
+static void
+put_be16 (guint8 *p, guint16 value)
+{
+    value = GUINT16_TO_BE (value);
+    memcpy (p, &value, sizeof value);
+}
 
-static gchar *encrypt_using_cbc_mode                 (Metadata *header_metadata,
-                                                      gcry_cipher_hd_t *hd,
-                                                      goffset file_size,
-                                                      gint64 num_of_blocks,
-                                                      gint num_of_padding_bytes,
-                                                      gsize block_length,
-                                                      GFileInputStream *in_stream,
-                                                      GFileOutputStream *out_stream);
+static void
+put_be32 (guint8 *p, guint32 value)
+{
+    value = GUINT32_TO_BE (value);
+    memcpy (p, &value, sizeof value);
+}
 
-static gchar *encrypt_using_ctr_mode                 (Metadata *header_metadata,
-                                                      gcry_cipher_hd_t *hd,
-                                                      goffset file_size,
-                                                      GFileInputStream *in_stream,
-                                                      GFileOutputStream *out_stream);
+static void
+put_be64 (guint8 *p, guint64 value)
+{
+    value = GUINT64_TO_BE (value);
+    memcpy (p, &value, sizeof value);
+}
 
-static gchar *encrypt_using_gcm_mode                 (Metadata *header_metadata,
-                                                      gcry_cipher_hd_t *hd,
-                                                      goffset file_size,
-                                                      GFileInputStream *in_stream,
-                                                      GFileOutputStream *out_stream);
+static gboolean
+get_regular_file_size (gint fd, guint64 *size, GError **error)
+{
+    struct stat st;
+    if (fstat (fd, &st) != 0) {
+        g_set_error (error, GTKCRYPTO_ERROR, GTKCRYPTO_ERROR_IO,
+                     "Unable to inspect input: %s", g_strerror (errno));
+        return FALSE;
+    }
+    if (!S_ISREG (st.st_mode) || st.st_size < 0) {
+        g_set_error_literal (error, GTKCRYPTO_ERROR,
+                             GTKCRYPTO_ERROR_INVALID_ARGUMENT,
+                             "Input must be a regular file");
+        return FALSE;
+    }
+    *size = (guint64)st.st_size;
+    return TRUE;
+}
 
+gboolean
+gtkcrypto_encrypt_file (const gchar *input_path,
+                        const gchar *output_path,
+                        const guint8 *password,
+                        gsize password_len,
+                        gboolean overwrite,
+                        GCancellable *cancellable,
+                        GError **error)
+{
+    g_return_val_if_fail (input_path != NULL, FALSE);
+    g_return_val_if_fail (output_path != NULL, FALSE);
+    g_return_val_if_fail (password != NULL || password_len == 0, FALSE);
+
+    gboolean success = FALSE;
+    gint input_fd = -1;
+    gcry_cipher_hd_t cipher = NULL;
+    GtkcryptoAtomicOutput output = { .fd = -1 };
+    guint8 key[GTKCRYPTO_KEY_SIZE] = { 0 };
+    guint8 header[GTKCRYPTO_V3_HEADER_SIZE] = { 0 };
+    guint8 tag[GTKCRYPTO_TAG_SIZE] = { 0 };
+    guint8 *plain = NULL;
+    guint8 *encrypted = NULL;
+
+    input_fd = g_open (input_path, O_RDONLY | O_CLOEXEC | O_NOFOLLOW, 0);
+    if (input_fd < 0) {
+        g_set_error (error, GTKCRYPTO_ERROR, GTKCRYPTO_ERROR_IO,
+                     "Unable to open input: %s", g_strerror (errno));
+        goto out;
+    }
+
+    guint64 plaintext_size;
+    if (!get_regular_file_size (input_fd, &plaintext_size, error)) {
+        goto out;
+    }
+
+    memcpy (header, "GTC3", 4);
+    header[V3_OFFSET_VERSION] = 3;
+    put_be16 (header + V3_OFFSET_HEADER_LENGTH, GTKCRYPTO_V3_HEADER_SIZE);
+    header[V3_OFFSET_FLAGS] = 0;
+    header[V3_OFFSET_CIPHER] = 1; /* AES-256-GCM */
+    header[V3_OFFSET_KDF] = 1; /* Argon2id */
+    header[V3_OFFSET_SALT_LENGTH] = GTKCRYPTO_SALT_SIZE;
+    header[V3_OFFSET_NONCE_LENGTH] = GTKCRYPTO_NONCE_SIZE;
+    header[V3_OFFSET_TAG_LENGTH] = GTKCRYPTO_TAG_SIZE;
+    memset (header + V3_OFFSET_RESERVED, 0, 3);
+    put_be32 (header + V3_OFFSET_TIME, GTKCRYPTO_ARGON2_TIME);
+    put_be32 (header + V3_OFFSET_MEMORY, GTKCRYPTO_ARGON2_MEMORY_KIB);
+    put_be32 (header + V3_OFFSET_LANES, GTKCRYPTO_ARGON2_LANES);
+    put_be64 (header + V3_OFFSET_PLAINTEXT_SIZE, plaintext_size);
+    gcry_randomize (header + V3_OFFSET_SALT, GTKCRYPTO_SALT_SIZE,
+                    GCRY_STRONG_RANDOM);
+    gcry_randomize (header + V3_OFFSET_NONCE, GTKCRYPTO_NONCE_SIZE,
+                    GCRY_STRONG_RANDOM);
+
+    if (!gtkcrypto_argon2id_derive (password, password_len,
+                                    header + V3_OFFSET_SALT,
+                                    GTKCRYPTO_ARGON2_TIME,
+                                    GTKCRYPTO_ARGON2_MEMORY_KIB,
+                                    GTKCRYPTO_ARGON2_LANES,
+                                    key, error)) {
+        goto out;
+    }
+
+    gcry_error_t gerr = gcry_cipher_open (&cipher, GCRY_CIPHER_AES256,
+                                          GCRY_CIPHER_MODE_GCM, 0);
+    if (gerr == 0) {
+        gerr = gcry_cipher_setkey (cipher, key, sizeof key);
+    }
+    if (gerr == 0) {
+        gerr = gcry_cipher_setiv (cipher, header + V3_OFFSET_NONCE,
+                                  GTKCRYPTO_NONCE_SIZE);
+    }
+    if (gerr == 0) {
+        gerr = gcry_cipher_authenticate (cipher, header, sizeof header);
+    }
+    if (gerr != 0) {
+        g_set_error (error, GTKCRYPTO_ERROR, GTKCRYPTO_ERROR_CRYPTO,
+                     "Unable to initialize encryption: %s",
+                     gcry_strerror (gerr));
+        goto out;
+    }
+
+    if (!gtkcrypto_atomic_output_open (&output, output_path, overwrite, error) ||
+        !gtkcrypto_write_full (output.fd, header, sizeof header,
+                               cancellable, error)) {
+        goto out;
+    }
+
+    plain = g_try_malloc (FILE_BUFFER);
+    encrypted = g_try_malloc (FILE_BUFFER);
+    if (plain == NULL || encrypted == NULL) {
+        g_set_error_literal (error, GTKCRYPTO_ERROR, GTKCRYPTO_ERROR_IO,
+                             "Unable to allocate encryption buffers");
+        goto out;
+    }
+
+    guint64 done = 0;
+    while (done < plaintext_size) {
+        if (!gtkcrypto_check_cancelled (cancellable, error)) {
+            goto out;
+        }
+        gsize wanted = (gsize)MIN ((guint64)FILE_BUFFER,
+                                  plaintext_size - done);
+        if (!gtkcrypto_read_full (input_fd, plain, wanted,
+                                  cancellable, error)) {
+            goto out;
+        }
+        if (done + wanted == plaintext_size) {
+            gcry_cipher_final (cipher);
+        }
+        gerr = gcry_cipher_encrypt (cipher, encrypted, wanted, plain, wanted);
+        if (gerr != 0) {
+            g_set_error (error, GTKCRYPTO_ERROR, GTKCRYPTO_ERROR_CRYPTO,
+                         "Encryption failed: %s", gcry_strerror (gerr));
+            goto out;
+        }
+        if (!gtkcrypto_write_full (output.fd, encrypted, wanted,
+                                   cancellable, error)) {
+            goto out;
+        }
+        gtkcrypto_secure_clear (plain, wanted);
+        gtkcrypto_secure_clear (encrypted, wanted);
+        done += wanted;
+    }
+
+    if (plaintext_size == 0) {
+        gcry_cipher_final (cipher);
+    }
+    gerr = gcry_cipher_gettag (cipher, tag, sizeof tag);
+    if (gerr != 0) {
+        g_set_error (error, GTKCRYPTO_ERROR, GTKCRYPTO_ERROR_CRYPTO,
+                     "Unable to finalize authentication tag: %s",
+                     gcry_strerror (gerr));
+        goto out;
+    }
+    if (!gtkcrypto_write_full (output.fd, tag, sizeof tag,
+                               cancellable, error) ||
+        !gtkcrypto_atomic_output_commit (&output, error)) {
+        goto out;
+    }
+    success = TRUE;
+
+out:
+    if (!success) {
+        gtkcrypto_atomic_output_abort (&output);
+    }
+    if (input_fd >= 0) {
+        close (input_fd);
+    }
+    if (cipher != NULL) {
+        gcry_cipher_close (cipher);
+    }
+    gtkcrypto_secure_clear (key, sizeof key);
+    gtkcrypto_secure_clear (plain, plain != NULL ? FILE_BUFFER : 0);
+    gtkcrypto_secure_clear (encrypted, encrypted != NULL ? FILE_BUFFER : 0);
+    g_free (plain);
+    g_free (encrypted);
+    return success;
+}
 
 gpointer
-encrypt_file (const gchar *input_file_path, const gchar *pwd, const gchar *algo, const gchar *algo_mode)
+encrypt_file (const gchar *input_file_path,
+              const gchar *pwd,
+              const gchar *algo,
+              const gchar *algo_mode)
 {
-    Metadata *header_metadata = g_new0 (Metadata, 1);
-    CryptoKeys *encryption_keys = g_new0 (CryptoKeys, 1);
+    (void)algo;
+    (void)algo_mode;
+    g_autofree gchar *output = g_strconcat (input_file_path, ".enc", NULL);
+    g_autoptr(GError) error = NULL;
 
-    header_metadata->magic[0] = METADATA_MAGIC_0;
-    header_metadata->magic[1] = METADATA_MAGIC_1;
-    header_metadata->magic[2] = METADATA_MAGIC_2;
-    header_metadata->version = METADATA_VERSION;
-
-    set_algo_and_mode (header_metadata, algo, algo_mode);
-    gsize algo_key_len = gcry_cipher_get_algo_keylen (header_metadata->algo);
-    gsize algo_blk_len = gcry_cipher_get_algo_blklen (header_metadata->algo);
-
-    if (header_metadata->algo_mode == GCRY_CIPHER_MODE_GCM) {
-        header_metadata->iv_size = GCM_IV_SIZE;
-    } else {
-        header_metadata->iv_size = (guint8)algo_blk_len;
+    if (!gtkcrypto_encrypt_file (input_file_path, output,
+                                 (const guint8 *)pwd, strlen (pwd),
+                                 FALSE, NULL, &error)) {
+        return g_strdup (error->message);
     }
-
-    gcry_create_nonce (header_metadata->iv, header_metadata->iv_size);
-    gcry_create_nonce (header_metadata->salt, KDF_SALT_SIZE);
-
-    if (!setup_keys (pwd, algo_key_len, KDF_ITERATIONS, header_metadata, encryption_keys)) {
-        g_free (encryption_keys);
-        g_free (header_metadata);
-        return g_strdup ("Couldn't setup the encryption keys, exiting...");
-    }
-
-    goffset filesize = get_file_size (input_file_path);
-
-    GError *err = NULL;
-    gchar *err_msg = NULL;
-
-    GFile *in_file = g_file_new_for_path (input_file_path);
-    GFileInputStream *in_stream = g_file_read (in_file, NULL, &err);
-    if (err != NULL) {
-        crypto_keys_cleanup (encryption_keys);
-        g_free (header_metadata);
-        g_object_unref (in_file);
-        err_msg = g_strdup (err->message);
-        g_clear_error (&err);
-        return err_msg;
-    }
-
-    gchar *output_file_path = g_strconcat (input_file_path, ".enc", NULL);
-    GFile *out_file = g_file_new_for_path (output_file_path);
-    GFileOutputStream *out_stream = g_file_replace (out_file, NULL, FALSE, G_FILE_CREATE_REPLACE_DESTINATION, NULL, &err);
-    if (err != NULL) {
-        crypto_keys_cleanup (encryption_keys);
-        gfile_cleanup (in_file, out_file);
-        gstream_cleanup (in_stream, out_stream);
-        data_cleanup (header_metadata, output_file_path, NULL);
-        err_msg = g_strdup (err->message);
-        g_clear_error (&err);
-        return err_msg;
-    }
-
-    gcry_cipher_hd_t hd;
-    gcry_error_t gcry_err = gcry_cipher_open (&hd, header_metadata->algo, header_metadata->algo_mode, 0);
-    if (gcry_err) {
-        crypto_keys_cleanup (encryption_keys);
-        gfile_cleanup (in_file, out_file);
-        gstream_cleanup (in_stream, out_stream);
-        data_cleanup (header_metadata, output_file_path, NULL);
-        return g_strdup ("Failed to initialize cipher");
-    }
-    gcry_cipher_setkey (hd, encryption_keys->crypto_key, algo_key_len);
-
-    gint64 number_of_blocks;
-    gint number_of_padding_bytes;
-    gchar *ret_msg;
-    if (header_metadata->algo_mode == GCRY_CIPHER_MODE_CBC) {
-        set_number_of_blocks_and_padding_bytes (filesize, algo_blk_len, &number_of_blocks, &number_of_padding_bytes);
-        gcry_cipher_setiv (hd, header_metadata->iv, header_metadata->iv_size);
-        ret_msg = encrypt_using_cbc_mode (header_metadata, &hd, filesize, number_of_blocks, number_of_padding_bytes, algo_blk_len, in_stream, out_stream);
-    } else if (header_metadata->algo_mode == GCRY_CIPHER_MODE_GCM) {
-        gcry_cipher_setiv (hd, header_metadata->iv, header_metadata->iv_size);
-        ret_msg = encrypt_using_gcm_mode (header_metadata, &hd, filesize, in_stream, out_stream);
-    } else {
-        gcry_cipher_setctr (hd, header_metadata->iv, header_metadata->iv_size);
-        ret_msg = encrypt_using_ctr_mode (header_metadata, &hd, filesize, in_stream, out_stream);
-    }
-    if (ret_msg != NULL) {
-        crypto_keys_cleanup (encryption_keys);
-        gfile_cleanup (in_file, out_file);
-        gstream_cleanup (in_stream, out_stream);
-        data_cleanup (header_metadata, output_file_path, NULL);
-        return g_strdup (ret_msg);
-    }
-
-    gcry_cipher_close (hd);
-
-    if (header_metadata->algo_mode != GCRY_CIPHER_MODE_GCM) {
-        guchar *hmac = calculate_hmac (output_file_path, encryption_keys->hmac_key, NULL);
-        gssize written_bytes = g_output_stream_write (G_OUTPUT_STREAM (out_stream), hmac, SHA512_DIGEST_SIZE, NULL, &err);
-        if (written_bytes == -1) {
-            crypto_keys_cleanup (encryption_keys);
-            gfile_cleanup (in_file, out_file);
-            gstream_cleanup (in_stream, out_stream);
-            data_cleanup (header_metadata, output_file_path, hmac);
-            err_msg = g_strdup (err->message);
-            g_clear_error (&err);
-            return err_msg;
-        }
-        g_free (hmac);
-    }
-
-    crypto_keys_cleanup (encryption_keys);
-    g_free (output_file_path);
-    g_free (header_metadata);
-    gfile_cleanup (in_file, out_file);
-    gstream_cleanup (in_stream, out_stream);
-    return NULL;
-}
-
-
-static void
-set_algo_and_mode (Metadata *header_metadata,
-                   const gchar *algo,
-                   const gchar *algo_mode)
-{
-    if (g_strcmp0 (algo, "aes_rbtn_widget") == 0) {
-        header_metadata->algo = GCRY_CIPHER_AES256;
-    } else if (g_strcmp0 (algo, "camellia_rbtn_widget") == 0) {
-        header_metadata->algo = GCRY_CIPHER_CAMELLIA256;
-    } else if (g_strcmp0 (algo, "serpent_rbtn_widget") == 0) {
-        header_metadata->algo = GCRY_CIPHER_SERPENT256;
-    } else {
-        header_metadata->algo = GCRY_CIPHER_TWOFISH;
-    }
-
-    if (g_strcmp0 (algo_mode, "cbc_rbtn_widget") == 0) {
-        header_metadata->algo_mode = GCRY_CIPHER_MODE_CBC;
-    } else if (g_strcmp0 (algo_mode, "gcm_rbtn_widget") == 0) {
-        header_metadata->algo_mode = GCRY_CIPHER_MODE_GCM;
-    } else {
-        header_metadata->algo_mode = GCRY_CIPHER_MODE_CTR;
-    }
-}
-
-
-static void
-set_number_of_blocks_and_padding_bytes (goffset file_size,
-                                        gsize block_length,
-                                        gint64 *num_of_blocks,
-                                        gint *num_of_padding_bytes)
-{
-    gint64 file_blocks = (gint64)(file_size / block_length);
-
-    gint spare_bytes = (gint) (file_size % block_length);  // number of bytes left which didn't filled up a block
-
-    if (spare_bytes > 0) {
-        *num_of_blocks = file_blocks + 1;
-        *num_of_padding_bytes = (gint) (block_length - spare_bytes);
-    } else {
-        *num_of_blocks = file_blocks;
-        *num_of_padding_bytes = spare_bytes;
-    }
-}
-
-
-static gchar *
-encrypt_using_cbc_mode (Metadata *header_metadata,
-                        gcry_cipher_hd_t *hd,
-                        goffset file_size,
-                        gint64 num_of_blocks,
-                        gint num_of_padding_bytes,
-                        gsize block_length,
-                        GFileInputStream *in_stream,
-                        GFileOutputStream *out_stream)
-{
-    GError *err = NULL;
-    gchar *err_msg = NULL;
-    guchar padding[16] = {0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F};
-    header_metadata->padding_value = padding[num_of_padding_bytes];
-
-    guchar *buffer = g_try_malloc0 ((gsize)(file_size < FILE_BUFFER ? (num_of_blocks * block_length) : FILE_BUFFER));
-    guchar *enc_buffer = g_try_malloc0 ((gsize)(file_size < FILE_BUFFER ? (num_of_blocks * block_length) : FILE_BUFFER));
-    if (buffer == NULL || enc_buffer == NULL) {
-        if (buffer != NULL) g_free (buffer);
-        if (enc_buffer != NULL) g_free (enc_buffer);
-        return g_strdup ("Couldn't allocate memory");
-    }
-
-    if (g_output_stream_write (G_OUTPUT_STREAM (out_stream), header_metadata, sizeof (Metadata), NULL, &err) == -1) {
-        g_free (buffer);
-        g_free (enc_buffer);
-        err_msg = g_strdup (err->message);
-        g_clear_error (&err);
-        return err_msg;
-    }
-
-    gssize read_len;
-    gint64 done_blocks = 0;
-
-    while (done_blocks < num_of_blocks) {
-        goffset remaining_bytes = (goffset)((num_of_blocks - done_blocks) * block_length);
-        if (remaining_bytes > FILE_BUFFER) {
-            read_len = g_input_stream_read (G_INPUT_STREAM (in_stream), buffer, FILE_BUFFER, NULL, &err);
-            done_blocks += (gint64)(read_len / block_length);
-        } else {
-            read_len = g_input_stream_read (G_INPUT_STREAM (in_stream), buffer, (gsize)remaining_bytes, NULL, &err);
-            for (gsize j = (gsize)read_len, i = (block_length - num_of_padding_bytes); i < block_length; i++) {
-                buffer[j] = header_metadata->padding_value;
-                j++;
-            }
-            read_len += num_of_padding_bytes;
-            done_blocks += (gint64)(read_len / block_length);
-        }
-        if (read_len == -1) {
-            g_free (buffer);
-            g_free (enc_buffer);
-            err_msg = g_strdup (err->message);
-            g_clear_error (&err);
-            return err_msg;
-        }
-
-        gcry_cipher_encrypt (*hd, enc_buffer, (gsize)read_len, buffer, (gsize)read_len);
-        if (g_output_stream_write (G_OUTPUT_STREAM (out_stream), enc_buffer, (gsize)read_len, NULL, &err) != read_len) {
-            g_free (buffer);
-            g_free (enc_buffer);
-            return g_strdup ("Error while trying to write encrypted data to the output file");
-        }
-
-        explicit_bzero (buffer, (gsize)read_len);
-        explicit_bzero (enc_buffer, (gsize)read_len);
-    }
-
-    g_free (buffer);
-    g_free (enc_buffer);
-
-    return NULL;
-}
-
-
-static gchar *
-encrypt_using_ctr_mode (Metadata *header_metadata, gcry_cipher_hd_t *hd, goffset file_size,
-                        GFileInputStream *in_stream, GFileOutputStream *out_stream)
-{
-    GError *err = NULL;
-    gchar *err_msg = NULL;
-
-    if (g_output_stream_write (G_OUTPUT_STREAM (out_stream), header_metadata, sizeof (Metadata), NULL, &err) == -1) {
-        err_msg = g_strdup (err->message);
-        g_clear_error (&err);
-        return err_msg;
-    }
-
-    guchar *buffer = g_try_malloc0 ((gsize)(file_size < FILE_BUFFER ? file_size : FILE_BUFFER));
-    guchar *enc_buffer = g_try_malloc0 ((gsize)(file_size < FILE_BUFFER ? file_size : FILE_BUFFER));
-    if (buffer == NULL || enc_buffer == NULL) {
-        if (buffer != NULL) g_free (buffer);
-        if (enc_buffer != NULL) g_free (enc_buffer);
-        return g_strdup ("Couldn't allocate memory");
-    }
-
-    goffset done_size = 0;
-    gssize read_len;
-
-    while (done_size < file_size) {
-        if ((file_size - done_size) > FILE_BUFFER) {
-            read_len = g_input_stream_read (G_INPUT_STREAM (in_stream), buffer, FILE_BUFFER, NULL, &err);
-        } else {
-            read_len = g_input_stream_read (G_INPUT_STREAM (in_stream), buffer, (gsize)file_size - done_size, NULL, &err);
-        }
-        if (read_len == -1) {
-            g_free (buffer);
-            g_free (enc_buffer);
-            err_msg = g_strdup (err->message);
-            g_clear_error (&err);
-            return err_msg;
-        }
-
-        gcry_cipher_encrypt (*hd, enc_buffer, (gsize)read_len, buffer, (gsize)read_len);
-        if (g_output_stream_write (G_OUTPUT_STREAM (out_stream), enc_buffer, (gsize)read_len, NULL, &err) == -1) {
-            g_free (buffer);
-            g_free (enc_buffer);
-            err_msg = g_strdup (err->message);
-            g_clear_error (&err);
-            return err_msg;
-        }
-
-        explicit_bzero (buffer, (gsize)read_len);
-        explicit_bzero (enc_buffer, (gsize)read_len);
-
-        done_size += read_len;
-    }
-
-    g_free (buffer);
-    g_free (enc_buffer);
-
-    return NULL;
-}
-
-
-static gchar *
-encrypt_using_gcm_mode (Metadata *header_metadata, gcry_cipher_hd_t *hd, goffset file_size,
-                        GFileInputStream *in_stream, GFileOutputStream *out_stream)
-{
-    GError *err = NULL;
-    gchar *err_msg = NULL;
-
-    if (g_output_stream_write (G_OUTPUT_STREAM (out_stream), header_metadata, sizeof (Metadata), NULL, &err) == -1) {
-        err_msg = g_strdup (err->message);
-        g_clear_error (&err);
-        return err_msg;
-    }
-
-    guchar *buffer = g_try_malloc0 ((gsize)(file_size < FILE_BUFFER ? file_size : FILE_BUFFER));
-    guchar *enc_buffer = g_try_malloc0 ((gsize)(file_size < FILE_BUFFER ? file_size : FILE_BUFFER));
-    if (buffer == NULL || enc_buffer == NULL) {
-        if (buffer != NULL) g_free (buffer);
-        if (enc_buffer != NULL) g_free (enc_buffer);
-        return g_strdup ("Couldn't allocate memory");
-    }
-
-    goffset done_size = 0;
-    gssize read_len;
-
-    while (done_size < file_size) {
-        goffset remaining = file_size - done_size;
-        gboolean is_last = (remaining <= FILE_BUFFER);
-
-        if (is_last) {
-            read_len = g_input_stream_read (G_INPUT_STREAM (in_stream), buffer, (gsize)remaining, NULL, &err);
-        } else {
-            read_len = g_input_stream_read (G_INPUT_STREAM (in_stream), buffer, FILE_BUFFER, NULL, &err);
-        }
-        if (read_len == -1) {
-            g_free (buffer);
-            g_free (enc_buffer);
-            err_msg = g_strdup (err->message);
-            g_clear_error (&err);
-            return err_msg;
-        }
-
-        if (is_last) {
-            gcry_cipher_final (*hd);
-        }
-
-        gcry_cipher_encrypt (*hd, enc_buffer, (gsize)read_len, buffer, (gsize)read_len);
-        if (g_output_stream_write (G_OUTPUT_STREAM (out_stream), enc_buffer, (gsize)read_len, NULL, &err) == -1) {
-            g_free (buffer);
-            g_free (enc_buffer);
-            err_msg = g_strdup (err->message);
-            g_clear_error (&err);
-            return err_msg;
-        }
-
-        explicit_bzero (buffer, (gsize)read_len);
-        explicit_bzero (enc_buffer, (gsize)read_len);
-
-        done_size += read_len;
-    }
-
-    /* Write GCM authentication tag */
-    guchar tag[TAG_SIZE];
-    gcry_cipher_gettag (*hd, tag, TAG_SIZE);
-    if (g_output_stream_write (G_OUTPUT_STREAM (out_stream), tag, TAG_SIZE, NULL, &err) == -1) {
-        g_free (buffer);
-        g_free (enc_buffer);
-        err_msg = g_strdup (err->message);
-        g_clear_error (&err);
-        return err_msg;
-    }
-
-    g_free (buffer);
-    g_free (enc_buffer);
-
     return NULL;
 }

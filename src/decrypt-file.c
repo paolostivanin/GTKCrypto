@@ -1,463 +1,746 @@
-#include <glib.h>
+#include "decrypt-files-cb.h"
+
+#include <errno.h>
+#include <fcntl.h>
 #include <glib/gstdio.h>
-#include <gio/gio.h>
-#include <gcrypt.h>
 #include <string.h>
-#include "gtkcrypto.h"
-#include "hash.h"
-#include "crypt-common.h"
-#include "cleanup.h"
+#include <sys/stat.h>
+#include <unistd.h>
 
+typedef struct {
+    guint version;
+    gsize header_size;
+    guint8 iv[16];
+    gsize iv_size;
+    guint8 salt[32];
+    gint algo;
+    gint mode;
+    guint8 padding;
+    guint iterations;
+} LegacyHeader;
 
-static GFile    *get_g_file_with_encrypted_data (GFileInputStream  *in_stream,
-                                                 goffset            file_size);
-
-static gboolean  compare_hmac                   (guchar            *hmac_key,
-                                                 guchar            *original_hmac,
-                                                 GFile             *encrypted_data);
-
-gpointer         decrypt                        (Metadata          *header_metadata,
-                                                 CryptoKeys        *dec_keys,
-                                                 GFile             *enc_data,
-                                                 goffset            enc_data_size,
-                                                 GFileOutputStream *ostream);
-
-static gpointer  decrypt_gcm                    (Metadata          *header_metadata,
-                                                 CryptoKeys        *dec_keys,
-                                                 GFileInputStream  *in_stream,
-                                                 goffset            enc_data_size,
-                                                 const guchar      *stored_tag,
-                                                 GFileOutputStream *ostream);
-
-
-gpointer
-decrypt_file (const gchar *input_file_path,
-              const gchar *pwd)
+static guint16
+get_be16 (const guint8 *p)
 {
-    GError *err = NULL;
-    gchar *err_msg = NULL;
-
-    goffset file_size = get_file_size (input_file_path);
-    if (file_size == -1) {
-        return g_strdup ("Couldn't get the file size.");
-    }
-    if (file_size < (goffset) sizeof (Metadata)) {
-        return g_strdup ("The selected file is not encrypted.");
-    }
-
-    GFile *in_file = g_file_new_for_path (input_file_path);
-    GFileInputStream *in_stream = g_file_read (in_file, NULL, &err);
-    if (err != NULL) {
-        err_msg = g_strdup (err->message);
-        g_clear_error (&err);
-        g_object_unref (in_file);
-        if (in_stream) {
-            g_input_stream_close (G_INPUT_STREAM (in_stream), NULL, NULL);
-            g_object_unref (in_stream);
-        }
-        return err_msg;
-    }
-
-    Metadata *header_metadata = g_new0 (Metadata, 1);
-
-    gssize rw_len = g_input_stream_read (G_INPUT_STREAM (in_stream), header_metadata, sizeof (Metadata), NULL, &err);
-    if (rw_len == -1) {
-        err_msg = g_strdup (err->message);
-        g_clear_error (&err);
-        g_object_unref (in_file);
-        gstream_cleanup (in_stream, NULL);
-        g_free (header_metadata);
-        return err_msg;
-    }
-
-    /* Verify magic bytes */
-    if (header_metadata->magic[0] != METADATA_MAGIC_0 ||
-        header_metadata->magic[1] != METADATA_MAGIC_1 ||
-        header_metadata->magic[2] != METADATA_MAGIC_2) {
-        g_object_unref (in_file);
-        gstream_cleanup (in_stream, NULL);
-        g_free (header_metadata);
-        return g_strdup ("This file was not encrypted by GTKCrypto, or was created with an incompatible older version.");
-    }
-
-    guint kdf_iterations = (header_metadata->version >= METADATA_VERSION) ? KDF_ITERATIONS : KDF_ITERATIONS_LEGACY;
-
-    gchar *output_file_path;
-    if (!g_str_has_suffix (input_file_path, ".enc")) {
-        g_printerr ("The selected file may not be encrypted\n");
-        output_file_path = g_strconcat (input_file_path, ".decrypted", NULL);
-    } else {
-        output_file_path = g_strndup (input_file_path, (gsize) g_utf8_strlen (input_file_path, -1) - 4);
-    }
-    GFile *out_file = g_file_new_for_path (output_file_path);
-    GFileOutputStream *out_stream = g_file_replace (out_file, NULL, FALSE, G_FILE_CREATE_REPLACE_DESTINATION, NULL, &err);
-    if (err != NULL) {
-        err_msg = g_strdup (err->message);
-        g_clear_error (&err);
-        gfile_cleanup (in_file, out_file);
-        gstream_cleanup (in_stream, out_stream);
-        g_free (output_file_path);
-        g_free (header_metadata);
-        return err_msg;
-    }
-
-    CryptoKeys *decryption_keys = g_new0 (CryptoKeys, 1);
-
-    if (!setup_keys (pwd, gcry_cipher_get_algo_keylen (header_metadata->algo), kdf_iterations, header_metadata, decryption_keys)) {
-        crypto_keys_cleanup (decryption_keys);
-        gfile_cleanup (in_file, out_file);
-        gstream_cleanup (in_stream, out_stream);
-        g_free (output_file_path);
-        g_free (header_metadata);
-        return g_strdup ("Error during key derivation or during memory allocation.");
-    }
-
-    gchar *msg = NULL;
-
-    if (header_metadata->algo_mode == GCRY_CIPHER_MODE_GCM) {
-        /* GCM: file is [Metadata][Encrypted Data][GCM Tag (16 bytes)] */
-        goffset enc_data_size = file_size - (goffset)sizeof (Metadata) - TAG_SIZE;
-        if (enc_data_size <= 0) {
-            crypto_keys_cleanup (decryption_keys);
-            gfile_cleanup (in_file, out_file);
-            gstream_cleanup (in_stream, out_stream);
-            g_free (output_file_path);
-            g_free (header_metadata);
-            return g_strdup ("The selected file is too small to be valid.");
-        }
-
-        /* Read stored GCM tag from end of file */
-        guchar stored_tag[TAG_SIZE];
-        if (!g_seekable_seek (G_SEEKABLE (in_stream), file_size - TAG_SIZE, G_SEEK_SET, NULL, &err)) {
-            err_msg = g_strdup (err->message);
-            g_clear_error (&err);
-            crypto_keys_cleanup (decryption_keys);
-            gfile_cleanup (in_file, out_file);
-            gstream_cleanup (in_stream, out_stream);
-            g_free (output_file_path);
-            g_free (header_metadata);
-            return err_msg;
-        }
-        rw_len = g_input_stream_read (G_INPUT_STREAM (in_stream), stored_tag, TAG_SIZE, NULL, &err);
-        if (rw_len != TAG_SIZE) {
-            crypto_keys_cleanup (decryption_keys);
-            gfile_cleanup (in_file, out_file);
-            gstream_cleanup (in_stream, out_stream);
-            g_free (output_file_path);
-            g_free (header_metadata);
-            return g_strdup ("Failed to read GCM authentication tag.");
-        }
-
-        /* Seek back to encrypted data start */
-        if (!g_seekable_seek (G_SEEKABLE (in_stream), sizeof (Metadata), G_SEEK_SET, NULL, &err)) {
-            err_msg = g_strdup (err->message);
-            g_clear_error (&err);
-            crypto_keys_cleanup (decryption_keys);
-            gfile_cleanup (in_file, out_file);
-            gstream_cleanup (in_stream, out_stream);
-            g_free (output_file_path);
-            g_free (header_metadata);
-            return err_msg;
-        }
-
-        msg = decrypt_gcm (header_metadata, decryption_keys, in_stream, enc_data_size, stored_tag, out_stream);
-        if (msg != NULL) {
-            /* Authentication failed — delete partial output */
-            gchar *out_path = g_file_get_path (out_file);
-            g_unlink (out_path);
-            g_free (out_path);
-        }
-    } else {
-        /* CBC/CTR: file is [Metadata][Encrypted Data][HMAC (64 bytes)] */
-        if (file_size < (goffset)(sizeof (Metadata) + SHA512_DIGEST_SIZE)) {
-            crypto_keys_cleanup (decryption_keys);
-            gfile_cleanup (in_file, out_file);
-            gstream_cleanup (in_stream, out_stream);
-            g_free (output_file_path);
-            g_free (header_metadata);
-            return g_strdup ("The selected file is too small to be valid.");
-        }
-
-        guchar *original_hmac = g_malloc0 (SHA512_DIGEST_SIZE);
-        if (!g_seekable_seek (G_SEEKABLE (in_stream), file_size - SHA512_DIGEST_SIZE, G_SEEK_SET, NULL, &err)) {
-            err_msg = g_strdup (err->message);
-            g_clear_error (&err);
-            crypto_keys_cleanup (decryption_keys);
-            gfile_cleanup (in_file, out_file);
-            gstream_cleanup (in_stream, out_stream);
-            data_cleanup (header_metadata, output_file_path, original_hmac);
-            return err_msg;
-        }
-        rw_len = g_input_stream_read (G_INPUT_STREAM (in_stream), original_hmac, SHA512_DIGEST_SIZE, NULL, &err);
-        if (rw_len == -1) {
-            err_msg = g_strdup (err->message);
-            g_clear_error (&err);
-            crypto_keys_cleanup (decryption_keys);
-            gfile_cleanup (in_file, out_file);
-            gstream_cleanup (in_stream, out_stream);
-            data_cleanup (header_metadata, output_file_path, original_hmac);
-            return err_msg;
-        }
-
-        if (!g_seekable_seek (G_SEEKABLE (in_stream), 0, G_SEEK_SET, NULL, &err)) {
-            err_msg = g_strdup (err->message);
-            g_clear_error (&err);
-            crypto_keys_cleanup (decryption_keys);
-            gfile_cleanup (in_file, out_file);
-            gstream_cleanup (in_stream, out_stream);
-            data_cleanup (header_metadata, output_file_path, original_hmac);
-            return err_msg;
-        }
-        GFile *file_encrypted_data = get_g_file_with_encrypted_data (in_stream, file_size);
-        if (file_encrypted_data == NULL) {
-            crypto_keys_cleanup (decryption_keys);
-            gfile_cleanup (in_file, out_file);
-            gstream_cleanup (in_stream, out_stream);
-            data_cleanup (header_metadata, output_file_path, original_hmac);
-            return g_strdup ("Couldn't get the encrypted data from the file.");
-        }
-
-        if (!compare_hmac (decryption_keys->hmac_key, original_hmac, file_encrypted_data)) {
-            g_object_unref (file_encrypted_data);
-            crypto_keys_cleanup (decryption_keys);
-            gfile_cleanup (in_file, out_file);
-            gstream_cleanup (in_stream, out_stream);
-            data_cleanup (header_metadata, output_file_path, original_hmac);
-            return g_strdup ("HMAC differs from the one stored inside the file.\nEither the password is wrong or the file has been corrupted.");
-        }
-
-        msg = decrypt (header_metadata, decryption_keys, file_encrypted_data, file_size - sizeof (Metadata) - SHA512_DIGEST_SIZE, out_stream);
-
-        gchar *tmp_path = g_file_get_path (file_encrypted_data);
-        g_unlink (tmp_path);
-        g_free (tmp_path);
-
-        g_object_unref (file_encrypted_data);
-        g_free (original_hmac);
-    }
-
-    crypto_keys_cleanup (decryption_keys);
-    gfile_cleanup (in_file, out_file);
-    gstream_cleanup (in_stream, out_stream);
-    g_free (output_file_path);
-    g_free (header_metadata);
-    return msg;
+    guint16 value;
+    memcpy (&value, p, sizeof value);
+    return GUINT16_FROM_BE (value);
 }
 
-
-static GFile *
-get_g_file_with_encrypted_data (GFileInputStream *in_stream,
-                                goffset           file_size)
+static guint32
+get_be32 (const guint8 *p)
 {
-    GError *err = NULL;
-    GFileIOStream *ostream;
-    gssize read_len;
-    guchar *buf;
-    goffset len_file_data = file_size - SHA512_DIGEST_SIZE;
-    gsize done_size = 0;
-
-    GFile *tmp_encrypted_file = g_file_new_tmp (NULL, &ostream, &err);
-    if (tmp_encrypted_file == NULL) {
-        g_printerr ("%s\n", err->message);
-        return NULL;
-    }
-
-    GFileOutputStream *out_enc_stream = g_file_append_to (tmp_encrypted_file, G_FILE_CREATE_NONE, NULL, &err);
-    if (out_enc_stream == NULL) {
-        g_printerr ("%s\n", err->message);
-        return NULL;
-    }
-
-    if (len_file_data < FILE_BUFFER) {
-        buf = g_malloc0 ((gsize)len_file_data);
-        g_input_stream_read (G_INPUT_STREAM (in_stream), buf, (gsize)len_file_data, NULL, &err);
-        g_output_stream_write (G_OUTPUT_STREAM (out_enc_stream), buf, (gsize)len_file_data, NULL, &err);
-    } else {
-        buf = g_malloc (FILE_BUFFER);
-        while (done_size < len_file_data) {
-            if ((len_file_data - done_size) > FILE_BUFFER) {
-                read_len = g_input_stream_read (G_INPUT_STREAM (in_stream), buf, FILE_BUFFER, NULL, &err);
-            } else {
-                read_len = g_input_stream_read (G_INPUT_STREAM (in_stream), buf, len_file_data - done_size, NULL, &err);
-            }
-            if (read_len == -1) {
-                g_printerr ("%s\n", err->message);
-                return NULL;
-            }
-            g_output_stream_write (G_OUTPUT_STREAM (out_enc_stream), buf, (gsize)read_len, NULL, &err);
-            done_size += read_len;
-            memset (buf, 0, FILE_BUFFER);
-        }
-    }
-
-    gstream_cleanup (NULL, out_enc_stream);
-    g_free (buf);
-
-    return tmp_encrypted_file;
+    guint32 value;
+    memcpy (&value, p, sizeof value);
+    return GUINT32_FROM_BE (value);
 }
 
+static guint64
+get_be64 (const guint8 *p)
+{
+    guint64 value;
+    memcpy (&value, p, sizeof value);
+    return GUINT64_FROM_BE (value);
+}
+
+static guint32
+get_u32 (const guint8 *p, gboolean big_endian)
+{
+    guint32 value;
+    memcpy (&value, p, sizeof value);
+    return big_endian ? GUINT32_FROM_BE (value) : GUINT32_FROM_LE (value);
+}
+
+static guint64
+get_u64 (const guint8 *p, gboolean big_endian)
+{
+    guint64 value;
+    memcpy (&value, p, sizeof value);
+    return big_endian ? GUINT64_FROM_BE (value) : GUINT64_FROM_LE (value);
+}
 
 static gboolean
-compare_hmac (guchar *hmac_key,
-              guchar *original_hmac,
-              GFile  *encrypted_data)
+known_legacy_algorithm (gint algo)
 {
-    gchar *path = g_file_get_path (encrypted_data);
-
-    gboolean result = (calculate_hmac (path, hmac_key, original_hmac) != HMAC_MISMATCH);
-    g_free (path);
-    return result;
+    return algo == GCRY_CIPHER_AES256 ||
+           algo == GCRY_CIPHER_TWOFISH ||
+           algo == GCRY_CIPHER_SERPENT256 ||
+           algo == GCRY_CIPHER_CAMELLIA256;
 }
 
+static gboolean
+known_legacy_mode (gint mode)
+{
+    return mode == GCRY_CIPHER_MODE_CBC ||
+           mode == GCRY_CIPHER_MODE_CTR ||
+           mode == GCRY_CIPHER_MODE_GCM;
+}
+
+static gboolean
+inspect_regular_file (gint fd, guint64 *size, GError **error)
+{
+    struct stat st;
+    if (fstat (fd, &st) != 0) {
+        g_set_error (error, GTKCRYPTO_ERROR, GTKCRYPTO_ERROR_IO,
+                     "Unable to inspect input: %s", g_strerror (errno));
+        return FALSE;
+    }
+    if (!S_ISREG (st.st_mode) || st.st_size < 0) {
+        g_set_error_literal (error, GTKCRYPTO_ERROR,
+                             GTKCRYPTO_ERROR_INVALID_ARGUMENT,
+                             "Input must be a regular file");
+        return FALSE;
+    }
+    *size = (guint64)st.st_size;
+    return TRUE;
+}
+
+static gboolean
+seek_to (gint fd, guint64 offset, GError **error)
+{
+    if (offset > G_MAXINT64 ||
+        lseek (fd, (off_t)offset, SEEK_SET) == (off_t)-1) {
+        g_set_error (error, GTKCRYPTO_ERROR, GTKCRYPTO_ERROR_IO,
+                     "Seek failed: %s", g_strerror (errno));
+        return FALSE;
+    }
+    return TRUE;
+}
+
+static gboolean
+verify_legacy_hmac (gint fd,
+                    guint64 authenticated_size,
+                    const guint8 key[64],
+                    const guint8 expected[64],
+                    GCancellable *cancellable,
+                    GError **error)
+{
+    gcry_mac_hd_t mac = NULL;
+    gcry_error_t gerr = gcry_mac_open (&mac, GCRY_MAC_HMAC_SHA3_512, 0, NULL);
+    if (gerr == 0) {
+        gerr = gcry_mac_setkey (mac, key, 64);
+    }
+    if (gerr != 0) {
+        g_set_error (error, GTKCRYPTO_ERROR, GTKCRYPTO_ERROR_CRYPTO,
+                     "Unable to initialize HMAC: %s", gcry_strerror (gerr));
+        if (mac != NULL) {
+            gcry_mac_close (mac);
+        }
+        return FALSE;
+    }
+
+    gboolean success = FALSE;
+    guint8 *buffer = g_try_malloc (FILE_BUFFER);
+    if (buffer == NULL) {
+        g_set_error_literal (error, GTKCRYPTO_ERROR, GTKCRYPTO_ERROR_IO,
+                             "Unable to allocate HMAC buffer");
+        goto out;
+    }
+    if (!seek_to (fd, 0, error)) {
+        goto out;
+    }
+
+    guint64 done = 0;
+    while (done < authenticated_size) {
+        gsize wanted = (gsize)MIN ((guint64)FILE_BUFFER,
+                                  authenticated_size - done);
+        if (!gtkcrypto_read_full (fd, buffer, wanted, cancellable, error)) {
+            goto out;
+        }
+        gerr = gcry_mac_write (mac, buffer, wanted);
+        if (gerr != 0) {
+            g_set_error (error, GTKCRYPTO_ERROR, GTKCRYPTO_ERROR_CRYPTO,
+                         "HMAC calculation failed: %s", gcry_strerror (gerr));
+            goto out;
+        }
+        done += wanted;
+    }
+    gerr = gcry_mac_verify (mac, expected, 64);
+    if (gerr != 0) {
+        g_set_error_literal (error, GTKCRYPTO_ERROR,
+                             GTKCRYPTO_ERROR_AUTHENTICATION,
+                             "Wrong password or corrupted encrypted file");
+        goto out;
+    }
+    success = TRUE;
+
+out:
+    gtkcrypto_secure_clear (buffer, buffer != NULL ? FILE_BUFFER : 0);
+    g_free (buffer);
+    gcry_mac_close (mac);
+    return success;
+}
+
+static gboolean
+decrypt_stream (gint input_fd,
+                guint64 ciphertext_offset,
+                guint64 ciphertext_size,
+                const LegacyHeader *header,
+                const guint8 *key,
+                gint output_fd,
+                GCancellable *cancellable,
+                GError **error)
+{
+    gboolean success = FALSE;
+    gcry_cipher_hd_t cipher = NULL;
+    guint8 *encrypted = NULL;
+    guint8 *plain = NULL;
+
+    gcry_error_t gerr = gcry_cipher_open (&cipher, header->algo,
+                                          header->mode, 0);
+    if (gerr == 0) {
+        gerr = gcry_cipher_setkey (cipher, key,
+                                   gcry_cipher_get_algo_keylen (header->algo));
+    }
+    if (gerr == 0 && header->mode == GCRY_CIPHER_MODE_CBC) {
+        gerr = gcry_cipher_setiv (cipher, header->iv, header->iv_size);
+    } else if (gerr == 0 && header->mode == GCRY_CIPHER_MODE_CTR) {
+        gerr = gcry_cipher_setctr (cipher, header->iv, header->iv_size);
+    }
+    if (gerr != 0) {
+        g_set_error (error, GTKCRYPTO_ERROR, GTKCRYPTO_ERROR_CRYPTO,
+                     "Unable to initialize legacy cipher: %s",
+                     gcry_strerror (gerr));
+        goto out;
+    }
+    if (!seek_to (input_fd, ciphertext_offset, error)) {
+        goto out;
+    }
+
+    encrypted = g_try_malloc (FILE_BUFFER);
+    plain = g_try_malloc (FILE_BUFFER);
+    if (encrypted == NULL || plain == NULL) {
+        g_set_error_literal (error, GTKCRYPTO_ERROR, GTKCRYPTO_ERROR_IO,
+                             "Unable to allocate decryption buffers");
+        goto out;
+    }
+
+    guint64 done = 0;
+    while (done < ciphertext_size) {
+        gsize wanted = (gsize)MIN ((guint64)FILE_BUFFER,
+                                  ciphertext_size - done);
+        if (!gtkcrypto_read_full (input_fd, encrypted, wanted,
+                                  cancellable, error)) {
+            goto out;
+        }
+        gerr = gcry_cipher_decrypt (cipher, plain, wanted,
+                                    encrypted, wanted);
+        if (gerr != 0) {
+            g_set_error (error, GTKCRYPTO_ERROR, GTKCRYPTO_ERROR_CRYPTO,
+                         "Legacy decryption failed: %s", gcry_strerror (gerr));
+            goto out;
+        }
+
+        gsize write_length = wanted;
+        if (done + wanted == ciphertext_size &&
+            header->mode == GCRY_CIPHER_MODE_CBC) {
+            if (header->padding > 15 || header->padding > wanted) {
+                g_set_error_literal (error, GTKCRYPTO_ERROR,
+                                     GTKCRYPTO_ERROR_INVALID_FORMAT,
+                                     "Invalid CBC padding");
+                goto out;
+            }
+            write_length -= header->padding;
+        }
+        if (!gtkcrypto_write_full (output_fd, plain, write_length,
+                                   cancellable, error)) {
+            goto out;
+        }
+        gtkcrypto_secure_clear (encrypted, wanted);
+        gtkcrypto_secure_clear (plain, wanted);
+        done += wanted;
+    }
+    success = TRUE;
+
+out:
+    if (cipher != NULL) {
+        gcry_cipher_close (cipher);
+    }
+    gtkcrypto_secure_clear (encrypted, encrypted != NULL ? FILE_BUFFER : 0);
+    gtkcrypto_secure_clear (plain, plain != NULL ? FILE_BUFFER : 0);
+    g_free (encrypted);
+    g_free (plain);
+    return success;
+}
+
+static gboolean
+parse_v2_header (const guint8 bytes[GTKCRYPTO_V2_HEADER_SIZE],
+                 gboolean big_endian,
+                 LegacyHeader *header)
+{
+    if (memcmp (bytes, "GTC", 3) != 0 || bytes[3] != 2) {
+        return FALSE;
+    }
+    memset (header, 0, sizeof *header);
+    header->version = 2;
+    header->header_size = GTKCRYPTO_V2_HEADER_SIZE;
+    memcpy (header->iv, bytes + 4, 16);
+    header->iv_size = bytes[20];
+    memcpy (header->salt, bytes + 21, 32);
+    header->algo = (gint)get_u32 (bytes + 53, big_endian);
+    header->mode = (gint)get_u32 (bytes + 57, big_endian);
+    header->padding = bytes[61];
+    header->iterations = GTKCRYPTO_LEGACY_KDF_V2;
+
+    gsize expected_iv = header->mode == GCRY_CIPHER_MODE_GCM ?
+                        12 : gcry_cipher_get_algo_blklen (header->algo);
+    return known_legacy_algorithm (header->algo) &&
+           known_legacy_mode (header->mode) &&
+           header->iv_size == expected_iv &&
+           header->padding <= 15;
+}
+
+static gboolean
+parse_v1_header (const guint8 *bytes,
+                 gsize layout_size,
+                 gboolean big_endian,
+                 LegacyHeader *header)
+{
+    gsize size_field = layout_size == 72 ? 8 : 4;
+    gsize salt_offset = 16 + size_field;
+    gsize algo_offset = salt_offset + 32;
+    gsize mode_offset = algo_offset + 4;
+    gsize padding_offset = mode_offset + 4;
+    guint64 iv_size = size_field == 8 ?
+                      get_u64 (bytes + 16, big_endian) :
+                      get_u32 (bytes + 16, big_endian);
+
+    memset (header, 0, sizeof *header);
+    header->version = 1;
+    header->header_size = layout_size;
+    memcpy (header->iv, bytes, 16);
+    header->iv_size = (gsize)iv_size;
+    memcpy (header->salt, bytes + salt_offset, 32);
+    header->algo = (gint)get_u32 (bytes + algo_offset, big_endian);
+    header->mode = (gint)get_u32 (bytes + mode_offset, big_endian);
+    header->padding = bytes[padding_offset];
+    header->iterations = GTKCRYPTO_LEGACY_KDF_V1;
+
+    return known_legacy_algorithm (header->algo) &&
+           (header->mode == GCRY_CIPHER_MODE_CBC ||
+            header->mode == GCRY_CIPHER_MODE_CTR) &&
+           header->iv_size == gcry_cipher_get_algo_blklen (header->algo) &&
+           header->padding <= 15;
+}
+
+static gboolean
+decrypt_legacy_candidate (gint input_fd,
+                          guint64 file_size,
+                          const LegacyHeader *header,
+                          const guint8 *password,
+                          gsize password_len,
+                          gint output_fd,
+                          GCancellable *cancellable,
+                          GError **error)
+{
+    guint64 trailer = header->mode == GCRY_CIPHER_MODE_GCM ?
+                      GTKCRYPTO_TAG_SIZE : GTKCRYPTO_LEGACY_HMAC_SIZE;
+    if (file_size < header->header_size + trailer) {
+        g_set_error_literal (error, GTKCRYPTO_ERROR,
+                             GTKCRYPTO_ERROR_INVALID_FORMAT,
+                             "Encrypted file is truncated");
+        return FALSE;
+    }
+    guint64 ciphertext_size = file_size - header->header_size - trailer;
+    if (header->mode == GCRY_CIPHER_MODE_CBC &&
+        ciphertext_size % gcry_cipher_get_algo_blklen (header->algo) != 0) {
+        g_set_error_literal (error, GTKCRYPTO_ERROR,
+                             GTKCRYPTO_ERROR_INVALID_FORMAT,
+                             "Invalid CBC ciphertext length");
+        return FALSE;
+    }
+
+    gsize algo_key_len = gcry_cipher_get_algo_keylen (header->algo);
+    guint8 derived[GTKCRYPTO_KEY_SIZE + 64] = { 0 };
+    gboolean success = FALSE;
+    if (!gtkcrypto_pbkdf2_derive (password, password_len,
+                                  header->salt, sizeof header->salt,
+                                  header->iterations,
+                                  algo_key_len + 64, derived, error)) {
+        goto out;
+    }
+
+    if (header->mode != GCRY_CIPHER_MODE_GCM) {
+        guint8 expected[64];
+        if (!seek_to (input_fd, file_size - 64, error) ||
+            !gtkcrypto_read_full (input_fd, expected, sizeof expected,
+                                  cancellable, error) ||
+            !verify_legacy_hmac (input_fd, file_size - 64,
+                                 derived + algo_key_len, expected,
+                                 cancellable, error)) {
+            goto out;
+        }
+        success = decrypt_stream (input_fd, header->header_size,
+                                  ciphertext_size, header, derived,
+                                  output_fd, cancellable, error);
+        goto out;
+    }
+
+    guint8 stored_tag[GTKCRYPTO_TAG_SIZE];
+    if (!seek_to (input_fd, file_size - sizeof stored_tag, error) ||
+        !gtkcrypto_read_full (input_fd, stored_tag, sizeof stored_tag,
+                              cancellable, error)) {
+        goto out;
+    }
+
+    gcry_cipher_hd_t cipher = NULL;
+    gcry_error_t gerr = gcry_cipher_open (&cipher, header->algo,
+                                          GCRY_CIPHER_MODE_GCM, 0);
+    if (gerr == 0) {
+        gerr = gcry_cipher_setkey (cipher, derived, algo_key_len);
+    }
+    if (gerr == 0) {
+        gerr = gcry_cipher_setiv (cipher, header->iv, header->iv_size);
+    }
+    if (gerr != 0) {
+        g_set_error (error, GTKCRYPTO_ERROR, GTKCRYPTO_ERROR_CRYPTO,
+                     "Unable to initialize legacy GCM: %s",
+                     gcry_strerror (gerr));
+        if (cipher != NULL) {
+            gcry_cipher_close (cipher);
+        }
+        goto out;
+    }
+
+    guint8 *encrypted = g_try_malloc (FILE_BUFFER);
+    guint8 *plain = g_try_malloc (FILE_BUFFER);
+    if (encrypted == NULL || plain == NULL ||
+        !seek_to (input_fd, header->header_size, error)) {
+        if (encrypted == NULL || plain == NULL) {
+            g_set_error_literal (error, GTKCRYPTO_ERROR,
+                                 GTKCRYPTO_ERROR_IO,
+                                 "Unable to allocate decryption buffers");
+        }
+        g_free (encrypted);
+        g_free (plain);
+        gcry_cipher_close (cipher);
+        goto out;
+    }
+
+    guint64 done = 0;
+    while (done < ciphertext_size) {
+        gsize wanted = (gsize)MIN ((guint64)FILE_BUFFER,
+                                  ciphertext_size - done);
+        if (!gtkcrypto_read_full (input_fd, encrypted, wanted,
+                                  cancellable, error)) {
+            goto gcm_out;
+        }
+        if (done + wanted == ciphertext_size) {
+            gcry_cipher_final (cipher);
+        }
+        gerr = gcry_cipher_decrypt (cipher, plain, wanted,
+                                    encrypted, wanted);
+        if (gerr != 0 ||
+            !gtkcrypto_write_full (output_fd, plain, wanted,
+                                   cancellable, error)) {
+            if (gerr != 0) {
+                g_set_error (error, GTKCRYPTO_ERROR,
+                             GTKCRYPTO_ERROR_CRYPTO,
+                             "Legacy GCM decryption failed: %s",
+                             gcry_strerror (gerr));
+            }
+            goto gcm_out;
+        }
+        done += wanted;
+    }
+    if (ciphertext_size == 0) {
+        gcry_cipher_final (cipher);
+    }
+    gerr = gcry_cipher_checktag (cipher, stored_tag, sizeof stored_tag);
+    if (gerr != 0) {
+        g_set_error_literal (error, GTKCRYPTO_ERROR,
+                             GTKCRYPTO_ERROR_AUTHENTICATION,
+                             "Wrong password or corrupted encrypted file");
+        goto gcm_out;
+    }
+    success = TRUE;
+
+gcm_out:
+    gtkcrypto_secure_clear (encrypted, encrypted != NULL ? FILE_BUFFER : 0);
+    gtkcrypto_secure_clear (plain, plain != NULL ? FILE_BUFFER : 0);
+    g_free (encrypted);
+    g_free (plain);
+    gcry_cipher_close (cipher);
+out:
+    gtkcrypto_secure_clear (derived, sizeof derived);
+    return success;
+}
+
+static gboolean
+decrypt_v3 (gint input_fd,
+            guint64 file_size,
+            const guint8 header[GTKCRYPTO_V3_HEADER_SIZE],
+            const guint8 *password,
+            gsize password_len,
+            gint output_fd,
+            GCancellable *cancellable,
+            GError **error)
+{
+    if (memcmp (header, "GTC3", 4) != 0 ||
+        header[4] != 3 ||
+        get_be16 (header + 5) != GTKCRYPTO_V3_HEADER_SIZE ||
+        header[7] != 0 || header[8] != 1 || header[9] != 1 ||
+        header[10] != GTKCRYPTO_SALT_SIZE ||
+        header[11] != GTKCRYPTO_NONCE_SIZE ||
+        header[12] != GTKCRYPTO_TAG_SIZE ||
+        header[13] != 0 || header[14] != 0 || header[15] != 0) {
+        g_set_error_literal (error, GTKCRYPTO_ERROR,
+                             GTKCRYPTO_ERROR_INVALID_FORMAT,
+                             "Invalid or unsupported GTC3 header");
+        return FALSE;
+    }
+
+    guint32 time_cost = get_be32 (header + 16);
+    guint32 memory_kib = get_be32 (header + 20);
+    guint32 lanes = get_be32 (header + 24);
+    guint64 plaintext_size = get_be64 (header + 28);
+    if (plaintext_size > G_MAXUINT64 - GTKCRYPTO_V3_HEADER_SIZE -
+                         GTKCRYPTO_TAG_SIZE ||
+        file_size != GTKCRYPTO_V3_HEADER_SIZE + plaintext_size +
+                     GTKCRYPTO_TAG_SIZE) {
+        g_set_error_literal (error, GTKCRYPTO_ERROR,
+                             GTKCRYPTO_ERROR_INVALID_FORMAT,
+                             "GTC3 file size does not match its header");
+        return FALSE;
+    }
+
+    guint8 key[GTKCRYPTO_KEY_SIZE] = { 0 };
+    guint8 stored_tag[GTKCRYPTO_TAG_SIZE];
+    gboolean success = FALSE;
+    gcry_cipher_hd_t cipher = NULL;
+    guint8 *encrypted = NULL;
+    guint8 *plain = NULL;
+
+    if (!gtkcrypto_argon2id_derive (password, password_len, header + 36,
+                                    time_cost, memory_kib, lanes,
+                                    key, error) ||
+        !seek_to (input_fd, file_size - sizeof stored_tag, error) ||
+        !gtkcrypto_read_full (input_fd, stored_tag, sizeof stored_tag,
+                              cancellable, error)) {
+        goto out;
+    }
+
+    gcry_error_t gerr = gcry_cipher_open (&cipher, GCRY_CIPHER_AES256,
+                                          GCRY_CIPHER_MODE_GCM, 0);
+    if (gerr == 0) {
+        gerr = gcry_cipher_setkey (cipher, key, sizeof key);
+    }
+    if (gerr == 0) {
+        gerr = gcry_cipher_setiv (cipher, header + 68,
+                                  GTKCRYPTO_NONCE_SIZE);
+    }
+    if (gerr == 0) {
+        gerr = gcry_cipher_authenticate (cipher, header,
+                                         GTKCRYPTO_V3_HEADER_SIZE);
+    }
+    if (gerr != 0) {
+        g_set_error (error, GTKCRYPTO_ERROR, GTKCRYPTO_ERROR_CRYPTO,
+                     "Unable to initialize GTC3 decryption: %s",
+                     gcry_strerror (gerr));
+        goto out;
+    }
+    if (!seek_to (input_fd, GTKCRYPTO_V3_HEADER_SIZE, error)) {
+        goto out;
+    }
+
+    encrypted = g_try_malloc (FILE_BUFFER);
+    plain = g_try_malloc (FILE_BUFFER);
+    if (encrypted == NULL || plain == NULL) {
+        g_set_error_literal (error, GTKCRYPTO_ERROR, GTKCRYPTO_ERROR_IO,
+                             "Unable to allocate decryption buffers");
+        goto out;
+    }
+
+    guint64 done = 0;
+    while (done < plaintext_size) {
+        gsize wanted = (gsize)MIN ((guint64)FILE_BUFFER,
+                                  plaintext_size - done);
+        if (!gtkcrypto_read_full (input_fd, encrypted, wanted,
+                                  cancellable, error)) {
+            goto out;
+        }
+        if (done + wanted == plaintext_size) {
+            gcry_cipher_final (cipher);
+        }
+        gerr = gcry_cipher_decrypt (cipher, plain, wanted,
+                                    encrypted, wanted);
+        if (gerr != 0 ||
+            !gtkcrypto_write_full (output_fd, plain, wanted,
+                                   cancellable, error)) {
+            if (gerr != 0) {
+                g_set_error (error, GTKCRYPTO_ERROR,
+                             GTKCRYPTO_ERROR_CRYPTO,
+                             "GTC3 decryption failed: %s",
+                             gcry_strerror (gerr));
+            }
+            goto out;
+        }
+        done += wanted;
+    }
+    if (plaintext_size == 0) {
+        gcry_cipher_final (cipher);
+    }
+    gerr = gcry_cipher_checktag (cipher, stored_tag, sizeof stored_tag);
+    if (gerr != 0) {
+        g_set_error_literal (error, GTKCRYPTO_ERROR,
+                             GTKCRYPTO_ERROR_AUTHENTICATION,
+                             "Wrong password or corrupted encrypted file");
+        goto out;
+    }
+    success = TRUE;
+
+out:
+    if (cipher != NULL) {
+        gcry_cipher_close (cipher);
+    }
+    gtkcrypto_secure_clear (key, sizeof key);
+    gtkcrypto_secure_clear (encrypted, encrypted != NULL ? FILE_BUFFER : 0);
+    gtkcrypto_secure_clear (plain, plain != NULL ? FILE_BUFFER : 0);
+    g_free (encrypted);
+    g_free (plain);
+    return success;
+}
+
+gboolean
+gtkcrypto_decrypt_file (const gchar *input_path,
+                        const gchar *output_path,
+                        const guint8 *password,
+                        gsize password_len,
+                        gboolean overwrite,
+                        GCancellable *cancellable,
+                        GError **error)
+{
+    gboolean success = FALSE;
+    gint input_fd = -1;
+    GtkcryptoAtomicOutput output = { .fd = -1 };
+    guint8 prefix[GTKCRYPTO_V3_HEADER_SIZE] = { 0 };
+    g_autofree guint8 *legacy_password = g_malloc0 (password_len + 1);
+    guint64 file_size;
+
+    memcpy (legacy_password, password, password_len);
+
+    input_fd = g_open (input_path, O_RDONLY | O_CLOEXEC | O_NOFOLLOW, 0);
+    if (input_fd < 0) {
+        g_set_error (error, GTKCRYPTO_ERROR, GTKCRYPTO_ERROR_IO,
+                     "Unable to open input: %s", g_strerror (errno));
+        goto out;
+    }
+    if (!inspect_regular_file (input_fd, &file_size, error) ||
+        file_size < 4) {
+        if (error == NULL || *error == NULL) {
+            g_set_error_literal (error, GTKCRYPTO_ERROR,
+                                 GTKCRYPTO_ERROR_INVALID_FORMAT,
+                                 "Encrypted file is too short");
+        }
+        goto out;
+    }
+    gsize prefix_size = (gsize)MIN (file_size, (guint64)sizeof prefix);
+    if (!gtkcrypto_read_full (input_fd, prefix, prefix_size,
+                              cancellable, error) ||
+        !gtkcrypto_atomic_output_open (&output, output_path,
+                                       overwrite, error)) {
+        goto out;
+    }
+
+    if (prefix_size >= GTKCRYPTO_V3_HEADER_SIZE &&
+        memcmp (prefix, "GTC3", 4) == 0) {
+        success = decrypt_v3 (input_fd, file_size, prefix, password,
+                              password_len, output.fd, cancellable, error);
+    } else if (prefix_size >= GTKCRYPTO_V2_HEADER_SIZE &&
+               memcmp (prefix, "GTC", 3) == 0) {
+        LegacyHeader header;
+        gboolean parsed = parse_v2_header (prefix, FALSE, &header) ||
+                          parse_v2_header (prefix, TRUE, &header);
+        if (!parsed) {
+            g_set_error_literal (error, GTKCRYPTO_ERROR,
+                                 GTKCRYPTO_ERROR_INVALID_FORMAT,
+                                 "Invalid GTC2 header");
+        } else {
+            gsize legacy_password_len =
+                (gsize)g_utf8_strlen ((const gchar *)password,
+                                      (gssize)password_len) + 1;
+            legacy_password_len = MIN (legacy_password_len, password_len + 1);
+            success = decrypt_legacy_candidate (input_fd, file_size, &header,
+                                                legacy_password,
+                                                legacy_password_len,
+                                                output.fd, cancellable, error);
+        }
+    } else {
+        const gsize layouts[] = { 72, 64 };
+        const gboolean byte_orders[] = { FALSE, TRUE };
+        gboolean found = FALSE;
+        for (gsize i = 0; i < G_N_ELEMENTS (layouts) && !found; i++) {
+            if (file_size < layouts[i] + GTKCRYPTO_LEGACY_HMAC_SIZE ||
+                prefix_size < layouts[i]) {
+                continue;
+            }
+            for (gsize j = 0; j < G_N_ELEMENTS (byte_orders); j++) {
+                LegacyHeader candidate;
+                if (!parse_v1_header (prefix, layouts[i], byte_orders[j],
+                                      &candidate)) {
+                    continue;
+                }
+                gsize legacy_password_len =
+                    (gsize)g_utf8_strlen ((const gchar *)password,
+                                          (gssize)password_len) + 1;
+                legacy_password_len = MIN (legacy_password_len,
+                                           password_len + 1);
+                g_clear_error (error);
+                if (decrypt_legacy_candidate (input_fd, file_size, &candidate,
+                                              legacy_password,
+                                              legacy_password_len,
+                                              output.fd, cancellable, error)) {
+                    found = TRUE;
+                    success = TRUE;
+                    break;
+                }
+                if (ftruncate (output.fd, 0) != 0 ||
+                    lseek (output.fd, 0, SEEK_SET) == (off_t)-1) {
+                    g_set_error (error, GTKCRYPTO_ERROR,
+                                 GTKCRYPTO_ERROR_IO,
+                                 "Unable to reset temporary output: %s",
+                                 g_strerror (errno));
+                    goto out;
+                }
+            }
+        }
+        if (!found && (error == NULL || *error == NULL)) {
+            g_set_error_literal (error, GTKCRYPTO_ERROR,
+                                 GTKCRYPTO_ERROR_INVALID_FORMAT,
+                                 "File is not a supported GTKCrypto format");
+        }
+    }
+
+    if (success) {
+        success = gtkcrypto_atomic_output_commit (&output, error);
+    }
+
+out:
+    if (!success) {
+        gtkcrypto_atomic_output_abort (&output);
+    }
+    if (input_fd >= 0) {
+        close (input_fd);
+    }
+    gtkcrypto_secure_clear (legacy_password, password_len + 1);
+    return success;
+}
 
 gpointer
-decrypt (Metadata          *header_metadata,
-         CryptoKeys        *dec_keys,
-         GFile             *enc_data,
-         goffset            enc_data_size,
-         GFileOutputStream *ostream)
+decrypt_file (const gchar *input_file_path, const gchar *pwd)
 {
-    gcry_cipher_hd_t hd;
-    gcry_error_t gcry_err = gcry_cipher_open (&hd, header_metadata->algo, header_metadata->algo_mode, 0);
-    if (gcry_err) {
-        return g_strdup ("Failed to initialize cipher");
-    }
-    gcry_cipher_setkey (hd, dec_keys->crypto_key, gcry_cipher_get_algo_keylen (header_metadata->algo));
-
-    if (header_metadata->algo_mode == GCRY_CIPHER_MODE_CBC) {
-        gcry_cipher_setiv (hd, header_metadata->iv, header_metadata->iv_size);
+    g_autofree gchar *output = NULL;
+    if (g_str_has_suffix (input_file_path, ".enc")) {
+        output = g_strndup (input_file_path, strlen (input_file_path) - 4);
     } else {
-        gcry_cipher_setctr (hd, header_metadata->iv, header_metadata->iv_size);
+        output = g_strconcat (input_file_path, ".decrypted", NULL);
     }
 
-    GError *err = NULL;
-    gchar *err_msg = NULL;
-
-    GFileInputStream *in_stream = g_file_read (enc_data, NULL, &err);
-    if (err != NULL) {
-        err_msg = g_strdup (err->message);
-        g_clear_error (&err);
-        return err_msg;
+    g_autoptr(GError) error = NULL;
+    if (!gtkcrypto_decrypt_file (input_file_path, output,
+                                 (const guint8 *)pwd, strlen (pwd),
+                                 FALSE, NULL, &error)) {
+        return g_strdup (error->message);
     }
-    if (!g_seekable_seek (G_SEEKABLE (in_stream), sizeof (Metadata), G_SEEK_SET, NULL, &err)) {
-        err_msg = g_strdup (err->message);
-        g_clear_error (&err);
-        return err_msg;
-    }
-
-    guchar *enc_buf = g_try_malloc0 (FILE_BUFFER);
-    guchar *dec_buf = g_try_malloc0 (FILE_BUFFER);
-
-    if (enc_buf == NULL || dec_buf == NULL) {
-        if (enc_buf != NULL) g_free (enc_buf);
-        if (dec_buf != NULL) g_free (dec_buf);
-        return g_strdup ("Error during memory allocation.");
-    }
-
-    goffset done_size = 0;
-    gssize read_len;
-
-    while (done_size < enc_data_size) {
-        if ((enc_data_size - done_size) <= FILE_BUFFER) {
-            read_len = g_input_stream_read (G_INPUT_STREAM (in_stream), enc_buf, (gsize)enc_data_size - done_size, NULL, &err);
-            gcry_cipher_decrypt (hd, dec_buf, (gsize)read_len, enc_buf, (gsize)read_len);
-            g_output_stream_write (G_OUTPUT_STREAM (ostream), dec_buf, (gsize)read_len - header_metadata->padding_value, NULL, &err);
-        } else {
-            read_len = g_input_stream_read (G_INPUT_STREAM (in_stream), enc_buf, FILE_BUFFER, NULL, &err);
-            gcry_cipher_decrypt (hd, dec_buf, (gsize)read_len, enc_buf, (gsize)read_len);
-            g_output_stream_write (G_OUTPUT_STREAM (ostream), dec_buf, (gsize)read_len, NULL, &err);
-        }
-
-        explicit_bzero (dec_buf, FILE_BUFFER);
-        explicit_bzero (enc_buf, FILE_BUFFER);
-
-        done_size += read_len;
-    }
-
-    gcry_cipher_close (hd);
-
-    g_free (enc_buf);
-    g_free (dec_buf);
-
-    g_input_stream_close (G_INPUT_STREAM (in_stream), NULL, NULL);
-
-    g_object_unref (in_stream);
-
-    return NULL;
-}
-
-
-static gpointer
-decrypt_gcm (Metadata          *header_metadata,
-             CryptoKeys        *dec_keys,
-             GFileInputStream  *in_stream,
-             goffset            enc_data_size,
-             const guchar      *stored_tag,
-             GFileOutputStream *ostream)
-{
-    gcry_cipher_hd_t hd;
-    gcry_error_t gcry_err = gcry_cipher_open (&hd, header_metadata->algo, GCRY_CIPHER_MODE_GCM, 0);
-    if (gcry_err) {
-        return g_strdup ("Failed to initialize cipher");
-    }
-    gcry_cipher_setkey (hd, dec_keys->crypto_key, gcry_cipher_get_algo_keylen (header_metadata->algo));
-    gcry_cipher_setiv (hd, header_metadata->iv, header_metadata->iv_size);
-
-    guchar *enc_buf = g_try_malloc0 (FILE_BUFFER);
-    guchar *dec_buf = g_try_malloc0 (FILE_BUFFER);
-
-    if (enc_buf == NULL || dec_buf == NULL) {
-        if (enc_buf != NULL) g_free (enc_buf);
-        if (dec_buf != NULL) g_free (dec_buf);
-        gcry_cipher_close (hd);
-        return g_strdup ("Error during memory allocation.");
-    }
-
-    GError *err = NULL;
-    goffset done_size = 0;
-    gssize read_len;
-
-    while (done_size < enc_data_size) {
-        goffset remaining = enc_data_size - done_size;
-        gboolean is_last = (remaining <= FILE_BUFFER);
-
-        if (is_last) {
-            read_len = g_input_stream_read (G_INPUT_STREAM (in_stream), enc_buf, (gsize)remaining, NULL, &err);
-        } else {
-            read_len = g_input_stream_read (G_INPUT_STREAM (in_stream), enc_buf, FILE_BUFFER, NULL, &err);
-        }
-        if (read_len == -1) {
-            g_free (enc_buf);
-            g_free (dec_buf);
-            gcry_cipher_close (hd);
-            gchar *err_msg = g_strdup (err->message);
-            g_clear_error (&err);
-            return err_msg;
-        }
-
-        if (is_last) {
-            gcry_cipher_final (hd);
-        }
-
-        gcry_cipher_decrypt (hd, dec_buf, (gsize)read_len, enc_buf, (gsize)read_len);
-        g_output_stream_write (G_OUTPUT_STREAM (ostream), dec_buf, (gsize)read_len, NULL, &err);
-
-        explicit_bzero (dec_buf, FILE_BUFFER);
-        explicit_bzero (enc_buf, FILE_BUFFER);
-
-        done_size += read_len;
-    }
-
-    /* Verify GCM authentication tag */
-    gcry_err = gcry_cipher_checktag (hd, stored_tag, TAG_SIZE);
-    gcry_cipher_close (hd);
-
-    g_free (enc_buf);
-    g_free (dec_buf);
-
-    if (gcry_err) {
-        return g_strdup ("GCM authentication failed.\nEither the password is wrong or the file has been corrupted.");
-    }
-
     return NULL;
 }

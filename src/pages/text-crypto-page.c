@@ -78,6 +78,7 @@ typedef struct {
     gchar *pwd;
     guchar *encrypted_buf;
     gsize encrypted_len;
+    gboolean is_v3;
     gchar *result_plain;
     gchar *error_msg;
 } DecryptTextData;
@@ -89,65 +90,21 @@ static gpointer
 encrypt_text_thread (gpointer user_data)
 {
     EncryptTextData *d = user_data;
-    const gchar *pwd = d->pwd;
-    gchar *text = d->input_text;
-
-    gint text_size = (gint)strlen (text) + 1;
-    gint algo = gcry_cipher_map_name ("aes256");
-    guint8 *iv = gcry_calloc (AES256_IV_SIZE, 1);
-    guint8 *salt = gcry_calloc (KDF_SALT_SIZE, 1);
-    guint8 *derived_key = gcry_calloc_secure (AES256_KEY_SIZE, 1);
-
-    gcry_create_nonce (iv, AES256_IV_SIZE);
-    gcry_create_nonce (salt, KDF_SALT_SIZE);
-
-    gcry_cipher_hd_t hd;
-    gcry_cipher_open (&hd, algo, GCRY_CIPHER_MODE_GCM, 0);
-
-    gpg_error_t err = gcry_kdf_derive (pwd, g_utf8_strlen (pwd, -1) + 1,
-                                        GCRY_KDF_PBKDF2, GCRY_MD_SHA512,
-                                        salt, KDF_SALT_SIZE,
-                                        KDF_ITERATIONS,
-                                        AES256_KEY_SIZE, derived_key);
-    if (err) {
-        d->error_msg = g_strdup ("Key derivation failed");
-        gcry_free (iv); gcry_free (salt); gcry_free (derived_key);
-        gcry_cipher_close (hd);
+    g_autoptr(GError) error = NULL;
+    g_autoptr(GBytes) encrypted = gtkcrypto_encrypt_bytes_v3 (
+        (const guint8 *)d->input_text, strlen (d->input_text),
+        (const guint8 *)d->pwd, strlen (d->pwd), &error);
+    if (encrypted == NULL) {
+        d->error_msg = g_strdup (error->message);
         return NULL;
     }
 
-    gcry_cipher_setkey (hd, derived_key, AES256_KEY_SIZE);
-    gcry_cipher_setiv (hd, iv, AES256_IV_SIZE);
-
-    guchar *enc_buf = gcry_calloc ((gsize)text_size, 1);
-    err = gcry_cipher_encrypt (hd, enc_buf, (gsize)text_size, text, (gsize)text_size);
-
-    if (err) {
-        d->error_msg = g_strdup ("Encryption failed");
-        gcry_free (iv); gcry_free (salt); gcry_free (derived_key); gcry_free (enc_buf);
-        gcry_cipher_close (hd);
-        return NULL;
-    }
-
-    gsize final_size = (gsize)text_size + TAG_SIZE + AES256_IV_SIZE + KDF_SALT_SIZE;
-    guchar *final_buf = gcry_calloc (final_size, 1);
-    memcpy (final_buf, iv, AES256_IV_SIZE);
-    memcpy (final_buf + AES256_IV_SIZE, salt, KDF_SALT_SIZE);
-    memcpy (final_buf + AES256_IV_SIZE + KDF_SALT_SIZE, enc_buf, (gsize)text_size);
-
-    guint8 tag[TAG_SIZE];
-    gcry_cipher_gettag (hd, tag, TAG_SIZE);
-    gcry_cipher_close (hd);
-
-    memcpy (final_buf + AES256_IV_SIZE + KDF_SALT_SIZE + text_size, tag, TAG_SIZE);
-
-    d->result_b64 = g_base64_encode (final_buf, final_size);
-
-    gcry_free (final_buf);
-    gcry_free (enc_buf);
-    gcry_free (derived_key);
-    gcry_free (iv);
-    gcry_free (salt);
+    gsize encrypted_len;
+    const guint8 *encrypted_data = g_bytes_get_data (encrypted,
+                                                     &encrypted_len);
+    g_autofree gchar *base64 = g_base64_encode (encrypted_data,
+                                                encrypted_len);
+    d->result_b64 = g_strconcat ("GTC3:", base64, NULL);
 
     return NULL;
 }
@@ -172,6 +129,7 @@ encrypt_text_done_idle (gpointer user_data)
 
     gcry_free (d->pwd);
     g_free (d->input_text);
+    g_object_unref (d->page);
     g_free (d);
     return G_SOURCE_REMOVE;
 }
@@ -228,13 +186,16 @@ encrypt_text_clicked_cb (GtkButton *btn, gpointer user_data)
     gtk_spinner_start (self->enc_spinner);
 
     EncryptTextData *d = g_new0 (EncryptTextData, 1);
-    d->page = self;
+    d->page = g_object_ref (self);
     gsize pwd_len = strlen (pwd) + 1;
     d->pwd = gcry_malloc_secure (pwd_len);
     memcpy (d->pwd, pwd, pwd_len);
+    gtk_editable_set_text (GTK_EDITABLE (self->enc_pwd_row), "");
+    gtk_editable_set_text (GTK_EDITABLE (self->enc_pwd_confirm_row), "");
     d->input_text = text;
 
-    g_thread_new ("text-encrypt", encrypt_text_thread_wrapper, d);
+    g_thread_unref (g_thread_new ("text-encrypt",
+                                  encrypt_text_thread_wrapper, d));
 }
 
 
@@ -247,6 +208,24 @@ decrypt_text_thread (gpointer user_data)
     const gchar *pwd = d->pwd;
     guchar *encrypted_buf = d->encrypted_buf;
     gsize out_len = d->encrypted_len;
+
+    if (d->is_v3) {
+        g_autoptr(GError) error = NULL;
+        g_autoptr(GBytes) plaintext = gtkcrypto_decrypt_bytes_v3 (
+            encrypted_buf, out_len, (const guint8 *)pwd, strlen (pwd),
+            &error);
+        if (plaintext == NULL) {
+            d->error_msg = g_strdup (error->message);
+            return NULL;
+        }
+        gsize plaintext_len;
+        const gchar *plaintext_data = g_bytes_get_data (plaintext,
+                                                        &plaintext_len);
+        d->result_plain = g_strndup (plaintext_data,
+                                     plaintext_len > 0 ?
+                                     plaintext_len - 1 : 0);
+        return NULL;
+    }
 
     guint8 *iv = gcry_calloc (AES256_IV_SIZE, 1);
     guint8 *salt = gcry_calloc (KDF_SALT_SIZE, 1);
@@ -325,6 +304,7 @@ decrypt_text_done_idle (gpointer user_data)
 
     gcry_free (d->pwd);
     g_free (d->encrypted_buf);
+    g_object_unref (d->page);
     g_free (d);
     return G_SOURCE_REMOVE;
 }
@@ -364,17 +344,23 @@ decrypt_text_clicked_cb (GtkButton *btn, gpointer user_data)
         return;
     }
 
-    if (!is_b64_encoded (text)) {
+    gboolean is_v3 = g_str_has_prefix (text, "GTC3:");
+    const gchar *base64_text = is_v3 ? text + 5 : text;
+
+    if (!is_b64_encoded (base64_text)) {
         show_toast (self->dec_toast_overlay, "Input is not valid base64");
         g_free (text);
         return;
     }
 
     gsize out_len = 0;
-    guchar *encrypted_buf = g_base64_decode (text, &out_len);
+    guchar *encrypted_buf = g_base64_decode (base64_text, &out_len);
     g_free (text);
 
-    if (out_len < AES256_IV_SIZE + KDF_SALT_SIZE + TAG_SIZE + 1) {
+    gsize minimum_size = is_v3 ?
+        GTKCRYPTO_V3_HEADER_SIZE + GTKCRYPTO_TAG_SIZE :
+        AES256_IV_SIZE + KDF_SALT_SIZE + TAG_SIZE + 1;
+    if (out_len < minimum_size) {
         show_toast (self->dec_toast_overlay, "Input data is too short");
         g_free (encrypted_buf);
         return;
@@ -384,14 +370,17 @@ decrypt_text_clicked_cb (GtkButton *btn, gpointer user_data)
     gtk_spinner_start (self->dec_spinner);
 
     DecryptTextData *d = g_new0 (DecryptTextData, 1);
-    d->page = self;
+    d->page = g_object_ref (self);
     gsize pwd_len = strlen (pwd) + 1;
     d->pwd = gcry_malloc_secure (pwd_len);
     memcpy (d->pwd, pwd, pwd_len);
+    gtk_editable_set_text (GTK_EDITABLE (self->dec_pwd_row), "");
     d->encrypted_buf = encrypted_buf;
     d->encrypted_len = out_len;
+    d->is_v3 = is_v3;
 
-    g_thread_new ("text-decrypt", decrypt_text_thread_wrapper, d);
+    g_thread_unref (g_thread_new ("text-decrypt",
+                                  decrypt_text_thread_wrapper, d));
 }
 
 

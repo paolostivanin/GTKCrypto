@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <gresources>
-  <gresource prefix="/com/github/paolostivanin/GTKCrypto">
+  <gresource prefix="/com/github/paolostivanin/gtkcrypto">
     <file>gtkcrypto.css</file>
   </gresource>
-  <gresource prefix="/com/github/paolostivanin/GTKCrypto/icons/scalable/apps">
-    <file preprocess="xml-stripblanks" alias="com.github.paolostivanin.GTKCrypto.svg">../data/icons/com.github.paolostivanin.GTKCrypto.svg</file>
+  <gresource prefix="/com/github/paolostivanin/gtkcrypto/icons/scalable/apps">
+    <file preprocess="xml-stripblanks" alias="com.github.paolostivanin.gtkcrypto.svg">../data/icons/com.github.paolostivanin.gtkcrypto.svg</file>
   </gresource>
 </gresources>

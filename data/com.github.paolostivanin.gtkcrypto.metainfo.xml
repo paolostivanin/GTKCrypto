@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop-application">
+  <id>com.github.paolostivanin.gtkcrypto</id>
+  <metadata_license>CC-BY-4.0</metadata_license>
+  <project_license>GPL-3.0-or-later</project_license>
+  <name>GTKCrypto</name>
+  <summary>Encrypt files and text, compute hashes, and use OpenPGP signatures</summary>
+
+  <description>
+    <p>
+      GTKCrypto encrypts files and text using authenticated encryption,
+      computes common cryptographic hashes, compares files, and creates or
+      verifies detached OpenPGP signatures.
+    </p>
+    <p>
+      New encrypted data uses the portable GTC3 format with AES-256-GCM and
+      Argon2id. Historical GTKCrypto v1 and v2 files remain decryptable.
+    </p>
+  </description>
+
+  <launchable type="desktop-id">com.github.paolostivanin.gtkcrypto.desktop</launchable>
+  <provides>
+    <binary>gtkcrypto</binary>
+    <binary>gtkcrypto-cli</binary>
+  </provides>
+
+  <developer id="com.github.paolostivanin">
+    <name>Paolo Stivanin</name>
+  </developer>
+  <update_contact>paolostivanin_at_users.noreply.github.com</update_contact>
+
+  <url type="homepage">https://github.com/paolostivanin/GTKCrypto</url>
+  <url type="bugtracker">https://github.com/paolostivanin/GTKCrypto/issues</url>
+  <url type="vcs-browser">https://github.com/paolostivanin/GTKCrypto</url>
+
+  <keywords>
+    <keyword>encryption</keyword>
+    <keyword>cryptography</keyword>
+    <keyword>hash</keyword>
+    <keyword>gpg</keyword>
+    <keyword>argon2</keyword>
+  </keywords>
+
+  <content_rating type="oars-1.1"/>
+
+  <releases>
+    <release version="3.0.0" date="2026-06-23">
+      <description>
+        <ul>
+          <li>Add the portable authenticated GTC3 encryption format</li>
+          <li>Prevent partial output and accidental replacement after failures</li>
+          <li>Restore safe v1 and v2 decryption compatibility</li>
+          <li>Fix hashing boundaries, Unicode paths, GPG key ownership, and background-task lifetimes</li>
+          <li>Add automated crypto, corruption, CLI, metadata, and sanitizer checks</li>
+        </ul>
+      </description>
+    </release>
+    <release version="2.2.0" date="2026-05-06">
+      <description>
+        <p>Added the gtkcrypto-cli command-line companion.</p>
+      </description>
+    </release>
+    <release version="2.1.0" date="2026-05-06">
+      <description>
+        <p>Added parallel hashing, expected-hash verification, and drag-and-drop.</p>
+      </description>
+    </release>
+    <release version="2.0.0" date="2026-04-03">
+      <description>
+        <p>Ported the application to GTK 4 and libadwaita.</p>
+      </description>
+    </release>
+  </releases>
+</component>
