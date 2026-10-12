@@ -44,6 +44,16 @@
   <content_rating type="oars-1.1"/>
 
   <releases>
+    <release version="3.1.0" date="2026-10-12">
+      <description>
+        <ul>
+          <li>Fix a crash when batch-decrypting files and several GPG, text and file-picker robustness issues</li>
+          <li>Add cancellation, progress bars, per-file error reports, a file list, output folders and password strength and generator tools</li>
+          <li>Add selectable key derivation strength, Preferences, keyboard shortcuts, accessibility labels and translation support</li>
+          <li>Overhaul gtkcrypto-cli: several files, pipes, password-fd, hash --check, quiet and verbose modes, clean interruption</li>
+        </ul>
+      </description>
+    </release>
     <release version="3.0.0" date="2026-06-23">
       <description>
         <ul>
