@@ -4,12 +4,6 @@
 #include <gio/gio.h>
 #include <gcrypt.h>
 
-#define HASH_COMPUTED         ((gpointer) 10)
-#define HASH_ERROR            ((gpointer) 11)
-#define MUNMAP_FAILED         ((gpointer) 12)
-
-#define AVAILABLE_HASH_TYPE   12
-
 #define MD5_DIGEST_SIZE         16
 #define SHA1_DIGEST_SIZE        20
 #define GOST94_DIGEST_SIZE      32
@@ -23,13 +17,6 @@
 #define BLAKE2B_512_DIGEST_SIZE 64
 #define WHIRLPOOL_DIGEST_SIZE   64
 
-
-gpointer compute_hash   (gcry_md_hd_t *hd,
-                         const gchar  *file_path);
-
-gchar *finalize_hash    (gcry_md_hd_t *hd,
-                         gint          algo,
-                         gint          digest_size);
 
 /* Hash FILE_PATH with all ALGOS in a single read pass. On success hex_out[i]
  * holds the lowercase hex digest for algos[i] (free each with g_free). */

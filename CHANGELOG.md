@@ -30,6 +30,11 @@
 
 ### Changed
 
+- The GTC3 header is encoded and decoded in one place (`GtkcryptoV3Header`),
+  with a known-answer layout test; dead code and GUI compatibility wrappers
+  were removed.
+- Fuzzing covers the file decryptor (all formats) and ships a seed corpus;
+  CI adds scan-build and a GUI start-up smoke test.
 - Decryption accepts passwords shorter than 8 characters (only new passwords
   are checked), so legacy files stay readable.
 - Decrypted text copied to the clipboard is cleared after a delay.

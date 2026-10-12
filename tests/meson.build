@@ -58,4 +58,13 @@ if get_option('fuzzing')
     c_args: fuzz_args,
     link_args: fuzz_args,
   )
+  executable(
+    'fuzz-decrypt-file',
+    'fuzz-decrypt-file.c',
+    include_directories: include_directories('../src'),
+    link_with: crypto_lib,
+    dependencies: [glib_dep, gio_dep, gcrypt_dep],
+    c_args: fuzz_args,
+    link_args: fuzz_args,
+  )
 endif

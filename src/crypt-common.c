@@ -351,29 +351,47 @@ gtkcrypto_atomic_output_abort (GtkcryptoAtomicOutput *output)
     output->fd = -1;
 }
 
+enum {
+    V3_OFFSET_VERSION = 4,
+    V3_OFFSET_HEADER_LENGTH = 5,
+    V3_OFFSET_FLAGS = 7,
+    V3_OFFSET_CIPHER = 8,
+    V3_OFFSET_KDF = 9,
+    V3_OFFSET_SALT_LENGTH = 10,
+    V3_OFFSET_NONCE_LENGTH = 11,
+    V3_OFFSET_TAG_LENGTH = 12,
+    V3_OFFSET_RESERVED = 13,
+    V3_OFFSET_TIME = 16,
+    V3_OFFSET_MEMORY = 20,
+    V3_OFFSET_LANES = 24,
+    V3_OFFSET_PLAINTEXT_SIZE = 28,
+    V3_OFFSET_SALT = 36,
+    V3_OFFSET_NONCE = 68,
+};
+
 static void
-bytes_put_be16 (guint8 *p, guint16 value)
+put_be16 (guint8 *p, guint16 value)
 {
     value = GUINT16_TO_BE (value);
     memcpy (p, &value, sizeof value);
 }
 
 static void
-bytes_put_be32 (guint8 *p, guint32 value)
+put_be32 (guint8 *p, guint32 value)
 {
     value = GUINT32_TO_BE (value);
     memcpy (p, &value, sizeof value);
 }
 
 static void
-bytes_put_be64 (guint8 *p, guint64 value)
+put_be64 (guint8 *p, guint64 value)
 {
     value = GUINT64_TO_BE (value);
     memcpy (p, &value, sizeof value);
 }
 
 static guint16
-bytes_get_be16 (const guint8 *p)
+get_be16 (const guint8 *p)
 {
     guint16 value;
     memcpy (&value, p, sizeof value);
@@ -381,7 +399,7 @@ bytes_get_be16 (const guint8 *p)
 }
 
 static guint32
-bytes_get_be32 (const guint8 *p)
+get_be32 (const guint8 *p)
 {
     guint32 value;
     memcpy (&value, p, sizeof value);
@@ -389,11 +407,69 @@ bytes_get_be32 (const guint8 *p)
 }
 
 static guint64
-bytes_get_be64 (const guint8 *p)
+get_be64 (const guint8 *p)
 {
     guint64 value;
     memcpy (&value, p, sizeof value);
     return GUINT64_FROM_BE (value);
+}
+
+void
+gtkcrypto_v3_header_init (GtkcryptoV3Header *header, guint64 plaintext_size)
+{
+    memset (header, 0, sizeof *header);
+    gtkcrypto_kdf_params_current (&header->kdf);
+    header->plaintext_size = plaintext_size;
+    gcry_randomize (header->salt, sizeof header->salt, GCRY_STRONG_RANDOM);
+    gcry_randomize (header->nonce, sizeof header->nonce, GCRY_STRONG_RANDOM);
+}
+
+void
+gtkcrypto_v3_header_encode (const GtkcryptoV3Header *header,
+                            guint8 out[GTKCRYPTO_V3_HEADER_SIZE])
+{
+    memset (out, 0, GTKCRYPTO_V3_HEADER_SIZE);
+    memcpy (out, "GTC3", 4);
+    out[V3_OFFSET_VERSION] = 3;
+    put_be16 (out + V3_OFFSET_HEADER_LENGTH, GTKCRYPTO_V3_HEADER_SIZE);
+    out[V3_OFFSET_FLAGS] = 0;
+    out[V3_OFFSET_CIPHER] = 1;   /* AES-256-GCM */
+    out[V3_OFFSET_KDF] = 1;      /* Argon2id */
+    out[V3_OFFSET_SALT_LENGTH] = GTKCRYPTO_SALT_SIZE;
+    out[V3_OFFSET_NONCE_LENGTH] = GTKCRYPTO_NONCE_SIZE;
+    out[V3_OFFSET_TAG_LENGTH] = GTKCRYPTO_TAG_SIZE;
+    put_be32 (out + V3_OFFSET_TIME, header->kdf.time);
+    put_be32 (out + V3_OFFSET_MEMORY, header->kdf.memory_kib);
+    put_be32 (out + V3_OFFSET_LANES, header->kdf.lanes);
+    put_be64 (out + V3_OFFSET_PLAINTEXT_SIZE, header->plaintext_size);
+    memcpy (out + V3_OFFSET_SALT, header->salt, sizeof header->salt);
+    memcpy (out + V3_OFFSET_NONCE, header->nonce, sizeof header->nonce);
+}
+
+gboolean
+gtkcrypto_v3_header_decode (const guint8 *in, gsize len,
+                            GtkcryptoV3Header *header)
+{
+    if (len < GTKCRYPTO_V3_HEADER_SIZE ||
+        memcmp (in, "GTC3", 4) != 0 ||
+        in[V3_OFFSET_VERSION] != 3 ||
+        get_be16 (in + V3_OFFSET_HEADER_LENGTH) != GTKCRYPTO_V3_HEADER_SIZE ||
+        in[V3_OFFSET_FLAGS] != 0 || in[V3_OFFSET_CIPHER] != 1 ||
+        in[V3_OFFSET_KDF] != 1 ||
+        in[V3_OFFSET_SALT_LENGTH] != GTKCRYPTO_SALT_SIZE ||
+        in[V3_OFFSET_NONCE_LENGTH] != GTKCRYPTO_NONCE_SIZE ||
+        in[V3_OFFSET_TAG_LENGTH] != GTKCRYPTO_TAG_SIZE ||
+        in[V3_OFFSET_RESERVED] != 0 || in[V3_OFFSET_RESERVED + 1] != 0 ||
+        in[V3_OFFSET_RESERVED + 2] != 0) {
+        return FALSE;
+    }
+    header->kdf.time = get_be32 (in + V3_OFFSET_TIME);
+    header->kdf.memory_kib = get_be32 (in + V3_OFFSET_MEMORY);
+    header->kdf.lanes = get_be32 (in + V3_OFFSET_LANES);
+    header->plaintext_size = get_be64 (in + V3_OFFSET_PLAINTEXT_SIZE);
+    memcpy (header->salt, in + V3_OFFSET_SALT, sizeof header->salt);
+    memcpy (header->nonce, in + V3_OFFSET_NONCE, sizeof header->nonce);
+    return TRUE;
 }
 
 GBytes *
@@ -418,33 +494,20 @@ gtkcrypto_encrypt_bytes_v3 (const guint8 *plaintext,
     gcry_cipher_hd_t cipher = NULL;
     GBytes *result = NULL;
 
-    memcpy (container, "GTC3", 4);
-    container[4] = 3;
-    bytes_put_be16 (container + 5, GTKCRYPTO_V3_HEADER_SIZE);
-    container[8] = 1;
-    container[9] = 1;
-    container[10] = GTKCRYPTO_SALT_SIZE;
-    container[11] = GTKCRYPTO_NONCE_SIZE;
-    container[12] = GTKCRYPTO_TAG_SIZE;
-    GtkcryptoKdfParams kdf;
-    gtkcrypto_kdf_params_current (&kdf);
-    bytes_put_be32 (container + 16, kdf.time);
-    bytes_put_be32 (container + 20, kdf.memory_kib);
-    bytes_put_be32 (container + 24, kdf.lanes);
-    bytes_put_be64 (container + 28, plaintext_len);
-    gcry_randomize (container + 36, GTKCRYPTO_SALT_SIZE, GCRY_STRONG_RANDOM);
-    gcry_randomize (container + 68, GTKCRYPTO_NONCE_SIZE, GCRY_STRONG_RANDOM);
+    GtkcryptoV3Header hdr;
+    gtkcrypto_v3_header_init (&hdr, plaintext_len);
+    gtkcrypto_v3_header_encode (&hdr, container);
 
-    if (!gtkcrypto_argon2id_derive (password, password_len, container + 36,
-                                    kdf.time, kdf.memory_kib, kdf.lanes,
-                                    key, error)) {
+    if (!gtkcrypto_argon2id_derive (password, password_len, hdr.salt,
+                                    hdr.kdf.time, hdr.kdf.memory_kib,
+                                    hdr.kdf.lanes, key, error)) {
         goto out;
     }
     gcry_error_t gerr = gcry_cipher_open (&cipher, GCRY_CIPHER_AES256,
                                           GCRY_CIPHER_MODE_GCM, 0);
     if (gerr == 0) gerr = gcry_cipher_setkey (cipher, key, sizeof key);
-    if (gerr == 0) gerr = gcry_cipher_setiv (cipher, container + 68,
-                                             GTKCRYPTO_NONCE_SIZE);
+    if (gerr == 0) gerr = gcry_cipher_setiv (cipher, hdr.nonce,
+                                             sizeof hdr.nonce);
     if (gerr == 0) gerr = gcry_cipher_authenticate (
         cipher, container, GTKCRYPTO_V3_HEADER_SIZE);
     if (gerr == 0) gcry_cipher_final (cipher);
@@ -483,20 +546,15 @@ gtkcrypto_decrypt_bytes_v3 (const guint8 *container,
                             gsize password_len,
                             GError **error)
 {
+    GtkcryptoV3Header hdr;
     if (container_len < GTKCRYPTO_V3_HEADER_SIZE + GTKCRYPTO_TAG_SIZE ||
-        memcmp (container, "GTC3", 4) != 0 || container[4] != 3 ||
-        bytes_get_be16 (container + 5) != GTKCRYPTO_V3_HEADER_SIZE ||
-        container[7] != 0 || container[8] != 1 || container[9] != 1 ||
-        container[10] != GTKCRYPTO_SALT_SIZE ||
-        container[11] != GTKCRYPTO_NONCE_SIZE ||
-        container[12] != GTKCRYPTO_TAG_SIZE ||
-        container[13] != 0 || container[14] != 0 || container[15] != 0) {
+        !gtkcrypto_v3_header_decode (container, container_len, &hdr)) {
         g_set_error_literal (error, GTKCRYPTO_ERROR,
                              GTKCRYPTO_ERROR_INVALID_FORMAT,
                              "Invalid encrypted text container");
         return NULL;
     }
-    guint64 plaintext_size64 = bytes_get_be64 (container + 28);
+    guint64 plaintext_size64 = hdr.plaintext_size;
     if (plaintext_size64 > G_MAXSIZE ||
         container_len != GTKCRYPTO_V3_HEADER_SIZE + plaintext_size64 +
                          GTKCRYPTO_TAG_SIZE) {
@@ -512,18 +570,16 @@ gtkcrypto_decrypt_bytes_v3 (const guint8 *container,
     gcry_cipher_hd_t cipher = NULL;
     GBytes *result = NULL;
 
-    if (!gtkcrypto_argon2id_derive (password, password_len, container + 36,
-                                    bytes_get_be32 (container + 16),
-                                    bytes_get_be32 (container + 20),
-                                    bytes_get_be32 (container + 24),
-                                    key, error)) {
+    if (!gtkcrypto_argon2id_derive (password, password_len, hdr.salt,
+                                    hdr.kdf.time, hdr.kdf.memory_kib,
+                                    hdr.kdf.lanes, key, error)) {
         goto out;
     }
     gcry_error_t gerr = gcry_cipher_open (&cipher, GCRY_CIPHER_AES256,
                                           GCRY_CIPHER_MODE_GCM, 0);
     if (gerr == 0) gerr = gcry_cipher_setkey (cipher, key, sizeof key);
-    if (gerr == 0) gerr = gcry_cipher_setiv (cipher, container + 68,
-                                             GTKCRYPTO_NONCE_SIZE);
+    if (gerr == 0) gerr = gcry_cipher_setiv (cipher, hdr.nonce,
+                                             sizeof hdr.nonce);
     if (gerr == 0) gerr = gcry_cipher_authenticate (
         cipher, container, GTKCRYPTO_V3_HEADER_SIZE);
     if (gerr == 0) gcry_cipher_final (cipher);

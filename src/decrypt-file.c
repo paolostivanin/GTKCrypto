@@ -19,30 +19,6 @@ typedef struct {
     guint iterations;
 } LegacyHeader;
 
-static guint16
-get_be16 (const guint8 *p)
-{
-    guint16 value;
-    memcpy (&value, p, sizeof value);
-    return GUINT16_FROM_BE (value);
-}
-
-static guint32
-get_be32 (const guint8 *p)
-{
-    guint32 value;
-    memcpy (&value, p, sizeof value);
-    return GUINT32_FROM_BE (value);
-}
-
-static guint64
-get_be64 (const guint8 *p)
-{
-    guint64 value;
-    memcpy (&value, p, sizeof value);
-    return GUINT64_FROM_BE (value);
-}
-
 static guint32
 get_u32 (const guint8 *p, gboolean big_endian)
 {
@@ -476,24 +452,15 @@ decrypt_v3 (gint input_fd,
             GCancellable *cancellable,
             GError **error)
 {
-    if (memcmp (header, "GTC3", 4) != 0 ||
-        header[4] != 3 ||
-        get_be16 (header + 5) != GTKCRYPTO_V3_HEADER_SIZE ||
-        header[7] != 0 || header[8] != 1 || header[9] != 1 ||
-        header[10] != GTKCRYPTO_SALT_SIZE ||
-        header[11] != GTKCRYPTO_NONCE_SIZE ||
-        header[12] != GTKCRYPTO_TAG_SIZE ||
-        header[13] != 0 || header[14] != 0 || header[15] != 0) {
+    GtkcryptoV3Header hdr;
+    if (!gtkcrypto_v3_header_decode (header, GTKCRYPTO_V3_HEADER_SIZE, &hdr)) {
         g_set_error_literal (error, GTKCRYPTO_ERROR,
                              GTKCRYPTO_ERROR_INVALID_FORMAT,
                              "Invalid or unsupported GTC3 header");
         return FALSE;
     }
 
-    guint32 time_cost = get_be32 (header + 16);
-    guint32 memory_kib = get_be32 (header + 20);
-    guint32 lanes = get_be32 (header + 24);
-    guint64 plaintext_size = get_be64 (header + 28);
+    guint64 plaintext_size = hdr.plaintext_size;
     if (plaintext_size > G_MAXUINT64 - GTKCRYPTO_V3_HEADER_SIZE -
                          GTKCRYPTO_TAG_SIZE ||
         file_size != GTKCRYPTO_V3_HEADER_SIZE + plaintext_size +
@@ -511,8 +478,9 @@ decrypt_v3 (gint input_fd,
     guint8 *encrypted = NULL;
     guint8 *plain = NULL;
 
-    if (!gtkcrypto_argon2id_derive (password, password_len, header + 36,
-                                    time_cost, memory_kib, lanes,
+    if (!gtkcrypto_argon2id_derive (password, password_len, hdr.salt,
+                                    hdr.kdf.time, hdr.kdf.memory_kib,
+                                    hdr.kdf.lanes,
                                     key, error) ||
         !seek_to (input_fd, file_size - sizeof stored_tag, error) ||
         !gtkcrypto_read_full (input_fd, stored_tag, sizeof stored_tag,
@@ -526,7 +494,7 @@ decrypt_v3 (gint input_fd,
         gerr = gcry_cipher_setkey (cipher, key, sizeof key);
     }
     if (gerr == 0) {
-        gerr = gcry_cipher_setiv (cipher, header + 68,
+        gerr = gcry_cipher_setiv (cipher, hdr.nonce,
                                   GTKCRYPTO_NONCE_SIZE);
     }
     if (gerr == 0) {
@@ -725,23 +693,4 @@ out:
     }
     gtkcrypto_secure_clear (legacy_password, password_len + 1);
     return success;
-}
-
-gpointer
-decrypt_file (const gchar *input_file_path, const gchar *pwd)
-{
-    g_autofree gchar *output = NULL;
-    if (g_str_has_suffix (input_file_path, ".enc")) {
-        output = g_strndup (input_file_path, strlen (input_file_path) - 4);
-    } else {
-        output = g_strconcat (input_file_path, ".decrypted", NULL);
-    }
-
-    g_autoptr(GError) error = NULL;
-    if (!gtkcrypto_decrypt_file (input_file_path, output,
-                                 (const guint8 *)pwd, strlen (pwd),
-                                 FALSE, NULL, &error)) {
-        return g_strdup (error->message);
-    }
-    return NULL;
 }

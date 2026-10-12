@@ -7,45 +7,6 @@
 #include <sys/stat.h>
 #include <unistd.h>
 
-enum {
-    V3_OFFSET_VERSION = 4,
-    V3_OFFSET_HEADER_LENGTH = 5,
-    V3_OFFSET_FLAGS = 7,
-    V3_OFFSET_CIPHER = 8,
-    V3_OFFSET_KDF = 9,
-    V3_OFFSET_SALT_LENGTH = 10,
-    V3_OFFSET_NONCE_LENGTH = 11,
-    V3_OFFSET_TAG_LENGTH = 12,
-    V3_OFFSET_RESERVED = 13,
-    V3_OFFSET_TIME = 16,
-    V3_OFFSET_MEMORY = 20,
-    V3_OFFSET_LANES = 24,
-    V3_OFFSET_PLAINTEXT_SIZE = 28,
-    V3_OFFSET_SALT = 36,
-    V3_OFFSET_NONCE = 68,
-};
-
-static void
-put_be16 (guint8 *p, guint16 value)
-{
-    value = GUINT16_TO_BE (value);
-    memcpy (p, &value, sizeof value);
-}
-
-static void
-put_be32 (guint8 *p, guint32 value)
-{
-    value = GUINT32_TO_BE (value);
-    memcpy (p, &value, sizeof value);
-}
-
-static void
-put_be64 (guint8 *p, guint64 value)
-{
-    value = GUINT64_TO_BE (value);
-    memcpy (p, &value, sizeof value);
-}
-
 static gboolean
 get_regular_file_size (gint fd, guint64 *size, GError **error)
 {
@@ -107,31 +68,13 @@ gtkcrypto_encrypt_file (const gchar *input_path,
         goto out;
     }
 
-    memcpy (header, "GTC3", 4);
-    header[V3_OFFSET_VERSION] = 3;
-    put_be16 (header + V3_OFFSET_HEADER_LENGTH, GTKCRYPTO_V3_HEADER_SIZE);
-    header[V3_OFFSET_FLAGS] = 0;
-    header[V3_OFFSET_CIPHER] = 1; /* AES-256-GCM */
-    header[V3_OFFSET_KDF] = 1; /* Argon2id */
-    header[V3_OFFSET_SALT_LENGTH] = GTKCRYPTO_SALT_SIZE;
-    header[V3_OFFSET_NONCE_LENGTH] = GTKCRYPTO_NONCE_SIZE;
-    header[V3_OFFSET_TAG_LENGTH] = GTKCRYPTO_TAG_SIZE;
-    memset (header + V3_OFFSET_RESERVED, 0, 3);
-    GtkcryptoKdfParams kdf;
-    gtkcrypto_kdf_params_current (&kdf);
-    put_be32 (header + V3_OFFSET_TIME, kdf.time);
-    put_be32 (header + V3_OFFSET_MEMORY, kdf.memory_kib);
-    put_be32 (header + V3_OFFSET_LANES, kdf.lanes);
-    put_be64 (header + V3_OFFSET_PLAINTEXT_SIZE, plaintext_size);
-    gcry_randomize (header + V3_OFFSET_SALT, GTKCRYPTO_SALT_SIZE,
-                    GCRY_STRONG_RANDOM);
-    gcry_randomize (header + V3_OFFSET_NONCE, GTKCRYPTO_NONCE_SIZE,
-                    GCRY_STRONG_RANDOM);
+    GtkcryptoV3Header hdr;
+    gtkcrypto_v3_header_init (&hdr, plaintext_size);
+    gtkcrypto_v3_header_encode (&hdr, header);
 
-    if (!gtkcrypto_argon2id_derive (password, password_len,
-                                    header + V3_OFFSET_SALT,
-                                    kdf.time, kdf.memory_kib, kdf.lanes,
-                                    key, error)) {
+    if (!gtkcrypto_argon2id_derive (password, password_len, hdr.salt,
+                                    hdr.kdf.time, hdr.kdf.memory_kib,
+                                    hdr.kdf.lanes, key, error)) {
         goto out;
     }
 
@@ -141,8 +84,7 @@ gtkcrypto_encrypt_file (const gchar *input_path,
         gerr = gcry_cipher_setkey (cipher, key, sizeof key);
     }
     if (gerr == 0) {
-        gerr = gcry_cipher_setiv (cipher, header + V3_OFFSET_NONCE,
-                                  GTKCRYPTO_NONCE_SIZE);
+        gerr = gcry_cipher_setiv (cipher, hdr.nonce, sizeof hdr.nonce);
     }
     if (gerr == 0) {
         gerr = gcry_cipher_authenticate (cipher, header, sizeof header);
@@ -231,23 +173,4 @@ out:
     g_free (plain);
     g_free (encrypted);
     return success;
-}
-
-gpointer
-encrypt_file (const gchar *input_file_path,
-              const gchar *pwd,
-              const gchar *algo,
-              const gchar *algo_mode)
-{
-    (void)algo;
-    (void)algo_mode;
-    g_autofree gchar *output = g_strconcat (input_file_path, ".enc", NULL);
-    g_autoptr(GError) error = NULL;
-
-    if (!gtkcrypto_encrypt_file (input_file_path, output,
-                                 (const guint8 *)pwd, strlen (pwd),
-                                 FALSE, NULL, &error)) {
-        return g_strdup (error->message);
-    }
-    return NULL;
 }

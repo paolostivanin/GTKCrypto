@@ -21,7 +21,7 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y meson ninja-build appstream gnupg libgtk-4-dev libadwaita-1-dev libgcrypt20-dev libgpgme-dev
+          sudo apt-get install -y meson ninja-build appstream gettext desktop-file-utils gnupg libgtk-4-dev libadwaita-1-dev libgcrypt20-dev libgpgme-dev
       - name: Configure
         run: meson setup build --buildtype=release -Dwerror=true
       - name: Build
@@ -42,7 +42,7 @@ jobs:
       - uses: actions/checkout@v4
       - run: |
           sudo apt-get update
-          sudo apt-get install -y meson ninja-build appstream gnupg libgtk-4-dev libadwaita-1-dev libgcrypt20-dev libgpgme-dev
+          sudo apt-get install -y meson ninja-build appstream gettext desktop-file-utils gnupg libgtk-4-dev libadwaita-1-dev libgcrypt20-dev libgpgme-dev
       - run: meson setup build -Db_sanitize=address,undefined -Db_lundef=false
       - run: meson compile -C build
       - run: meson test -C build --print-errorlogs
@@ -55,7 +55,42 @@ jobs:
       - uses: actions/checkout@v4
       - run: |
           sudo apt-get update
-          sudo apt-get install -y meson ninja-build appstream gnupg libgtk-4-dev libadwaita-1-dev libgcrypt20-dev libgpgme-dev
+          sudo apt-get install -y meson ninja-build appstream gettext desktop-file-utils gnupg libgtk-4-dev libadwaita-1-dev libgcrypt20-dev libgpgme-dev
       - run: meson setup build -Dfuzzing=true -Db_lundef=false
-      - run: meson compile -C build fuzz-v3-text
-      - run: ASAN_OPTIONS=detect_leaks=0 ./build/tests/fuzz-v3-text -max_total_time=20
+      - run: meson compile -C build fuzz-v3-text fuzz-decrypt-file
+      - name: Fuzz (seed corpus is copied so the checkout stays clean)
+        run: |
+          for target in fuzz-v3-text fuzz-decrypt-file; do
+            cp -r tests/corpus "corpus-$target"
+            ASAN_OPTIONS=detect_leaks=0 ./build/tests/$target "corpus-$target" -max_total_time=20
+          done
+
+  static-analysis:
+    runs-on: ubuntu-24.04
+    env:
+      CC: clang
+    steps:
+      - uses: actions/checkout@v4
+      - run: |
+          sudo apt-get update
+          sudo apt-get install -y meson ninja-build appstream gettext desktop-file-utils gnupg clang-tools libgtk-4-dev libadwaita-1-dev libgcrypt20-dev libgpgme-dev
+      - run: meson setup build
+      - name: scan-build (fails when it reports a bug)
+        run: ninja -C build scan-build
+
+  gui-smoke:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - run: |
+          sudo apt-get update
+          sudo apt-get install -y meson ninja-build appstream gettext desktop-file-utils gnupg xvfb libgtk-4-dev libadwaita-1-dev libgcrypt20-dev libgpgme-dev
+      - run: meson setup build
+      - run: meson compile -C build
+      - name: GUI starts and stays up
+        run: |
+          set +e
+          GSK_RENDERER=cairo xvfb-run -a timeout 8 ./build/src/gtkcrypto
+          rc=$?
+          # 124 = still running when timeout stopped it; anything else is a crash or early exit
+          test "$rc" -eq 124

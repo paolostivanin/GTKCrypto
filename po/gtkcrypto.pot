@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtkcrypto\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-12 10:51+0200\n"
+"POT-Creation-Date: 2026-10-12 11:03+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -35,7 +35,7 @@ msgid "GPG Signing"
 msgstr ""
 
 #: src/gtkcrypto-window.c:99 src/gtkcrypto-window.c:233
-#: src/preferences-dialog.c:20
+#: src/preferences-dialog.c:30
 msgid "Preferences"
 msgstr ""
 
@@ -60,18 +60,48 @@ msgstr ""
 msgid "Quit"
 msgstr ""
 
-#: src/preferences-dialog.c:26
+#: src/preferences-dialog.c:36
 msgid "Privacy"
 msgstr ""
 
-#: src/preferences-dialog.c:32
+#: src/preferences-dialog.c:42
 msgid "Clear clipboard after (seconds)"
 msgstr ""
 
-#: src/preferences-dialog.c:34
+#: src/preferences-dialog.c:44
 msgid ""
 "Applies to decrypted text copied from the Text Encryption page. 0 keeps it "
 "forever."
+msgstr ""
+
+#: src/preferences-dialog.c:53
+msgid "Encryption"
+msgstr ""
+
+#: src/preferences-dialog.c:56
+msgid ""
+"Cost of deriving the key from your password when creating new encrypted "
+"files and texts. Existing data can always be opened."
+msgstr ""
+
+#: src/preferences-dialog.c:59
+msgid "Standard (2 passes, 19 MiB)"
+msgstr ""
+
+#: src/preferences-dialog.c:60
+msgid "Strong (3 passes, 64 MiB)"
+msgstr ""
+
+#: src/preferences-dialog.c:61
+msgid "Maximum (4 passes, 256 MiB)"
+msgstr ""
+
+#: src/preferences-dialog.c:66
+msgid "Key derivation strength"
+msgstr ""
+
+#: src/preferences-dialog.c:68
+msgid "Higher levels are slower and need more memory"
 msgstr ""
 
 #: src/pages/file-crypto-page.c:172
@@ -629,16 +659,16 @@ msgid "Decrypted text"
 msgstr ""
 
 #: data/com.github.paolostivanin.gtkcrypto.desktop:5
-msgid "aes;twofish;serpent;sha2;sha3;md5;gost;"
+msgid "encryption;encrypt;decrypt;aes;argon2;hash;checksum;sha256;sha3;gpg;pgp;sign;"
 msgstr ""
 
-#: data/com.github.paolostivanin.gtkcrypto.desktop:7
+#: data/com.github.paolostivanin.gtkcrypto.desktop:8
 #: data/com.github.paolostivanin.gtkcrypto.metainfo.xml:6
 msgid "GTKCrypto"
 msgstr ""
 
-#: data/com.github.paolostivanin.gtkcrypto.desktop:8
-msgid "Encrypt, sign and compute hashes of a given file"
+#: data/com.github.paolostivanin.gtkcrypto.desktop:9
+msgid "Encrypt files and text, compute hashes and sign with GPG"
 msgstr ""
 
 #: data/com.github.paolostivanin.gtkcrypto.metainfo.xml:7

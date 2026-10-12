@@ -34,6 +34,27 @@ void              gtkcrypto_set_kdf_level (GtkcryptoKdfLevel level);
 GtkcryptoKdfLevel gtkcrypto_get_kdf_level (void);
 void              gtkcrypto_kdf_params_current (GtkcryptoKdfParams *params);
 
+/* The fixed-size GTC3 header (docs/file-format.md). It is the single place
+ * that knows the byte layout; files and text containers both use it. The
+ * encoded form is also the AES-GCM additional authenticated data. */
+typedef struct {
+    GtkcryptoKdfParams kdf;
+    guint64            plaintext_size;
+    guint8             salt[GTKCRYPTO_SALT_SIZE];
+    guint8             nonce[GTKCRYPTO_NONCE_SIZE];
+} GtkcryptoV3Header;
+
+/* Fills KDF parameters (current level), random salt and nonce. */
+void     gtkcrypto_v3_header_init   (GtkcryptoV3Header *header,
+                                     guint64 plaintext_size);
+void     gtkcrypto_v3_header_encode (const GtkcryptoV3Header *header,
+                                     guint8 out[GTKCRYPTO_V3_HEADER_SIZE]);
+/* FALSE when magic, version, algorithm IDs, lengths or reserved bytes are not
+ * exactly what this implementation supports. KDF costs are bounds-checked by
+ * gtkcrypto_argon2id_derive(). */
+gboolean gtkcrypto_v3_header_decode (const guint8 *in, gsize len,
+                                     GtkcryptoV3Header *header);
+
 #define GTKCRYPTO_V2_HEADER_SIZE    62
 #define GTKCRYPTO_LEGACY_HMAC_SIZE  64
 #define GTKCRYPTO_LEGACY_KDF_V1     100000
@@ -59,19 +80,6 @@ typedef enum {
 
 #define GTKCRYPTO_ERROR (gtkcrypto_error_quark ())
 GQuark gtkcrypto_error_quark (void);
-
-typedef enum {
-    GTKCRYPTO_CIPHER_AES256,
-    GTKCRYPTO_CIPHER_TWOFISH,
-    GTKCRYPTO_CIPHER_SERPENT256,
-    GTKCRYPTO_CIPHER_CAMELLIA256,
-} GtkcryptoCipher;
-
-typedef enum {
-    GTKCRYPTO_MODE_GCM,
-    GTKCRYPTO_MODE_CTR,
-    GTKCRYPTO_MODE_CBC,
-} GtkcryptoMode;
 
 typedef struct {
     gchar *path;

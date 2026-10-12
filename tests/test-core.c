@@ -115,6 +115,20 @@ test_v3_roundtrip_and_failures (void)
     g_assert_error (error, GTKCRYPTO_ERROR, GTKCRYPTO_ERROR_EXISTS);
 }
 
+/* Setting GTKCRYPTO_TEST_FIXTURE_DIR copies the generated legacy fixtures
+ * there; used to refresh the fuzzing seed corpus (tests/corpus). */
+static void
+export_fixture (const gchar *path, const gchar *name)
+{
+    const gchar *dir = g_getenv ("GTKCRYPTO_TEST_FIXTURE_DIR");
+    if (dir == NULL) return;
+    g_autoptr(GBytes) data = read_file (path);
+    g_autofree gchar *dest = g_build_filename (dir, name, NULL);
+    gsize len;
+    const gchar *bytes = g_bytes_get_data (data, &len);
+    g_assert_true (g_file_set_contents (dest, bytes, (gssize)len, NULL));
+}
+
 static void
 test_v3_empty_and_text (void)
 {
@@ -200,6 +214,7 @@ test_v2_compatibility (void)
     g_autofree gchar *encrypted = path_for ("legacy-v2.enc");
     g_autofree gchar *recovered = path_for ("legacy-v2.out");
     create_v2_gcm_fixture (encrypted, payload, sizeof payload - 1);
+    export_fixture (encrypted, "legacy-v2");
 
     g_autoptr(GError) error = NULL;
     g_assert_true (gtkcrypto_decrypt_file (
@@ -270,6 +285,7 @@ test_v1_compatibility (void)
     g_autofree gchar *encrypted = path_for ("legacy-v1.enc");
     g_autofree gchar *recovered = path_for ("legacy-v1.out");
     create_v1_ctr_fixture (encrypted, payload, sizeof payload - 1);
+    export_fixture (encrypted, "legacy-v1");
 
     g_autoptr(GError) error = NULL;
     g_assert_true (gtkcrypto_decrypt_file (
@@ -359,15 +375,15 @@ test_kdf_levels (void)
                                                NULL, &error));
         g_assert_no_error (error);
 
-        /* The parameters are stored in the header (offsets 16, 20, 24)... */
+        /* The parameters are stored in the header... */
         g_autoptr(GBytes) container = read_file (encrypted);
-        const guint8 *data = g_bytes_get_data (container, NULL);
-        g_assert_cmpuint (GUINT32_FROM_BE (*(const guint32 *)(data + 16)), ==,
-                          expected.time);
-        g_assert_cmpuint (GUINT32_FROM_BE (*(const guint32 *)(data + 20)), ==,
-                          expected.memory_kib);
-        g_assert_cmpuint (GUINT32_FROM_BE (*(const guint32 *)(data + 24)), ==,
-                          expected.lanes);
+        gsize container_len;
+        const guint8 *data = g_bytes_get_data (container, &container_len);
+        GtkcryptoV3Header stored;
+        g_assert_true (gtkcrypto_v3_header_decode (data, container_len, &stored));
+        g_assert_cmpuint (stored.kdf.time, ==, expected.time);
+        g_assert_cmpuint (stored.kdf.memory_kib, ==, expected.memory_kib);
+        g_assert_cmpuint (stored.kdf.lanes, ==, expected.lanes);
 
         /* ...so decryption works whatever level is configured later. */
         gtkcrypto_set_kdf_level (GTKCRYPTO_KDF_STANDARD);
@@ -377,6 +393,62 @@ test_kdf_levels (void)
         assert_files_equal (input, recovered);
     }
     gtkcrypto_set_kdf_level (GTKCRYPTO_KDF_STANDARD);
+}
+
+static void
+test_v3_header_layout (void)
+{
+    /* Built by hand from docs/file-format.md, independent of the codec. */
+    guint8 expected[GTKCRYPTO_V3_HEADER_SIZE] = { 0 };
+    memcpy (expected, "GTC3", 4);
+    expected[4] = 3;                       /* version */
+    expected[5] = 0; expected[6] = 80;     /* header length (BE16) */
+    expected[8] = 1;                       /* AES-256-GCM */
+    expected[9] = 1;                       /* Argon2id */
+    expected[10] = 32;                     /* salt length */
+    expected[11] = 12;                     /* nonce length */
+    expected[12] = 16;                     /* tag length */
+    expected[16 + 3] = 2;                  /* time cost 2 (BE32) */
+    expected[20 + 2] = 0x4C;               /* memory 19456 = 0x00004C00 (BE32) */
+    expected[24 + 3] = 1;                  /* lanes 1 */
+    expected[28 + 7] = 0x2A; expected[28 + 6] = 0x01; /* size 0x012A (BE64) */
+    for (guint i = 0; i < 32; i++) expected[36 + i] = (guint8)(0x40 + i);
+    for (guint i = 0; i < 12; i++) expected[68 + i] = (guint8)(0xA0 + i);
+
+    GtkcryptoV3Header header = {
+        .kdf = { 2, 19456, 1 },
+        .plaintext_size = 0x012A,
+    };
+    memcpy (header.salt, expected + 36, 32);
+    memcpy (header.nonce, expected + 68, 12);
+
+    guint8 encoded[GTKCRYPTO_V3_HEADER_SIZE];
+    gtkcrypto_v3_header_encode (&header, encoded);
+    g_assert_cmpmem (encoded, sizeof encoded, expected, sizeof expected);
+
+    GtkcryptoV3Header decoded;
+    g_assert_true (gtkcrypto_v3_header_decode (expected, sizeof expected,
+                                               &decoded));
+    g_assert_cmpuint (decoded.kdf.time, ==, 2);
+    g_assert_cmpuint (decoded.kdf.memory_kib, ==, 19456);
+    g_assert_cmpuint (decoded.kdf.lanes, ==, 1);
+    g_assert_cmpuint (decoded.plaintext_size, ==, 0x012A);
+    g_assert_cmpmem (decoded.salt, 32, header.salt, 32);
+    g_assert_cmpmem (decoded.nonce, 12, header.nonce, 12);
+
+    /* Every fixed byte (offsets 0-15) must be rejected when altered; the
+     * variable fields (KDF cost, size, salt, nonce) are accepted here and
+     * validated later. */
+    g_assert_false (gtkcrypto_v3_header_decode (expected,
+                                                GTKCRYPTO_V3_HEADER_SIZE - 1,
+                                                &decoded));
+    for (guint i = 0; i < 16; i++) {
+        guint8 mutated[GTKCRYPTO_V3_HEADER_SIZE];
+        memcpy (mutated, expected, sizeof mutated);
+        mutated[i] ^= 0x01;
+        g_assert_false (gtkcrypto_v3_header_decode (mutated, sizeof mutated,
+                                                    &decoded));
+    }
 }
 
 int
@@ -397,6 +469,7 @@ main (int argc, char **argv)
                      test_cancelled_encrypt_leaves_no_files);
     g_test_add_func ("/crypto/v3-roundtrip-failures",
                      test_v3_roundtrip_and_failures);
+    g_test_add_func ("/crypto/v3-header-layout", test_v3_header_layout);
     g_test_add_func ("/crypto/kdf-levels", test_kdf_levels);
     g_test_add_func ("/crypto/v3-empty-text", test_v3_empty_and_text);
     g_test_add_func ("/crypto/v2-compatibility", test_v2_compatibility);

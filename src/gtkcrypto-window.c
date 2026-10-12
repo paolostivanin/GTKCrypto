@@ -257,6 +257,7 @@ static void
 gtkcrypto_window_class_init (GtkcryptoWindowClass *klass)
 {
     (void)klass;
+    (void)gtkcrypto_window_parent_class;   /* silence -Wunused-but-set-global */
 }
 
 

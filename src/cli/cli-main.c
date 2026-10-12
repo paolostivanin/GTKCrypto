@@ -265,6 +265,15 @@ read_password_fd (gint fd, GError **err)
     return secure;
 }
 
+/* Best-effort terminal output: a failing prompt write must not abort. */
+static void
+tty_write (int fd, const char *text)
+{
+    if (write (fd, text, strlen (text)) < 0) {
+        /* nothing sensible to do */
+    }
+}
+
 static volatile sig_atomic_t prompt_signal;
 
 static void
@@ -305,8 +314,7 @@ prompt_password_once (const gchar *prompt, gboolean *interrupted)
     sigaction (SIGHUP, &sa, &old_hup);
 
     tcsetattr (tty, TCSAFLUSH, &quiet);
-    ssize_t ignored = write (tty, prompt, strlen (prompt));
-    (void)ignored;
+    tty_write (tty, prompt);
 
     char buf[MAX_PWD_LEN + 1];
     gsize len = 0;
@@ -323,7 +331,7 @@ prompt_password_once (const gchar *prompt, gboolean *interrupted)
     buf[len] = '\0';
 
     tcsetattr (tty, TCSAFLUSH, &old);
-    ignored = write (tty, "\n", 1);
+    tty_write (tty, "\n");
     sigaction (SIGINT, &old_int, NULL);
     sigaction (SIGTERM, &old_term, NULL);
     sigaction (SIGHUP, &old_hup, NULL);
