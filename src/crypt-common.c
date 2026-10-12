@@ -11,6 +11,24 @@
 
 G_DEFINE_QUARK (gtkcrypto-error-quark, gtkcrypto_error)
 
+static _Thread_local GtkcryptoProgressFunc progress_func;
+static _Thread_local gpointer              progress_data;
+
+void
+gtkcrypto_set_progress (GtkcryptoProgressFunc func, gpointer user_data)
+{
+    progress_func = func;
+    progress_data = user_data;
+}
+
+void
+gtkcrypto_report_progress (guint64 done, guint64 total)
+{
+    if (progress_func != NULL) {
+        progress_func (done, total, progress_data);
+    }
+}
+
 void
 gtkcrypto_secure_clear (gpointer data, gsize length)
 {

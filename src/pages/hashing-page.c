@@ -1,3 +1,4 @@
+#include <glib/gi18n.h>
 #include <gcrypt.h>
 #include "hashing-page.h"
 #include "../hash.h"
@@ -76,6 +77,15 @@ struct _GtkcryptoHashingPage {
 };
 
 G_DEFINE_TYPE (GtkcryptoHashingPage, gtkcrypto_hashing_page, GTK_TYPE_BOX)
+
+static void
+set_a11y (GtkWidget *widget, const gchar *label)
+{
+    gtk_widget_set_tooltip_text (widget, label);
+    gtk_accessible_update_property (GTK_ACCESSIBLE (widget),
+                                    GTK_ACCESSIBLE_PROPERTY_LABEL, label, -1);
+}
+
 
 typedef struct {
     GtkcryptoHashingPage *page;
@@ -179,8 +189,8 @@ hash_done_idle (gpointer user_data)
                              g_strdup (hash_algos[hd->algo_index].label),
                              g_strdup (hd->hash));
     } else {
-        gtk_label_set_text (GTK_LABEL (hd->page->hash_result_labels[hd->algo_index]), "Error");
-        g_autofree gchar *msg = g_strdup_printf ("Failed to compute %s hash",
+        gtk_label_set_text (GTK_LABEL (hd->page->hash_result_labels[hd->algo_index]), _("Error"));
+        g_autofree gchar *msg = g_strdup_printf (_("Failed to compute %s hash"),
                                                  hash_algos[hd->algo_index].label);
         hashing_page_show_toast (hd->page, msg);
     }
@@ -393,7 +403,7 @@ compute_choose_file_cb (GtkButton *btn, gpointer user_data)
     (void)btn;
     GtkcryptoHashingPage *self = user_data;
     GtkFileDialog *dialog = gtk_file_dialog_new ();
-    gtk_file_dialog_set_title (dialog, "Choose file to hash");
+    gtk_file_dialog_set_title (dialog, _("Choose file to hash"));
     GtkWidget *toplevel = GTK_WIDGET (gtk_widget_get_root (GTK_WIDGET (self)));
     gtk_file_dialog_open (dialog, GTK_WINDOW (toplevel), NULL,
                           compute_file_chosen_cb, self);
@@ -444,7 +454,7 @@ copy_hash_clicked_cb (GtkButton *btn, gpointer user_data)
         GdkClipboard *clipboard = gdk_display_get_clipboard (
             gdk_display_get_default ());
         gdk_clipboard_set_text (clipboard, text);
-        if (self) hashing_page_show_toast (self, "Hash copied to clipboard");
+        if (self) hashing_page_show_toast (self, _("Hash copied to clipboard"));
     }
 }
 
@@ -503,7 +513,7 @@ compare_choose_file1_cb (GtkButton *btn, gpointer user_data)
     (void)btn;
     GtkcryptoHashingPage *self = user_data;
     GtkFileDialog *dialog = gtk_file_dialog_new ();
-    gtk_file_dialog_set_title (dialog, "Choose first file");
+    gtk_file_dialog_set_title (dialog, _("Choose first file"));
     GtkWidget *toplevel = GTK_WIDGET (gtk_widget_get_root (GTK_WIDGET (self)));
     gtk_file_dialog_open (dialog, GTK_WINDOW (toplevel), NULL,
                           compare_file1_chosen_cb, self);
@@ -515,7 +525,7 @@ compare_choose_file2_cb (GtkButton *btn, gpointer user_data)
     (void)btn;
     GtkcryptoHashingPage *self = user_data;
     GtkFileDialog *dialog = gtk_file_dialog_new ();
-    gtk_file_dialog_set_title (dialog, "Choose second file");
+    gtk_file_dialog_set_title (dialog, _("Choose second file"));
     GtkWidget *toplevel = GTK_WIDGET (gtk_widget_get_root (GTK_WIDGET (self)));
     gtk_file_dialog_open (dialog, GTK_WINDOW (toplevel), NULL,
                           compare_file2_chosen_cb, self);
@@ -554,15 +564,15 @@ compare_result_idle (gpointer user_data)
     gtk_widget_set_sensitive (cd->page->compare_btn, TRUE);
 
     if (cd->hash1 == NULL || cd->hash2 == NULL) {
-        gtk_label_set_text (cd->page->compare_result_label, "Error computing hash");
+        gtk_label_set_text (cd->page->compare_result_label, _("Error computing hash"));
         gtk_widget_remove_css_class (GTK_WIDGET (cd->page->compare_result_label), "hash-match");
         gtk_widget_add_css_class (GTK_WIDGET (cd->page->compare_result_label), "hash-mismatch");
     } else if (g_strcmp0 (cd->hash1, cd->hash2) == 0) {
-        gtk_label_set_text (cd->page->compare_result_label, "Hashes match");
+        gtk_label_set_text (cd->page->compare_result_label, _("Hashes match"));
         gtk_widget_remove_css_class (GTK_WIDGET (cd->page->compare_result_label), "hash-mismatch");
         gtk_widget_add_css_class (GTK_WIDGET (cd->page->compare_result_label), "hash-match");
     } else {
-        gtk_label_set_text (cd->page->compare_result_label, "Hashes do NOT match");
+        gtk_label_set_text (cd->page->compare_result_label, _("Hashes do NOT match"));
         gtk_widget_remove_css_class (GTK_WIDGET (cd->page->compare_result_label), "hash-match");
         gtk_widget_add_css_class (GTK_WIDGET (cd->page->compare_result_label), "hash-mismatch");
     }
@@ -596,7 +606,7 @@ compare_btn_clicked_cb (GtkButton *btn, gpointer user_data)
     GtkcryptoHashingPage *self = user_data;
 
     if (self->compare_file1 == NULL || self->compare_file2 == NULL) {
-        gtk_label_set_text (self->compare_result_label, "Please select both files first");
+        gtk_label_set_text (self->compare_result_label, _("Please select both files first"));
         return;
     }
 
@@ -644,9 +654,9 @@ build_compute_page (GtkcryptoHashingPage *self)
     /* File chooser row */
     GtkWidget *file_box = gtk_box_new (GTK_ORIENTATION_HORIZONTAL, 12);
     self->compute_drop_zone = file_box;
-    GtkWidget *file_btn = gtk_button_new_with_label ("Choose File");
+    GtkWidget *file_btn = gtk_button_new_with_label (_("Choose File"));
     gtk_widget_add_css_class (file_btn, "suggested-action");
-    self->compute_file_label = GTK_LABEL (gtk_label_new ("No file selected — or drop one here"));
+    self->compute_file_label = GTK_LABEL (gtk_label_new (_("No file selected — or drop one here")));
     gtk_label_set_ellipsize (self->compute_file_label, PANGO_ELLIPSIZE_MIDDLE);
     gtk_widget_set_hexpand (GTK_WIDGET (self->compute_file_label), TRUE);
     gtk_box_append (GTK_BOX (file_box), file_btn);
@@ -657,20 +667,20 @@ build_compute_page (GtkcryptoHashingPage *self)
 
     /* Verify-against expected hash */
     GtkWidget *verify_group = adw_preferences_group_new ();
-    adw_preferences_group_set_title (ADW_PREFERENCES_GROUP (verify_group), "Verify Against");
+    adw_preferences_group_set_title (ADW_PREFERENCES_GROUP (verify_group), _("Verify Against"));
     adw_preferences_group_set_description (ADW_PREFERENCES_GROUP (verify_group),
-                                           "Paste an expected hash to highlight the matching row");
+                                           _("Paste an expected hash to highlight the matching row"));
     self->expected_entry = adw_entry_row_new ();
-    adw_preferences_row_set_title (ADW_PREFERENCES_ROW (self->expected_entry), "Expected hash");
+    adw_preferences_row_set_title (ADW_PREFERENCES_ROW (self->expected_entry), _("Expected hash"));
     g_signal_connect (self->expected_entry, "changed",
                       G_CALLBACK (expected_entry_changed_cb), self);
     adw_preferences_group_add (ADW_PREFERENCES_GROUP (verify_group), self->expected_entry);
 
     /* Hash algorithm list */
     GtkWidget *prefs_group = adw_preferences_group_new ();
-    adw_preferences_group_set_title (ADW_PREFERENCES_GROUP (prefs_group), "Hash Algorithms");
+    adw_preferences_group_set_title (ADW_PREFERENCES_GROUP (prefs_group), _("Hash Algorithms"));
     adw_preferences_group_set_description (ADW_PREFERENCES_GROUP (prefs_group),
-                                           "Toggle algorithms to compute their hash");
+                                           _("Toggle algorithms to compute their hash"));
 
     for (gint i = 0; i < NUM_HASH_ALGOS; i++) {
         GtkWidget *row = adw_action_row_new ();
@@ -708,9 +718,10 @@ build_compute_page (GtkcryptoHashingPage *self)
 
         /* Copy button */
         GtkWidget *copy_btn = gtk_button_new_from_icon_name ("edit-copy-symbolic");
+    set_a11y (copy_btn, _("Copy hash"));
         gtk_widget_set_valign (copy_btn, GTK_ALIGN_CENTER);
         gtk_widget_add_css_class (copy_btn, "flat");
-        gtk_widget_set_tooltip_text (copy_btn, "Copy to clipboard");
+        gtk_widget_set_tooltip_text (copy_btn, _("Copy to clipboard"));
         g_object_set_data (G_OBJECT (copy_btn), "page", self);
         adw_action_row_add_suffix (ADW_ACTION_ROW (row), copy_btn);
         g_signal_connect (copy_btn, "clicked", G_CALLBACK (copy_hash_clicked_cb), result_label);
@@ -753,39 +764,41 @@ build_compare_page (GtkcryptoHashingPage *self)
 
     /* File 1 */
     GtkWidget *prefs1 = adw_preferences_group_new ();
-    adw_preferences_group_set_title (ADW_PREFERENCES_GROUP (prefs1), "First File");
+    adw_preferences_group_set_title (ADW_PREFERENCES_GROUP (prefs1), _("First File"));
     GtkWidget *file1_row = adw_action_row_new ();
-    self->file1_label = GTK_LABEL (gtk_label_new ("No file selected — or drop one here"));
+    self->file1_label = GTK_LABEL (gtk_label_new (_("No file selected — or drop one here")));
     gtk_label_set_ellipsize (self->file1_label, PANGO_ELLIPSIZE_MIDDLE);
     adw_action_row_add_suffix (ADW_ACTION_ROW (file1_row), GTK_WIDGET (self->file1_label));
     GtkWidget *file1_btn = gtk_button_new_from_icon_name ("document-open-symbolic");
+    set_a11y (file1_btn, _("Choose first file"));
     gtk_widget_set_valign (file1_btn, GTK_ALIGN_CENTER);
     adw_action_row_add_suffix (ADW_ACTION_ROW (file1_row), file1_btn);
-    adw_preferences_row_set_title (ADW_PREFERENCES_ROW (file1_row), "File");
+    adw_preferences_row_set_title (ADW_PREFERENCES_ROW (file1_row), _("File"));
     adw_preferences_group_add (ADW_PREFERENCES_GROUP (prefs1), file1_row);
     g_signal_connect (file1_btn, "clicked", G_CALLBACK (compare_choose_file1_cb), self);
     attach_single_file_drop (file1_row, G_CALLBACK (compare_file1_drop_cb), self);
 
     /* File 2 */
     GtkWidget *prefs2 = adw_preferences_group_new ();
-    adw_preferences_group_set_title (ADW_PREFERENCES_GROUP (prefs2), "Second File");
+    adw_preferences_group_set_title (ADW_PREFERENCES_GROUP (prefs2), _("Second File"));
     GtkWidget *file2_row = adw_action_row_new ();
-    self->file2_label = GTK_LABEL (gtk_label_new ("No file selected — or drop one here"));
+    self->file2_label = GTK_LABEL (gtk_label_new (_("No file selected — or drop one here")));
     gtk_label_set_ellipsize (self->file2_label, PANGO_ELLIPSIZE_MIDDLE);
     adw_action_row_add_suffix (ADW_ACTION_ROW (file2_row), GTK_WIDGET (self->file2_label));
     GtkWidget *file2_btn = gtk_button_new_from_icon_name ("document-open-symbolic");
+    set_a11y (file2_btn, _("Choose second file"));
     gtk_widget_set_valign (file2_btn, GTK_ALIGN_CENTER);
     adw_action_row_add_suffix (ADW_ACTION_ROW (file2_row), file2_btn);
-    adw_preferences_row_set_title (ADW_PREFERENCES_ROW (file2_row), "File");
+    adw_preferences_row_set_title (ADW_PREFERENCES_ROW (file2_row), _("File"));
     adw_preferences_group_add (ADW_PREFERENCES_GROUP (prefs2), file2_row);
     g_signal_connect (file2_btn, "clicked", G_CALLBACK (compare_choose_file2_cb), self);
     attach_single_file_drop (file2_row, G_CALLBACK (compare_file2_drop_cb), self);
 
     /* Algorithm selection */
     GtkWidget *algo_group = adw_preferences_group_new ();
-    adw_preferences_group_set_title (ADW_PREFERENCES_GROUP (algo_group), "Algorithm");
+    adw_preferences_group_set_title (ADW_PREFERENCES_GROUP (algo_group), _("Algorithm"));
     self->compare_algo_row = ADW_COMBO_ROW (adw_combo_row_new ());
-    adw_preferences_row_set_title (ADW_PREFERENCES_ROW (self->compare_algo_row), "Hash Algorithm");
+    adw_preferences_row_set_title (ADW_PREFERENCES_ROW (self->compare_algo_row), _("Hash Algorithm"));
     GtkStringList *algo_list = gtk_string_list_new (compare_algo_labels);
     adw_combo_row_set_model (self->compare_algo_row, G_LIST_MODEL (algo_list));
     adw_combo_row_set_selected (self->compare_algo_row, 3); /* SHA-512 default */
@@ -795,7 +808,7 @@ build_compare_page (GtkcryptoHashingPage *self)
     /* Compare button & result */
     GtkWidget *action_box = gtk_box_new (GTK_ORIENTATION_HORIZONTAL, 12);
     gtk_widget_set_halign (action_box, GTK_ALIGN_CENTER);
-    self->compare_btn = gtk_button_new_with_label ("Compare");
+    self->compare_btn = gtk_button_new_with_label (_("Compare"));
     gtk_widget_add_css_class (self->compare_btn, "suggested-action");
     gtk_widget_add_css_class (self->compare_btn, "pill");
     self->compare_spinner = GTK_SPINNER (gtk_spinner_new ());
@@ -859,11 +872,11 @@ gtkcrypto_hashing_page_init (GtkcryptoHashingPage *self)
     gtk_widget_set_margin_top (switcher_bar, 8);
 
     GtkWidget *compute_page = build_compute_page (self);
-    AdwViewStackPage *cp = adw_view_stack_add_titled (self->view_stack, compute_page, "compute", "Compute");
+    AdwViewStackPage *cp = adw_view_stack_add_titled (self->view_stack, compute_page, "compute", _("Compute"));
     adw_view_stack_page_set_icon_name (cp, "accessories-calculator-symbolic");
 
     GtkWidget *compare_page = build_compare_page (self);
-    AdwViewStackPage *cmp = adw_view_stack_add_titled (self->view_stack, compare_page, "compare", "Compare");
+    AdwViewStackPage *cmp = adw_view_stack_add_titled (self->view_stack, compare_page, "compare", _("Compare"));
     adw_view_stack_page_set_icon_name (cmp, "view-dual-symbolic");
 
     self->toast_overlay = ADW_TOAST_OVERLAY (adw_toast_overlay_new ());

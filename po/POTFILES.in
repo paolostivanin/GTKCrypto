@@ -1,0 +1,9 @@
+src/gtkcrypto-application.c
+src/gtkcrypto-window.c
+src/preferences-dialog.c
+src/pages/file-crypto-page.c
+src/pages/gpg-page.c
+src/pages/hashing-page.c
+src/pages/text-crypto-page.c
+data/com.github.paolostivanin.gtkcrypto.desktop
+data/com.github.paolostivanin.gtkcrypto.metainfo.xml

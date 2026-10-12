@@ -576,6 +576,7 @@ decrypt_v3 (gint input_fd,
             goto out;
         }
         done += wanted;
+        gtkcrypto_report_progress (done, plaintext_size);
     }
     if (plaintext_size == 0) {
         gcry_cipher_final (cipher);

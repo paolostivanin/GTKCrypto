@@ -94,6 +94,15 @@ gboolean gtkcrypto_write_full (gint fd, const void *buffer, gsize length,
                                GCancellable *cancellable, GError **error);
 gboolean gtkcrypto_check_cancelled (GCancellable *cancellable, GError **error);
 
+/* Optional per-thread progress reporting. A caller installs a callback on the
+ * thread that runs gtkcrypto_encrypt_file()/gtkcrypto_decrypt_file(); the core
+ * calls it after every processed chunk with the plaintext bytes done so far
+ * and the total. Pass NULL to remove it. Legacy formats do not report. */
+typedef void (*GtkcryptoProgressFunc) (guint64 done, guint64 total,
+                                       gpointer user_data);
+void gtkcrypto_set_progress    (GtkcryptoProgressFunc func, gpointer user_data);
+void gtkcrypto_report_progress (guint64 done, guint64 total);
+
 void gtkcrypto_secure_clear (gpointer data, gsize length);
 
 GBytes *gtkcrypto_encrypt_bytes_v3 (const guint8 *plaintext,

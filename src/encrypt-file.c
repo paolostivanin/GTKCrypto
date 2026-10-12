@@ -195,6 +195,7 @@ gtkcrypto_encrypt_file (const gchar *input_path,
         gtkcrypto_secure_clear (plain, wanted);
         gtkcrypto_secure_clear (encrypted, wanted);
         done += wanted;
+        gtkcrypto_report_progress (done, plaintext_size);
     }
 
     if (plaintext_size == 0) {

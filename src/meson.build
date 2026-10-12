@@ -25,6 +25,8 @@ gui_sources = files(
   'gtkcrypto-application.c',
   'gtkcrypto-window.c',
   'state.c',
+  'password-utils.c',
+  'preferences-dialog.c',
   'gpgme-misc.c',
   'pages/hashing-page.c',
   'pages/file-crypto-page.c',
@@ -36,7 +38,7 @@ executable('gtkcrypto',
   gui_sources,
   resources,
   link_with: crypto_lib,
-  dependencies: [gtk_dep, adw_dep, gcrypt_dep, gpgme_dep],
+  dependencies: [gtk_dep, adw_dep, gcrypt_dep, gpgme_dep, m_dep],
   install: true,
 )
 

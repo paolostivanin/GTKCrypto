@@ -8,6 +8,14 @@ core_test = executable(
 
 test('core', core_test, timeout: 180)
 
+password_test = executable(
+  'password-test',
+  ['test-password.c', '../src/password-utils.c'],
+  include_directories: include_directories('../src'),
+  dependencies: [glib_dep, gcrypt_dep, m_dep],
+)
+test('password', password_test)
+
 bash = find_program('bash')
 test(
   'cli',

@@ -271,8 +271,15 @@ obtain_password (const gchar *password_file, gboolean confirm)
         if (pwd == NULL) return NULL;
     }
 
-    if (strlen (pwd) < MIN_PWD_LEN) {
+    /* The minimum only applies to new passwords: older files may have been
+     * encrypted with shorter ones and must stay readable. */
+    if (confirm && strlen (pwd) < MIN_PWD_LEN) {
         fprintf (stderr, "Password must be at least %d characters.\n", MIN_PWD_LEN);
+        gcry_free (pwd);
+        return NULL;
+    }
+    if (*pwd == '\0') {
+        fprintf (stderr, "Password must not be empty.\n");
         gcry_free (pwd);
         return NULL;
     }

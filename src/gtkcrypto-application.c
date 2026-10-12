@@ -1,6 +1,8 @@
+#include <glib/gi18n.h>
 #include <gcrypt.h>
 #include "gtkcrypto-application.h"
 #include "gtkcrypto-window.h"
+#include "preferences-dialog.h"
 
 #define APP_ID          "com.github.paolostivanin.gtkcrypto"
 #define GCRYPT_MIN_VER  "1.10.1"
@@ -33,6 +35,38 @@ about_action_cb (GSimpleAction *action,
     adw_about_dialog_set_issue_url (dialog, "https://github.com/paolostivanin/GTKCrypto/issues");
 
     adw_dialog_present (ADW_DIALOG (dialog), GTK_WIDGET (window));
+}
+
+
+static void
+preferences_action_cb (GSimpleAction *action,
+                       GVariant      *parameter,
+                       gpointer       user_data)
+{
+    (void)action;
+    (void)parameter;
+
+    GtkApplication *app = GTK_APPLICATION (user_data);
+    gtkcrypto_preferences_dialog_present (
+        GTK_WIDGET (gtk_application_get_active_window (app)));
+}
+
+
+static void
+quit_action_cb (GSimpleAction *action,
+                GVariant      *parameter,
+                gpointer       user_data)
+{
+    (void)action;
+    (void)parameter;
+
+    /* Closing the window lets it cancel running jobs and clean up first. */
+    GtkWindow *window = gtk_application_get_active_window (GTK_APPLICATION (user_data));
+    if (window != NULL) {
+        gtk_window_close (window);
+    } else {
+        g_application_quit (G_APPLICATION (user_data));
+    }
 }
 
 
@@ -93,10 +127,25 @@ gtkcrypto_application_init (GtkcryptoApplication *self)
 {
     static const GActionEntry app_actions[] = {
         { "about", about_action_cb, NULL, NULL, NULL, { 0 } },
+        { "preferences", preferences_action_cb, NULL, NULL, NULL, { 0 } },
+        { "quit", quit_action_cb, NULL, NULL, NULL, { 0 } },
     };
     g_action_map_add_action_entries (G_ACTION_MAP (self),
                                     app_actions, G_N_ELEMENTS (app_actions),
                                     self);
+
+    gtk_application_set_accels_for_action (GTK_APPLICATION (self), "app.quit",
+                                           (const gchar *[]) { "<Control>q", NULL });
+    gtk_application_set_accels_for_action (GTK_APPLICATION (self), "app.preferences",
+                                           (const gchar *[]) { "<Control>comma", NULL });
+    gtk_application_set_accels_for_action (GTK_APPLICATION (self), "win.show-shortcuts",
+                                           (const gchar *[]) { "<Control>question", "F1", NULL });
+    for (gint i = 0; i < 4; i++) {
+        g_autofree gchar *action = g_strdup_printf ("win.show-page(%d)", i);
+        g_autofree gchar *accel = g_strdup_printf ("<Control>%d", i + 1);
+        gtk_application_set_accels_for_action (GTK_APPLICATION (self), action,
+                                               (const gchar *[]) { accel, NULL });
+    }
 }
 
 

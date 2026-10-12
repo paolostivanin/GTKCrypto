@@ -1,3 +1,4 @@
+#include <glib/gi18n.h>
 #include "gtkcrypto-window.h"
 #include "pages/hashing-page.h"
 #include "pages/file-crypto-page.h"
@@ -20,6 +21,10 @@ struct _GtkcryptoWindow {
 G_DEFINE_TYPE (GtkcryptoWindow, gtkcrypto_window, ADW_TYPE_APPLICATION_WINDOW)
 
 static gboolean close_request_cb (GtkWindow *window, gpointer user_data);
+static void show_page_action_cb (GSimpleAction *action, GVariant *parameter,
+                                 gpointer user_data);
+static void show_shortcuts_action_cb (GSimpleAction *action, GVariant *parameter,
+                                      gpointer user_data);
 
 typedef struct {
     const gchar *title;
@@ -28,10 +33,10 @@ typedef struct {
 } SidebarItem;
 
 static const SidebarItem sidebar_items[] = {
-    { "File Encryption", "channel-secure-symbolic",   "file-crypto" },
-    { "Text Encryption", "document-edit-symbolic",    "text-crypto" },
-    { "Hashing",         "auth-fingerprint-symbolic",       "hashing"     },
-    { "GPG Signing",     "application-certificate-symbolic", "gpg"         },
+    { N_("File Encryption"), "channel-secure-symbolic",   "file-crypto" },
+    { N_("Text Encryption"), "document-edit-symbolic",    "text-crypto" },
+    { N_("Hashing"),         "auth-fingerprint-symbolic",       "hashing"     },
+    { N_("GPG Signing"),     "application-certificate-symbolic", "gpg"         },
 };
 
 
@@ -47,7 +52,7 @@ create_sidebar_row (const SidebarItem *item)
     GtkWidget *icon = gtk_image_new_from_icon_name (item->icon_name);
     gtk_box_append (GTK_BOX (box), icon);
 
-    GtkWidget *label = gtk_label_new (item->title);
+    GtkWidget *label = gtk_label_new (_(item->title));
     gtk_box_append (GTK_BOX (box), label);
 
     GtkWidget *row = gtk_list_box_row_new ();
@@ -91,12 +96,14 @@ gtkcrypto_window_init (GtkcryptoWindow *self)
 
     /* Primary menu with About */
     GMenu *menu = g_menu_new ();
-    g_menu_append (menu, "About GTKCrypto", "app.about");
+    g_menu_append (menu, _("Preferences"), "app.preferences");
+    g_menu_append (menu, _("Keyboard Shortcuts"), "win.show-shortcuts");
+    g_menu_append (menu, _("About GTKCrypto"), "app.about");
 
     GtkWidget *menu_button = gtk_menu_button_new ();
     gtk_menu_button_set_icon_name (GTK_MENU_BUTTON (menu_button), "open-menu-symbolic");
     gtk_menu_button_set_menu_model (GTK_MENU_BUTTON (menu_button), G_MENU_MODEL (menu));
-    gtk_widget_set_tooltip_text (menu_button, "Main Menu");
+    gtk_widget_set_tooltip_text (menu_button, _("Main Menu"));
     adw_header_bar_pack_end (sidebar_header, menu_button);
     g_object_unref (menu);
 
@@ -163,9 +170,76 @@ gtkcrypto_window_init (GtkcryptoWindow *self)
 
     g_signal_connect (self, "close-request", G_CALLBACK (close_request_cb), NULL);
 
+    static const GActionEntry win_actions[] = {
+        { "show-page", show_page_action_cb, "i", NULL, NULL, { 0 } },
+        { "show-shortcuts", show_shortcuts_action_cb, NULL, NULL, NULL, { 0 } },
+    };
+    g_action_map_add_action_entries (G_ACTION_MAP (self), win_actions,
+                                     G_N_ELEMENTS (win_actions), self);
+
+    /* The sidebar is the only navigation: give it an accessible name. */
+    gtk_accessible_update_property (GTK_ACCESSIBLE (self->sidebar),
+                                    GTK_ACCESSIBLE_PROPERTY_LABEL,
+                                    _("Sections"), -1);
+
     /* Window defaults */
     gtk_window_set_default_size (GTK_WINDOW (self), 900, 600);
     gtk_window_set_title (GTK_WINDOW (self), "GTKCrypto");
+}
+
+
+static void
+show_page_action_cb (GSimpleAction *action, GVariant *parameter,
+                     gpointer user_data)
+{
+    (void)action;
+    GtkcryptoWindow *self = GTKCRYPTO_WINDOW (user_data);
+    GtkListBoxRow *row = gtk_list_box_get_row_at_index (
+        self->sidebar, g_variant_get_int32 (parameter));
+    if (row != NULL) {
+        gtk_list_box_select_row (self->sidebar, row);
+    }
+}
+
+
+static void
+add_shortcut_row (AdwPreferencesGroup *group, const gchar *title,
+                  const gchar *accel)
+{
+    GtkWidget *row = adw_action_row_new ();
+    adw_preferences_row_set_title (ADW_PREFERENCES_ROW (row), title);
+    GtkWidget *label = gtk_shortcut_label_new (accel);
+    gtk_widget_set_valign (label, GTK_ALIGN_CENTER);
+    adw_action_row_add_suffix (ADW_ACTION_ROW (row), label);
+    adw_preferences_group_add (group, row);
+}
+
+
+static void
+show_shortcuts_action_cb (GSimpleAction *action, GVariant *parameter,
+                          gpointer user_data)
+{
+    (void)action; (void)parameter;
+    AdwDialog *dialog = adw_dialog_new ();
+    adw_dialog_set_title (dialog, _("Keyboard Shortcuts"));
+    adw_dialog_set_content_width (dialog, 420);
+
+    AdwPreferencesPage *page = ADW_PREFERENCES_PAGE (adw_preferences_page_new ());
+    AdwPreferencesGroup *group = ADW_PREFERENCES_GROUP (adw_preferences_group_new ());
+    add_shortcut_row (group, _("File Encryption"), "<Control>1");
+    add_shortcut_row (group, _("Text Encryption"), "<Control>2");
+    add_shortcut_row (group, _("Hashing"), "<Control>3");
+    add_shortcut_row (group, _("GPG Signing"), "<Control>4");
+    add_shortcut_row (group, _("Preferences"), "<Control>comma");
+    add_shortcut_row (group, _("Keyboard Shortcuts"), "<Control>question");
+    add_shortcut_row (group, _("Quit"), "<Control>q");
+    adw_preferences_page_add (page, group);
+
+    GtkWidget *toolbar = adw_toolbar_view_new ();
+    adw_toolbar_view_add_top_bar (ADW_TOOLBAR_VIEW (toolbar), adw_header_bar_new ());
+    adw_toolbar_view_set_content (ADW_TOOLBAR_VIEW (toolbar), GTK_WIDGET (page));
+    adw_dialog_set_child (dialog, toolbar);
+    adw_dialog_present (dialog, GTK_WIDGET (user_data));
 }
 
 

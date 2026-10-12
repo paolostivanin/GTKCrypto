@@ -2,6 +2,7 @@
 #include "state.h"
 
 #define STATE_GROUP_HASHES "hashes"
+#define STATE_GROUP_SETTINGS "settings"
 
 static GKeyFile *kf = NULL;
 static gchar    *state_path = NULL;
@@ -48,5 +49,24 @@ state_set_hash_enabled (const gchar *algo_label, gboolean enabled)
 {
     ensure_loaded ();
     g_key_file_set_boolean (kf, STATE_GROUP_HASHES, algo_label, enabled);
+    flush ();
+}
+
+gint
+state_get_int (const gchar *key, gint default_value)
+{
+    ensure_loaded ();
+
+    g_autoptr(GError) err = NULL;
+    gint v = g_key_file_get_integer (kf, STATE_GROUP_SETTINGS, key, &err);
+    if (err != NULL) return default_value;
+    return v;
+}
+
+void
+state_set_int (const gchar *key, gint value)
+{
+    ensure_loaded ();
+    g_key_file_set_integer (kf, STATE_GROUP_SETTINGS, key, value);
     flush ();
 }

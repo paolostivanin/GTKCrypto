@@ -9,6 +9,7 @@ project('gtkcrypto', 'c',
 )
 
 gnome = import('gnome')
+i18n = import('i18n')
 
 cc = meson.get_compiler('c')
 
@@ -48,6 +49,8 @@ endif
 
 add_project_arguments(
   '-DGTKCRYPTO_VERSION="@0@"'.format(meson.project_version()),
+  '-DGETTEXT_PACKAGE="gtkcrypto"',
+  '-DLOCALEDIR="@0@"'.format(get_option('prefix') / get_option('localedir')),
   language: 'c',
 )
 
@@ -58,6 +61,9 @@ adw_dep = dependency('libadwaita-1', version: '>= 1.6')
 gcrypt_dep = dependency('libgcrypt', version: '>= 1.10.1')
 gpgme_dep = dependency('gpgme', version: '>= 1.8.0')
 
+m_dep = cc.find_library('m', required: false)
+
 subdir('src')
 subdir('data')
+subdir('po')
 subdir('tests')

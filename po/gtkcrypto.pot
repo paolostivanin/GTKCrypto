@@ -1,0 +1,717 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the gtkcrypto package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: gtkcrypto\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-10-12 10:51+0200\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"Language: \n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=INTEGER; plural=EXPRESSION;\n"
+
+#: src/gtkcrypto-window.c:36 src/gtkcrypto-window.c:229
+msgid "File Encryption"
+msgstr ""
+
+#: src/gtkcrypto-window.c:37 src/gtkcrypto-window.c:230
+msgid "Text Encryption"
+msgstr ""
+
+#: src/gtkcrypto-window.c:38 src/gtkcrypto-window.c:231
+msgid "Hashing"
+msgstr ""
+
+#: src/gtkcrypto-window.c:39 src/gtkcrypto-window.c:232
+msgid "GPG Signing"
+msgstr ""
+
+#: src/gtkcrypto-window.c:99 src/gtkcrypto-window.c:233
+#: src/preferences-dialog.c:20
+msgid "Preferences"
+msgstr ""
+
+#: src/gtkcrypto-window.c:100 src/gtkcrypto-window.c:224
+#: src/gtkcrypto-window.c:234
+msgid "Keyboard Shortcuts"
+msgstr ""
+
+#: src/gtkcrypto-window.c:101
+msgid "About GTKCrypto"
+msgstr ""
+
+#: src/gtkcrypto-window.c:106
+msgid "Main Menu"
+msgstr ""
+
+#: src/gtkcrypto-window.c:183
+msgid "Sections"
+msgstr ""
+
+#: src/gtkcrypto-window.c:235
+msgid "Quit"
+msgstr ""
+
+#: src/preferences-dialog.c:26
+msgid "Privacy"
+msgstr ""
+
+#: src/preferences-dialog.c:32
+msgid "Clear clipboard after (seconds)"
+msgstr ""
+
+#: src/preferences-dialog.c:34
+msgid ""
+"Applies to decrypted text copied from the Text Encryption page. 0 keeps it "
+"forever."
+msgstr ""
+
+#: src/pages/file-crypto-page.c:172
+msgid "Unknown error"
+msgstr ""
+
+#: src/pages/file-crypto-page.c:214
+#, c-format
+msgid "%s: processed, but the original file could not be deleted: %s"
+msgstr ""
+
+#: src/pages/file-crypto-page.c:239
+#, c-format
+msgid ""
+"\n"
+"… and %u more"
+msgstr ""
+
+#: src/pages/file-crypto-page.c:244
+msgid "Some files could not be encrypted"
+msgstr ""
+
+#: src/pages/file-crypto-page.c:245
+msgid "Some files could not be decrypted"
+msgstr ""
+
+#: src/pages/file-crypto-page.c:247
+msgid "Close"
+msgstr ""
+
+#: src/pages/file-crypto-page.c:260
+#, c-format
+msgid "Cancelled: %u of %u file encrypted"
+msgid_plural "Cancelled: %u of %u files encrypted"
+msgstr[0] ""
+msgstr[1] ""
+
+#: src/pages/file-crypto-page.c:264
+#, c-format
+msgid "%u of %u file encrypted"
+msgid_plural "%u of %u files encrypted"
+msgstr[0] ""
+msgstr[1] ""
+
+#: src/pages/file-crypto-page.c:269
+#, c-format
+msgid "Cancelled: %u of %u file decrypted"
+msgid_plural "Cancelled: %u of %u files decrypted"
+msgstr[0] ""
+msgstr[1] ""
+
+#: src/pages/file-crypto-page.c:273
+#, c-format
+msgid "%u of %u file decrypted"
+msgid_plural "%u of %u files decrypted"
+msgstr[0] ""
+msgstr[1] ""
+
+#: src/pages/file-crypto-page.c:292
+#, c-format
+msgid "%u / %u file · %d%%"
+msgid_plural "%u / %u files · %d%%"
+msgstr[0] ""
+msgstr[1] ""
+
+#: src/pages/file-crypto-page.c:362 src/pages/file-crypto-page.c:667
+msgid "No files selected"
+msgstr ""
+
+#: src/pages/file-crypto-page.c:364
+msgid "Drop files here or use “Add files”"
+msgstr ""
+
+#: src/pages/file-crypto-page.c:383
+#, c-format
+msgid "Remove %s from the list"
+msgstr ""
+
+#: src/pages/file-crypto-page.c:393
+#, c-format
+msgid "%u file selected"
+msgid_plural "%u files selected"
+msgstr[0] ""
+msgstr[1] ""
+
+#: src/pages/file-crypto-page.c:446
+#, c-format
+msgid "Skipped %u folder: only files can be processed"
+msgid_plural "Skipped %u folders: only files can be processed"
+msgstr[0] ""
+msgstr[1] ""
+
+#: src/pages/file-crypto-page.c:452
+#, c-format
+msgid "%u file was already in the list"
+msgid_plural "%u files were already in the list"
+msgstr[0] ""
+msgstr[1] ""
+
+#: src/pages/file-crypto-page.c:503
+msgid "Choose file(s) to encrypt"
+msgstr ""
+
+#: src/pages/file-crypto-page.c:504
+msgid "Choose file(s) to decrypt"
+msgstr ""
+
+#: src/pages/file-crypto-page.c:517
+msgid "Next to the original file"
+msgstr ""
+
+#: src/pages/file-crypto-page.c:530
+msgid "Please choose a local folder"
+msgstr ""
+
+#: src/pages/file-crypto-page.c:544 src/pages/file-crypto-page.c:961
+msgid "Choose output folder"
+msgstr ""
+
+#: src/pages/file-crypto-page.c:620
+msgid "Replace existing files?"
+msgstr ""
+
+#: src/pages/file-crypto-page.c:621
+msgid ""
+"One or more destination files already exist. Replacement occurs atomically "
+"only after the operation succeeds."
+msgstr ""
+
+#: src/pages/file-crypto-page.c:623 src/pages/file-crypto-page.c:1006
+msgid "Cancel"
+msgstr ""
+
+#: src/pages/file-crypto-page.c:624
+msgid "Replace"
+msgstr ""
+
+#: src/pages/file-crypto-page.c:671
+msgid ""
+"Several files would produce the same output name; choose a different output "
+"folder or remove duplicates"
+msgstr ""
+
+#: src/pages/file-crypto-page.c:694 src/pages/text-crypto-page.c:205
+msgid "Password must be at least 8 characters"
+msgstr ""
+
+#: src/pages/file-crypto-page.c:698 src/pages/text-crypto-page.c:209
+msgid "Passwords do not match"
+msgstr ""
+
+#. Older files may use short passwords, so only require something.
+#. Older texts may use short passwords, so only require something.
+#: src/pages/file-crypto-page.c:703 src/pages/text-crypto-page.c:404
+msgid "Enter the password"
+msgstr ""
+
+#: src/pages/file-crypto-page.c:711 src/pages/text-crypto-page.c:243
+#: src/pages/text-crypto-page.c:453
+msgid "Unable to allocate secure memory for the password"
+msgstr ""
+
+#: src/pages/file-crypto-page.c:797
+msgid "Very weak"
+msgstr ""
+
+#: src/pages/file-crypto-page.c:797
+msgid "Weak"
+msgstr ""
+
+#: src/pages/file-crypto-page.c:797
+msgid "Fair"
+msgstr ""
+
+#: src/pages/file-crypto-page.c:798
+msgid "Strong"
+msgstr ""
+
+#: src/pages/file-crypto-page.c:798
+msgid "Very strong"
+msgstr ""
+
+#: src/pages/file-crypto-page.c:814
+msgid "Random password filled in: make sure you store it safely"
+msgstr ""
+
+#: src/pages/file-crypto-page.c:861
+msgid "Files to encrypt"
+msgstr ""
+
+#: src/pages/file-crypto-page.c:862
+msgid "Files to decrypt"
+msgstr ""
+
+#: src/pages/file-crypto-page.c:866
+msgid "Add files"
+msgstr ""
+
+#: src/pages/file-crypto-page.c:870
+msgid "Remove all files from the list"
+msgstr ""
+
+#: src/pages/file-crypto-page.c:896
+msgid "Encryption Settings"
+msgstr ""
+
+#: src/pages/file-crypto-page.c:900
+msgid "Authenticated encryption"
+msgstr ""
+
+#: src/pages/file-crypto-page.c:905
+msgid "Memory-hard password derivation"
+msgstr ""
+
+#: src/pages/file-crypto-page.c:911 src/pages/file-crypto-page.c:913
+#: src/pages/text-crypto-page.c:546 src/pages/text-crypto-page.c:548
+#: src/pages/text-crypto-page.c:619 src/pages/text-crypto-page.c:621
+msgid "Password"
+msgstr ""
+
+#: src/pages/file-crypto-page.c:921
+msgid "Generate a random password"
+msgstr ""
+
+#: src/pages/file-crypto-page.c:927 src/pages/text-crypto-page.c:551
+msgid "Confirm Password"
+msgstr ""
+
+#: src/pages/file-crypto-page.c:934
+msgid "Strength"
+msgstr ""
+
+#: src/pages/file-crypto-page.c:953
+msgid "Options"
+msgstr ""
+
+#: src/pages/file-crypto-page.c:957
+msgid "Output folder"
+msgstr ""
+
+#: src/pages/file-crypto-page.c:966
+msgid "Use the folder of each original file"
+msgstr ""
+
+#: src/pages/file-crypto-page.c:975
+msgid "Delete original file after encryption"
+msgstr ""
+
+#: src/pages/file-crypto-page.c:976
+msgid "Delete encrypted file after decryption"
+msgstr ""
+
+#: src/pages/file-crypto-page.c:978
+msgid "The file is unlinked, not securely erased"
+msgstr ""
+
+#: src/pages/file-crypto-page.c:1000 src/pages/file-crypto-page.c:1066
+#: src/pages/text-crypto-page.c:560 src/pages/text-crypto-page.c:693
+msgid "Encrypt"
+msgstr ""
+
+#: src/pages/file-crypto-page.c:1000 src/pages/file-crypto-page.c:1070
+#: src/pages/text-crypto-page.c:630 src/pages/text-crypto-page.c:697
+msgid "Decrypt"
+msgstr ""
+
+#: src/pages/gpg-page.c:106
+#, c-format
+msgid "File signed successfully (key: %s)"
+msgstr ""
+
+#: src/pages/gpg-page.c:110
+msgid "Failed to sign file"
+msgstr ""
+
+#: src/pages/gpg-page.c:159 src/pages/gpg-page.c:458
+msgid "Choose file to sign"
+msgstr ""
+
+#: src/pages/gpg-page.c:173 src/pages/gpg-page.c:454 src/pages/gpg-page.c:545
+#: src/pages/gpg-page.c:558
+msgid "No file selected"
+msgstr ""
+
+#: src/pages/gpg-page.c:178
+msgid "No GPG keys available"
+msgstr ""
+
+#: src/pages/gpg-page.c:192
+msgid "Invalid signing key"
+msgstr ""
+
+#: src/pages/gpg-page.c:237
+msgid "Signature is valid"
+msgstr ""
+
+#: src/pages/gpg-page.c:239
+msgid "Signature is valid (key not trusted)"
+msgstr ""
+
+#: src/pages/gpg-page.c:241
+msgid "Bad signature"
+msgstr ""
+
+#: src/pages/gpg-page.c:243
+msgid "Error verifying signature"
+msgstr ""
+
+#: src/pages/gpg-page.c:325 src/pages/gpg-page.c:549
+msgid "Choose signed file"
+msgstr ""
+
+#: src/pages/gpg-page.c:338
+msgid "Choose signature (.sig) file"
+msgstr ""
+
+#: src/pages/gpg-page.c:353
+msgid "Please select both files"
+msgstr ""
+
+#: src/pages/gpg-page.c:451 src/pages/hashing-page.c:776
+#: src/pages/hashing-page.c:792
+msgid "File"
+msgstr ""
+
+#: src/pages/gpg-page.c:453
+msgid "File to sign"
+msgstr ""
+
+#: src/pages/gpg-page.c:467
+msgid "GPG Key"
+msgstr ""
+
+#: src/pages/gpg-page.c:469
+msgid "Signing Key"
+msgstr ""
+
+#: src/pages/gpg-page.c:483
+msgid "No keys available"
+msgstr ""
+
+#: src/pages/gpg-page.c:501 src/pages/gpg-page.c:621
+msgid "Sign"
+msgstr ""
+
+#: src/pages/gpg-page.c:541
+msgid "Files"
+msgstr ""
+
+#: src/pages/gpg-page.c:544
+msgid "Signed file"
+msgstr ""
+
+#: src/pages/gpg-page.c:557
+msgid "Signature (.sig) file"
+msgstr ""
+
+#: src/pages/gpg-page.c:562
+msgid "Choose signature file"
+msgstr ""
+
+#: src/pages/gpg-page.c:575 src/pages/gpg-page.c:625
+msgid "Verify"
+msgstr ""
+
+#: src/pages/hashing-page.c:192
+msgid "Error"
+msgstr ""
+
+#: src/pages/hashing-page.c:193
+#, c-format
+msgid "Failed to compute %s hash"
+msgstr ""
+
+#: src/pages/hashing-page.c:406
+msgid "Choose file to hash"
+msgstr ""
+
+#: src/pages/hashing-page.c:457
+msgid "Hash copied to clipboard"
+msgstr ""
+
+#: src/pages/hashing-page.c:516 src/pages/hashing-page.c:773
+msgid "Choose first file"
+msgstr ""
+
+#: src/pages/hashing-page.c:528 src/pages/hashing-page.c:789
+msgid "Choose second file"
+msgstr ""
+
+#: src/pages/hashing-page.c:567
+msgid "Error computing hash"
+msgstr ""
+
+#: src/pages/hashing-page.c:571
+msgid "Hashes match"
+msgstr ""
+
+#: src/pages/hashing-page.c:575
+msgid "Hashes do NOT match"
+msgstr ""
+
+#: src/pages/hashing-page.c:609
+msgid "Please select both files first"
+msgstr ""
+
+#: src/pages/hashing-page.c:657
+msgid "Choose File"
+msgstr ""
+
+#: src/pages/hashing-page.c:659 src/pages/hashing-page.c:769
+#: src/pages/hashing-page.c:785
+msgid "No file selected — or drop one here"
+msgstr ""
+
+#: src/pages/hashing-page.c:670
+msgid "Verify Against"
+msgstr ""
+
+#: src/pages/hashing-page.c:672
+msgid "Paste an expected hash to highlight the matching row"
+msgstr ""
+
+#: src/pages/hashing-page.c:674
+msgid "Expected hash"
+msgstr ""
+
+#: src/pages/hashing-page.c:681
+msgid "Hash Algorithms"
+msgstr ""
+
+#: src/pages/hashing-page.c:683
+msgid "Toggle algorithms to compute their hash"
+msgstr ""
+
+#: src/pages/hashing-page.c:721
+msgid "Copy hash"
+msgstr ""
+
+#: src/pages/hashing-page.c:724
+msgid "Copy to clipboard"
+msgstr ""
+
+#: src/pages/hashing-page.c:767
+msgid "First File"
+msgstr ""
+
+#: src/pages/hashing-page.c:783
+msgid "Second File"
+msgstr ""
+
+#: src/pages/hashing-page.c:799
+msgid "Algorithm"
+msgstr ""
+
+#: src/pages/hashing-page.c:801
+msgid "Hash Algorithm"
+msgstr ""
+
+#: src/pages/hashing-page.c:811 src/pages/hashing-page.c:879
+msgid "Compare"
+msgstr ""
+
+#: src/pages/hashing-page.c:875
+msgid "Compute"
+msgstr ""
+
+#: src/pages/text-crypto-page.c:174
+msgid "Text encrypted successfully"
+msgstr ""
+
+#: src/pages/text-crypto-page.c:215 src/pages/text-crypto-page.c:411
+msgid "No input text"
+msgstr ""
+
+#: src/pages/text-crypto-page.c:222
+msgid ""
+"Input text is too large (limit: 1 MiB). Use the File Encryption page for "
+"larger data"
+msgstr ""
+
+#: src/pages/text-crypto-page.c:229
+msgid "Input is not valid UTF-8"
+msgstr ""
+
+#: src/pages/text-crypto-page.c:299
+msgid "Unable to initialize cipher"
+msgstr ""
+
+#: src/pages/text-crypto-page.c:310
+msgid "Key derivation failed"
+msgstr ""
+
+#: src/pages/text-crypto-page.c:342
+msgid "Wrong password or corrupted data"
+msgstr ""
+
+#: src/pages/text-crypto-page.c:374
+msgid "Text decrypted successfully"
+msgstr ""
+
+#: src/pages/text-crypto-page.c:417
+msgid "Input contains invalid characters (only ASCII allowed)"
+msgstr ""
+
+#: src/pages/text-crypto-page.c:426
+msgid "Input is not valid base64"
+msgstr ""
+
+#: src/pages/text-crypto-page.c:439
+msgid "Input data is too short"
+msgstr ""
+
+#: src/pages/text-crypto-page.c:485
+#, c-format
+msgid "Copied. The clipboard will be cleared in %d second"
+msgid_plural "Copied. The clipboard will be cleared in %d seconds"
+msgstr[0] ""
+msgstr[1] ""
+
+#: src/pages/text-crypto-page.c:540
+msgid "Input Text"
+msgstr ""
+
+#: src/pages/text-crypto-page.c:541
+msgid "Text to encrypt"
+msgstr ""
+
+#: src/pages/text-crypto-page.c:571
+msgid "Encrypted Output"
+msgstr ""
+
+#: src/pages/text-crypto-page.c:572
+msgid "Encrypted text"
+msgstr ""
+
+#: src/pages/text-crypto-page.c:575 src/pages/text-crypto-page.c:645
+msgid "Copy Output"
+msgstr ""
+
+#: src/pages/text-crypto-page.c:613
+msgid "Encrypted Input (Base64)"
+msgstr ""
+
+#: src/pages/text-crypto-page.c:614
+msgid "Text to decrypt"
+msgstr ""
+
+#: src/pages/text-crypto-page.c:641
+msgid "Decrypted Output"
+msgstr ""
+
+#: src/pages/text-crypto-page.c:642
+msgid "Decrypted text"
+msgstr ""
+
+#: data/com.github.paolostivanin.gtkcrypto.desktop:5
+msgid "aes;twofish;serpent;sha2;sha3;md5;gost;"
+msgstr ""
+
+#: data/com.github.paolostivanin.gtkcrypto.desktop:7
+#: data/com.github.paolostivanin.gtkcrypto.metainfo.xml:6
+msgid "GTKCrypto"
+msgstr ""
+
+#: data/com.github.paolostivanin.gtkcrypto.desktop:8
+msgid "Encrypt, sign and compute hashes of a given file"
+msgstr ""
+
+#: data/com.github.paolostivanin.gtkcrypto.metainfo.xml:7
+msgid "Encrypt files and text, compute hashes, and use OpenPGP signatures"
+msgstr ""
+
+#: data/com.github.paolostivanin.gtkcrypto.metainfo.xml:10
+msgid ""
+"GTKCrypto encrypts files and text using authenticated encryption, computes "
+"common cryptographic hashes, compares files, and creates or verifies "
+"detached OpenPGP signatures."
+msgstr ""
+
+#: data/com.github.paolostivanin.gtkcrypto.metainfo.xml:15
+msgid ""
+"New encrypted data uses the portable GTC3 format with AES-256-GCM and "
+"Argon2id. Historical GTKCrypto v1 and v2 files remain decryptable."
+msgstr ""
+
+#: data/com.github.paolostivanin.gtkcrypto.metainfo.xml:28
+msgid "Paolo Stivanin"
+msgstr ""
+
+#: data/com.github.paolostivanin.gtkcrypto.metainfo.xml:37
+msgid "encryption"
+msgstr ""
+
+#: data/com.github.paolostivanin.gtkcrypto.metainfo.xml:38
+msgid "cryptography"
+msgstr ""
+
+#: data/com.github.paolostivanin.gtkcrypto.metainfo.xml:39
+msgid "hash"
+msgstr ""
+
+#: data/com.github.paolostivanin.gtkcrypto.metainfo.xml:40
+msgid "gpg"
+msgstr ""
+
+#: data/com.github.paolostivanin.gtkcrypto.metainfo.xml:41
+msgid "argon2"
+msgstr ""
+
+#: data/com.github.paolostivanin.gtkcrypto.metainfo.xml:50
+msgid "Add the portable authenticated GTC3 encryption format"
+msgstr ""
+
+#: data/com.github.paolostivanin.gtkcrypto.metainfo.xml:51
+msgid "Prevent partial output and accidental replacement after failures"
+msgstr ""
+
+#: data/com.github.paolostivanin.gtkcrypto.metainfo.xml:52
+msgid "Restore safe v1 and v2 decryption compatibility"
+msgstr ""
+
+#: data/com.github.paolostivanin.gtkcrypto.metainfo.xml:53
+msgid ""
+"Fix hashing boundaries, Unicode paths, GPG key ownership, and background-"
+"task lifetimes"
+msgstr ""
+
+#: data/com.github.paolostivanin.gtkcrypto.metainfo.xml:54
+msgid "Add automated crypto, corruption, CLI, metadata, and sanitizer checks"
+msgstr ""
+
+#: data/com.github.paolostivanin.gtkcrypto.metainfo.xml:60
+msgid "Added the gtkcrypto-cli command-line companion."
+msgstr ""
+
+#: data/com.github.paolostivanin.gtkcrypto.metainfo.xml:65
+msgid "Added parallel hashing, expected-hash verification, and drag-and-drop."
+msgstr ""
+
+#: data/com.github.paolostivanin.gtkcrypto.metainfo.xml:70
+msgid "Ported the application to GTK 4 and libadwaita."
+msgstr ""

@@ -1,3 +1,4 @@
+#include <glib/gi18n.h>
 #include "gpg-page.h"
 #include "../gpgme-misc.h"
 #include "../gtkcrypto.h"
@@ -27,6 +28,15 @@ struct _GtkcryptoGpgPage {
 };
 
 G_DEFINE_TYPE (GtkcryptoGpgPage, gtkcrypto_gpg_page, GTK_TYPE_BOX)
+
+static void
+set_a11y (GtkWidget *widget, const gchar *label)
+{
+    gtk_widget_set_tooltip_text (widget, label);
+    gtk_accessible_update_property (GTK_ACCESSIBLE (widget),
+                                    GTK_ACCESSIBLE_PROPERTY_LABEL, label, -1);
+}
+
 
 
 /* ---- Drag and drop helpers ---- */
@@ -93,11 +103,11 @@ sign_thread_func (gpointer user_data)
     gpointer status = sign_file (d->filename, d->fingerprint);
 
     if (status == SIGN_OK) {
-        d->message = g_strdup_printf ("File signed successfully (key: %s)",
+        d->message = g_strdup_printf (_("File signed successfully (key: %s)"),
                                       d->key_id);
         d->success = TRUE;
     } else {
-        d->message = g_strdup ("Failed to sign file");
+        d->message = g_strdup (_("Failed to sign file"));
         d->success = FALSE;
     }
 
@@ -146,7 +156,7 @@ sign_choose_file_cb (GtkButton *btn, gpointer user_data)
     (void)btn;
     GtkcryptoGpgPage *self = user_data;
     GtkFileDialog *dialog = gtk_file_dialog_new ();
-    gtk_file_dialog_set_title (dialog, "Choose file to sign");
+    gtk_file_dialog_set_title (dialog, _("Choose file to sign"));
     GtkWidget *toplevel = GTK_WIDGET (gtk_widget_get_root (GTK_WIDGET (self)));
     gtk_file_dialog_open (dialog, GTK_WINDOW (toplevel), NULL,
                           sign_file_chosen_cb, self);
@@ -160,12 +170,12 @@ sign_clicked_cb (GtkButton *btn, gpointer user_data)
     GtkcryptoGpgPage *self = user_data;
 
     if (self->sign_filename == NULL) {
-        adw_toast_overlay_add_toast (self->sign_toast_overlay, adw_toast_new ("No file selected"));
+        adw_toast_overlay_add_toast (self->sign_toast_overlay, adw_toast_new (_("No file selected")));
         return;
     }
 
     if (self->gpg_keys == NULL) {
-        adw_toast_overlay_add_toast (self->sign_toast_overlay, adw_toast_new ("No GPG keys available"));
+        adw_toast_overlay_add_toast (self->sign_toast_overlay, adw_toast_new (_("No GPG keys available")));
         return;
     }
 
@@ -179,7 +189,7 @@ sign_clicked_cb (GtkButton *btn, gpointer user_data)
         gtk_widget_set_sensitive (self->sign_btn, TRUE);
         gtk_spinner_stop (self->sign_spinner);
         adw_toast_overlay_add_toast (self->sign_toast_overlay,
-                                     adw_toast_new ("Invalid signing key"));
+                                     adw_toast_new (_("Invalid signing key")));
         g_free (d);
         return;
     }
@@ -224,13 +234,13 @@ verify_thread_func (gpointer user_data)
     gpointer status = verify_signature (d->signed_file, d->signature_file);
 
     if (status == SIGNATURE_OK) {
-        d->message = g_strdup ("Signature is valid");
+        d->message = g_strdup (_("Signature is valid"));
     } else if (status == SIGNATURE_OK_KEY_NOT_TRUSTED) {
-        d->message = g_strdup ("Signature is valid (key not trusted)");
+        d->message = g_strdup (_("Signature is valid (key not trusted)"));
     } else if (status == BAD_SIGNATURE) {
-        d->message = g_strdup ("Bad signature");
+        d->message = g_strdup (_("Bad signature"));
     } else {
-        d->message = g_strdup ("Error verifying signature");
+        d->message = g_strdup (_("Error verifying signature"));
     }
 
     g_idle_add (verify_result_idle, d);
@@ -312,7 +322,7 @@ verify_choose_file_cb (GtkButton *btn, gpointer user_data)
     (void)btn;
     GtkcryptoGpgPage *self = user_data;
     GtkFileDialog *dialog = gtk_file_dialog_new ();
-    gtk_file_dialog_set_title (dialog, "Choose signed file");
+    gtk_file_dialog_set_title (dialog, _("Choose signed file"));
     GtkWidget *toplevel = GTK_WIDGET (gtk_widget_get_root (GTK_WIDGET (self)));
     gtk_file_dialog_open (dialog, GTK_WINDOW (toplevel), NULL,
                           verify_signed_file_chosen_cb, self);
@@ -325,7 +335,7 @@ verify_choose_sig_cb (GtkButton *btn, gpointer user_data)
     (void)btn;
     GtkcryptoGpgPage *self = user_data;
     GtkFileDialog *dialog = gtk_file_dialog_new ();
-    gtk_file_dialog_set_title (dialog, "Choose signature (.sig) file");
+    gtk_file_dialog_set_title (dialog, _("Choose signature (.sig) file"));
     GtkWidget *toplevel = GTK_WIDGET (gtk_widget_get_root (GTK_WIDGET (self)));
     gtk_file_dialog_open (dialog, GTK_WINDOW (toplevel), NULL,
                           verify_sig_file_chosen_cb, self);
@@ -340,7 +350,7 @@ verify_clicked_cb (GtkButton *btn, gpointer user_data)
 
     if (self->verify_signed_file == NULL || self->verify_sig_file == NULL) {
         adw_toast_overlay_add_toast (self->verify_toast_overlay,
-                                     adw_toast_new ("Please select both files"));
+                                     adw_toast_new (_("Please select both files")));
         return;
     }
 
@@ -438,13 +448,14 @@ build_sign_page (GtkcryptoGpgPage *self)
 
     /* File selection */
     GtkWidget *file_group = adw_preferences_group_new ();
-    adw_preferences_group_set_title (ADW_PREFERENCES_GROUP (file_group), "File");
+    adw_preferences_group_set_title (ADW_PREFERENCES_GROUP (file_group), _("File"));
     GtkWidget *file_row = adw_action_row_new ();
-    adw_preferences_row_set_title (ADW_PREFERENCES_ROW (file_row), "File to sign");
-    self->sign_file_label = GTK_LABEL (gtk_label_new ("No file selected"));
+    adw_preferences_row_set_title (ADW_PREFERENCES_ROW (file_row), _("File to sign"));
+    self->sign_file_label = GTK_LABEL (gtk_label_new (_("No file selected")));
     gtk_label_set_ellipsize (self->sign_file_label, PANGO_ELLIPSIZE_MIDDLE);
     adw_action_row_add_suffix (ADW_ACTION_ROW (file_row), GTK_WIDGET (self->sign_file_label));
     GtkWidget *file_btn = gtk_button_new_from_icon_name ("document-open-symbolic");
+    set_a11y (file_btn, _("Choose file to sign"));
     gtk_widget_set_valign (file_btn, GTK_ALIGN_CENTER);
     adw_action_row_add_suffix (ADW_ACTION_ROW (file_row), file_btn);
     adw_preferences_group_add (ADW_PREFERENCES_GROUP (file_group), file_row);
@@ -453,9 +464,9 @@ build_sign_page (GtkcryptoGpgPage *self)
 
     /* Key selection */
     GtkWidget *key_group = adw_preferences_group_new ();
-    adw_preferences_group_set_title (ADW_PREFERENCES_GROUP (key_group), "GPG Key");
+    adw_preferences_group_set_title (ADW_PREFERENCES_GROUP (key_group), _("GPG Key"));
     self->key_row = ADW_COMBO_ROW (adw_combo_row_new ());
-    adw_preferences_row_set_title (ADW_PREFERENCES_ROW (self->key_row), "Signing Key");
+    adw_preferences_row_set_title (ADW_PREFERENCES_ROW (self->key_row), _("Signing Key"));
 
     /* Populate keys */
     self->gpg_keys = get_available_keys ();
@@ -469,7 +480,7 @@ build_sign_page (GtkcryptoGpgPage *self)
         }
     } else {
         self->gpg_keys = NULL;
-        gtk_string_list_append (key_list, "No keys available");
+        gtk_string_list_append (key_list, _("No keys available"));
     }
     adw_combo_row_set_model (self->key_row, G_LIST_MODEL (key_list));
 
@@ -487,7 +498,7 @@ build_sign_page (GtkcryptoGpgPage *self)
     self->sign_btn = gtk_button_new ();
     GtkWidget *sign_box = gtk_box_new (GTK_ORIENTATION_HORIZONTAL, 8);
     gtk_box_append (GTK_BOX (sign_box), gtk_image_new_from_icon_name ("document-edit-symbolic"));
-    gtk_box_append (GTK_BOX (sign_box), gtk_label_new ("Sign"));
+    gtk_box_append (GTK_BOX (sign_box), gtk_label_new (_("Sign")));
     gtk_button_set_child (GTK_BUTTON (self->sign_btn), sign_box);
     gtk_widget_add_css_class (self->sign_btn, "suggested-action");
     gtk_widget_add_css_class (self->sign_btn, "pill");
@@ -527,14 +538,15 @@ build_verify_page (GtkcryptoGpgPage *self)
 
     /* Signed file */
     GtkWidget *file_group = adw_preferences_group_new ();
-    adw_preferences_group_set_title (ADW_PREFERENCES_GROUP (file_group), "Files");
+    adw_preferences_group_set_title (ADW_PREFERENCES_GROUP (file_group), _("Files"));
 
     GtkWidget *file_row = adw_action_row_new ();
-    adw_preferences_row_set_title (ADW_PREFERENCES_ROW (file_row), "Signed file");
-    self->verify_file_label = GTK_LABEL (gtk_label_new ("No file selected"));
+    adw_preferences_row_set_title (ADW_PREFERENCES_ROW (file_row), _("Signed file"));
+    self->verify_file_label = GTK_LABEL (gtk_label_new (_("No file selected")));
     gtk_label_set_ellipsize (self->verify_file_label, PANGO_ELLIPSIZE_MIDDLE);
     adw_action_row_add_suffix (ADW_ACTION_ROW (file_row), GTK_WIDGET (self->verify_file_label));
     GtkWidget *file_btn = gtk_button_new_from_icon_name ("document-open-symbolic");
+    set_a11y (file_btn, _("Choose signed file"));
     gtk_widget_set_valign (file_btn, GTK_ALIGN_CENTER);
     adw_action_row_add_suffix (ADW_ACTION_ROW (file_row), file_btn);
     adw_preferences_group_add (ADW_PREFERENCES_GROUP (file_group), file_row);
@@ -542,11 +554,12 @@ build_verify_page (GtkcryptoGpgPage *self)
     attach_gpg_file_drop (file_row, G_CALLBACK (verify_signed_drop_cb), self);
 
     GtkWidget *sig_row = adw_action_row_new ();
-    adw_preferences_row_set_title (ADW_PREFERENCES_ROW (sig_row), "Signature (.sig) file");
-    self->verify_sig_label = GTK_LABEL (gtk_label_new ("No file selected"));
+    adw_preferences_row_set_title (ADW_PREFERENCES_ROW (sig_row), _("Signature (.sig) file"));
+    self->verify_sig_label = GTK_LABEL (gtk_label_new (_("No file selected")));
     gtk_label_set_ellipsize (self->verify_sig_label, PANGO_ELLIPSIZE_MIDDLE);
     adw_action_row_add_suffix (ADW_ACTION_ROW (sig_row), GTK_WIDGET (self->verify_sig_label));
     GtkWidget *sig_btn = gtk_button_new_from_icon_name ("document-open-symbolic");
+    set_a11y (sig_btn, _("Choose signature file"));
     gtk_widget_set_valign (sig_btn, GTK_ALIGN_CENTER);
     adw_action_row_add_suffix (ADW_ACTION_ROW (sig_row), sig_btn);
     adw_preferences_group_add (ADW_PREFERENCES_GROUP (file_group), sig_row);
@@ -559,7 +572,7 @@ build_verify_page (GtkcryptoGpgPage *self)
     self->verify_btn = gtk_button_new ();
     GtkWidget *verify_box = gtk_box_new (GTK_ORIENTATION_HORIZONTAL, 8);
     gtk_box_append (GTK_BOX (verify_box), gtk_image_new_from_icon_name ("object-select-symbolic"));
-    gtk_box_append (GTK_BOX (verify_box), gtk_label_new ("Verify"));
+    gtk_box_append (GTK_BOX (verify_box), gtk_label_new (_("Verify")));
     gtk_button_set_child (GTK_BUTTON (self->verify_btn), verify_box);
     gtk_widget_add_css_class (self->verify_btn, "suggested-action");
     gtk_widget_add_css_class (self->verify_btn, "pill");
@@ -605,11 +618,11 @@ gtkcrypto_gpg_page_init (GtkcryptoGpgPage *self)
     gtk_widget_set_margin_top (switcher, 8);
 
     GtkWidget *sign_page = build_sign_page (self);
-    AdwViewStackPage *sign_vs_page = adw_view_stack_add_titled (self->view_stack, sign_page, "sign", "Sign");
+    AdwViewStackPage *sign_vs_page = adw_view_stack_add_titled (self->view_stack, sign_page, "sign", _("Sign"));
     adw_view_stack_page_set_icon_name (sign_vs_page, "document-edit-symbolic");
 
     GtkWidget *verify_page = build_verify_page (self);
-    AdwViewStackPage *verify_vs_page = adw_view_stack_add_titled (self->view_stack, verify_page, "verify", "Verify");
+    AdwViewStackPage *verify_vs_page = adw_view_stack_add_titled (self->view_stack, verify_page, "verify", _("Verify"));
     adw_view_stack_page_set_icon_name (verify_vs_page, "object-select-symbolic");
 
     gtk_box_append (GTK_BOX (self), switcher);
