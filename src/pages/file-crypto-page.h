@@ -8,5 +8,6 @@ G_BEGIN_DECLS
 G_DECLARE_FINAL_TYPE (GtkcryptoFileCryptoPage, gtkcrypto_file_crypto_page, GTKCRYPTO, FILE_CRYPTO_PAGE, GtkBox)
 
 GtkcryptoFileCryptoPage *gtkcrypto_file_crypto_page_new (void);
+void gtkcrypto_file_crypto_page_shutdown (GtkcryptoFileCryptoPage *self);
 
 G_END_DECLS

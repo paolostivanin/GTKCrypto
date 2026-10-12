@@ -1,3 +1,5 @@
+#include <signal.h>
+#include <pthread.h>
 #include <stdio.h>
 #include <errno.h>
 #include <stdlib.h>
@@ -20,6 +22,7 @@
 #define EXIT_USAGE 2
 #define EXIT_AUTHENTICATION 3
 #define EXIT_EXISTS 4
+#define EXIT_INTERRUPTED 130
 
 static int
 exit_code_for_error (const GError *error)
@@ -30,6 +33,9 @@ exit_code_for_error (const GError *error)
         }
         if (error->code == GTKCRYPTO_ERROR_EXISTS) {
             return EXIT_EXISTS;
+        }
+        if (error->code == GTKCRYPTO_ERROR_CANCELLED) {
+            return EXIT_INTERRUPTED;
         }
     }
     return 1;
@@ -55,6 +61,62 @@ static const HashName HASH_NAMES[] = {
     { "gost94",       GCRY_MD_GOSTR3411_94, GOST94_DIGEST_SIZE      },
     { "whirlpool",    GCRY_MD_WHIRLPOOL,    WHIRLPOOL_DIGEST_SIZE   },
 };
+
+/* ---- Interruption handling ----
+ *
+ * While a file operation runs, SIGINT/SIGTERM/SIGHUP are blocked and consumed
+ * by a helper thread that cancels the operation. The core then aborts and
+ * removes its temporary output file instead of leaving ".name.XXXXXX" behind.
+ * It is only active around the core call, so Ctrl-C at the password prompt
+ * keeps its default behaviour. */
+
+static GCancellable *cli_cancellable;
+static pthread_t     signal_thread;
+static sigset_t      signal_set;
+static sigset_t      saved_mask;
+static gboolean      signal_thread_running;
+
+static void *
+signal_thread_main (void *arg)
+{
+    (void)arg;
+    int sig = 0;
+    if (sigwait (&signal_set, &sig) == 0 && sig != SIGUSR1) {
+        g_cancellable_cancel (cli_cancellable);
+    }
+    return NULL;
+}
+
+static GCancellable *
+interrupt_guard_begin (void)
+{
+    cli_cancellable = g_cancellable_new ();
+    sigemptyset (&signal_set);
+    sigaddset (&signal_set, SIGINT);
+    sigaddset (&signal_set, SIGTERM);
+    sigaddset (&signal_set, SIGHUP);
+    sigaddset (&signal_set, SIGUSR1);
+    pthread_sigmask (SIG_BLOCK, &signal_set, &saved_mask);
+    signal_thread_running =
+        pthread_create (&signal_thread, NULL, signal_thread_main, NULL) == 0;
+    if (!signal_thread_running) {
+        pthread_sigmask (SIG_SETMASK, &saved_mask, NULL);
+    }
+    return cli_cancellable;
+}
+
+static void
+interrupt_guard_end (void)
+{
+    if (signal_thread_running) {
+        pthread_kill (signal_thread, SIGUSR1);
+        pthread_join (signal_thread, NULL);
+        pthread_sigmask (SIG_SETMASK, &saved_mask, NULL);
+        signal_thread_running = FALSE;
+    }
+    g_clear_object (&cli_cancellable);
+}
+
 
 /* ---- Init ---- */
 
@@ -256,7 +318,9 @@ cmd_hash (int argc, char **argv)
     const gchar *path = files[0];
 
     g_auto(GStrv) algos = g_strsplit (algo_arg ? algo_arg : "sha256", ",", -1);
-    int rc = 0;
+    gint ids[G_N_ELEMENTS (HASH_NAMES)];
+    gint sizes[G_N_ELEMENTS (HASH_NAMES)];
+    guint n = 0;
     for (gsize i = 0; algos[i] != NULL; i++) {
         const gchar *name = g_strstrip (algos[i]);
         if (*name == '\0') continue;
@@ -265,15 +329,35 @@ cmd_hash (int argc, char **argv)
             fprintf (stderr, "Unknown algorithm: %s\nValid: %s\n", name, valid);
             return EXIT_USAGE;
         }
-        g_autofree gchar *hash = get_file_hash (path, hn->gcry_id, hn->digest_size);
-        if (hash == NULL) {
-            fprintf (stderr, "Failed to compute %s of %s\n", hn->cli_name, path);
-            rc = 1;
-            continue;
+        if (n >= G_N_ELEMENTS (HASH_NAMES)) {
+            fprintf (stderr, "Too many algorithms requested.\n");
+            return EXIT_USAGE;
         }
-        printf ("%s  %s\n", hash, path);
+        ids[n] = hn->gcry_id;
+        sizes[n] = hn->digest_size;
+        n++;
     }
-    return rc;
+    if (n == 0) {
+        fprintf (stderr, "No algorithm given.\n");
+        return EXIT_USAGE;
+    }
+
+    /* One read pass over the file feeds every requested digest. */
+    gchar *hex[G_N_ELEMENTS (HASH_NAMES)];
+    GCancellable *cancellable = interrupt_guard_begin ();
+    g_autoptr(GError) hash_error = NULL;
+    gboolean ok = gtkcrypto_hash_file (path, ids, sizes, n, cancellable,
+                                       hex, &hash_error);
+    interrupt_guard_end ();
+    if (!ok) {
+        fprintf (stderr, "%s\n", hash_error->message);
+        return exit_code_for_error (hash_error);
+    }
+    for (guint i = 0; i < n; i++) {
+        printf ("%s  %s\n", hex[i], path);
+        g_free (hex[i]);
+    }
+    return 0;
 }
 
 
@@ -323,9 +407,11 @@ cmd_encrypt (int argc, char **argv)
         g_strconcat (files[0], ".enc", NULL) : NULL;
     const gchar *output = output_arg != NULL ? output_arg : default_output;
     GError *crypto_error = NULL;
+    GCancellable *cancellable = interrupt_guard_begin ();
     gboolean ok = gtkcrypto_encrypt_file (files[0], output,
                                           (const guint8 *)pwd, strlen (pwd),
-                                          force, NULL, &crypto_error);
+                                          force, cancellable, &crypto_error);
+    interrupt_guard_end ();
     secure_wipe (pwd, strlen (pwd));
     gcry_free (pwd);
 
@@ -391,9 +477,11 @@ cmd_decrypt (int argc, char **argv)
     }
     const gchar *output = output_arg != NULL ? output_arg : default_output;
     GError *crypto_error = NULL;
+    GCancellable *cancellable = interrupt_guard_begin ();
     gboolean ok = gtkcrypto_decrypt_file (files[0], output,
                                           (const guint8 *)pwd, strlen (pwd),
-                                          force, NULL, &crypto_error);
+                                          force, cancellable, &crypto_error);
+    interrupt_guard_end ();
     secure_wipe (pwd, strlen (pwd));
     gcry_free (pwd);
 

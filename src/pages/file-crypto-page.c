@@ -1,3 +1,4 @@
+#include <errno.h>
 #include <gcrypt.h>
 #include <glib/gstdio.h>
 #include <string.h>
@@ -19,6 +20,8 @@ struct _GtkcryptoFileCryptoPage {
     AdwPasswordEntryRow *enc_pwd_confirm_row;
     GtkWidget     *encrypt_btn;
     GtkSpinner    *enc_spinner;
+    GtkWidget     *enc_cancel_btn;
+    GCancellable  *enc_cancellable;
     AdwToastOverlay *enc_toast_overlay;
 
     /* Decrypt sub-page */
@@ -28,7 +31,11 @@ struct _GtkcryptoFileCryptoPage {
     GtkSwitch     *delete_switch;
     GtkWidget     *decrypt_btn;
     GtkSpinner    *dec_spinner;
+    GtkWidget     *dec_cancel_btn;
+    GCancellable  *dec_cancellable;
     AdwToastOverlay *dec_toast_overlay;
+
+    gint           busy_workers;   /* atomic: tasks still inside the core */
 };
 
 G_DEFINE_TYPE (GtkcryptoFileCryptoPage, gtkcrypto_file_crypto_page, GTK_TYPE_BOX)
@@ -45,6 +52,8 @@ typedef struct {
     gboolean                 is_encrypt;
     gboolean                 delete_file;
     gboolean                 overwrite;
+    GCancellable            *cancellable;
+    GPtrArray               *errors;    /* "name: message" per failed file */
 } CryptoJobData;
 
 static void start_encrypt_job (GtkcryptoFileCryptoPage *self,
@@ -54,27 +63,51 @@ static void start_decrypt_job (GtkcryptoFileCryptoPage *self,
 
 
 static void
+job_record_failure (CryptoJobData *job, const gchar *filename,
+                    const GError *error)
+{
+    g_autofree gchar *base = g_path_get_basename (filename);
+
+    g_mutex_lock (&job->mutex);
+    job->failed++;
+    if (error == NULL ||
+        !g_error_matches (error, GTKCRYPTO_ERROR,
+                          GTKCRYPTO_ERROR_CANCELLED)) {
+        g_ptr_array_add (job->errors,
+                         g_strdup_printf ("%s: %s", base,
+                                          error ? error->message
+                                                : "Unknown error"));
+    }
+    g_mutex_unlock (&job->mutex);
+}
+
+
+static void
+job_worker_finished (CryptoJobData *job)
+{
+    g_atomic_int_dec_and_test (&job->page->busy_workers);
+    g_mutex_lock (&job->mutex);
+    job->done++;
+    g_mutex_unlock (&job->mutex);
+}
+
+
+static void
 enc_exec_thread (gpointer data, gpointer user_data)
 {
     gchar *filename = data;
     CryptoJobData *job = user_data;
 
-
     g_autofree gchar *output = g_strconcat (filename, ".enc", NULL);
-    GError *error = NULL;
-    gboolean ok = gtkcrypto_encrypt_file (
-        filename, output, (const guint8 *)job->pwd, strlen (job->pwd),
-        job->overwrite, NULL, &error);
-    if (!ok) {
-        g_mutex_lock (&job->mutex);
-        job->failed++;
-        g_mutex_unlock (&job->mutex);
-        g_clear_error (&error);
+    g_autoptr(GError) error = NULL;
+    if (!gtkcrypto_check_cancelled (job->cancellable, &error) ||
+        !gtkcrypto_encrypt_file (
+            filename, output, (const guint8 *)job->pwd, strlen (job->pwd),
+            job->overwrite, job->cancellable, &error)) {
+        job_record_failure (job, filename, error);
     }
 
-    g_mutex_lock (&job->mutex);
-    job->done++;
-    g_mutex_unlock (&job->mutex);
+    job_worker_finished (job);
     g_free (filename);
 }
 
@@ -85,26 +118,26 @@ dec_exec_thread (gpointer data, gpointer user_data)
     gchar *filename = data;
     CryptoJobData *job = user_data;
 
-
     g_autofree gchar *output = g_str_has_suffix (filename, ".enc") ?
         g_strndup (filename, strlen (filename) - 4) :
         g_strconcat (filename, ".decrypted", NULL);
-    GError *error = NULL;
-    gboolean ok = gtkcrypto_decrypt_file (
-        filename, output, (const guint8 *)job->pwd, strlen (job->pwd),
-        job->overwrite, NULL, &error);
-    if (!ok) {
+    g_autoptr(GError) error = NULL;
+    if (!gtkcrypto_check_cancelled (job->cancellable, &error) ||
+        !gtkcrypto_decrypt_file (
+            filename, output, (const guint8 *)job->pwd, strlen (job->pwd),
+            job->overwrite, job->cancellable, &error)) {
+        job_record_failure (job, filename, error);
+    } else if (job->delete_file && g_unlink (filename) != 0) {
+        g_autofree gchar *base = g_path_get_basename (filename);
         g_mutex_lock (&job->mutex);
-        job->failed++;
+        g_ptr_array_add (job->errors,
+                         g_strdup_printf ("%s: decrypted, but the encrypted "
+                                          "file could not be deleted: %s",
+                                          base, g_strerror (errno)));
         g_mutex_unlock (&job->mutex);
-        g_clear_error (&error);
-    } else if (job->delete_file) {
-        g_unlink (filename);
     }
 
-    g_mutex_lock (&job->mutex);
-    job->done++;
-    g_mutex_unlock (&job->mutex);
+    job_worker_finished (job);
     g_free (filename);
 }
 
@@ -130,6 +163,33 @@ job_done_idle (gpointer user_data)
 }
 
 
+#define MAX_ERROR_LINES 10
+
+static void
+show_error_details (CryptoJobData *job)
+{
+    GString *body = g_string_new (NULL);
+    for (guint i = 0; i < job->errors->len && i < MAX_ERROR_LINES; i++) {
+        g_string_append_printf (body, "%s%s", i ? "\n" : "",
+                                (const gchar *)g_ptr_array_index (job->errors, i));
+    }
+    if (job->errors->len > MAX_ERROR_LINES) {
+        g_string_append_printf (body, "\n… and %u more",
+                                job->errors->len - MAX_ERROR_LINES);
+    }
+
+    AdwAlertDialog *dialog = ADW_ALERT_DIALOG (adw_alert_dialog_new (
+        job->is_encrypt ? "Some files could not be encrypted"
+                        : "Some files could not be decrypted",
+        body->str));
+    adw_alert_dialog_add_response (dialog, "close", "Close");
+    adw_alert_dialog_set_default_response (dialog, "close");
+    adw_alert_dialog_set_close_response (dialog, "close");
+    adw_dialog_present (ADW_DIALOG (dialog), GTK_WIDGET (job->page));
+    g_string_free (body, TRUE);
+}
+
+
 static gboolean
 check_job_done (gpointer user_data)
 {
@@ -142,8 +202,10 @@ check_job_done (gpointer user_data)
     if (finished) {
         g_thread_pool_free (job->pool, FALSE, TRUE);
 
+        gboolean cancelled = g_cancellable_is_cancelled (job->cancellable);
         JobDoneData *d = g_new0 (JobDoneData, 1);
-        d->message = g_strdup_printf ("%u/%u file(s) successfully %s.",
+        d->message = g_strdup_printf ("%s%u/%u file(s) successfully %s.",
+                                       cancelled ? "Cancelled: " : "",
                                        job->total - job->failed, job->total,
                                        job->is_encrypt ? "encrypted" : "decrypted");
 
@@ -151,14 +213,24 @@ check_job_done (gpointer user_data)
             d->spinner = g_object_ref (job->page->enc_spinner);
             d->overlay = g_object_ref (job->page->enc_toast_overlay);
             gtk_widget_set_sensitive (job->page->encrypt_btn, TRUE);
+            gtk_widget_set_visible (job->page->enc_cancel_btn, FALSE);
+            g_clear_object (&job->page->enc_cancellable);
         } else {
             d->spinner = g_object_ref (job->page->dec_spinner);
             d->overlay = g_object_ref (job->page->dec_toast_overlay);
             gtk_widget_set_sensitive (job->page->decrypt_btn, TRUE);
+            gtk_widget_set_visible (job->page->dec_cancel_btn, FALSE);
+            g_clear_object (&job->page->dec_cancellable);
         }
         g_idle_add (job_done_idle, d);
 
+        if (job->errors->len > 0) {
+            show_error_details (job);
+        }
+
         gcry_free (job->pwd);
+        g_ptr_array_free (job->errors, TRUE);
+        g_object_unref (job->cancellable);
         g_mutex_clear (&job->mutex);
         g_object_unref (job->page);
         g_free (job);
@@ -356,6 +428,14 @@ start_encrypt_job (GtkcryptoFileCryptoPage *self, gboolean overwrite)
     job->is_encrypt = TRUE;
     job->overwrite = overwrite;
     g_mutex_init (&job->mutex);
+    job->errors = g_ptr_array_new_with_free_func (g_free);
+    job->cancellable = g_cancellable_new ();
+    if (job->is_encrypt) {
+        g_set_object (&self->enc_cancellable, job->cancellable);
+    } else {
+        g_set_object (&self->dec_cancellable, job->cancellable);
+    }
+    g_atomic_int_add (&self->busy_workers, (gint)job->total);
 
     gtk_widget_set_sensitive (self->encrypt_btn, FALSE);
     gtk_spinner_start (self->enc_spinner);
@@ -369,7 +449,15 @@ start_encrypt_job (GtkcryptoFileCryptoPage *self, gboolean overwrite)
         g_clear_error (&pool_error);
         gtk_widget_set_sensitive (self->encrypt_btn, TRUE);
         gtk_spinner_stop (self->enc_spinner);
+        g_atomic_int_add (&self->busy_workers, -(gint)job->total);
+        if (job->is_encrypt) {
+            g_clear_object (&self->enc_cancellable);
+        } else {
+            g_clear_object (&self->dec_cancellable);
+        }
         gcry_free (job->pwd);
+        g_ptr_array_free (job->errors, TRUE);
+        g_object_unref (job->cancellable);
         g_mutex_clear (&job->mutex);
         g_object_unref (job->page);
         g_free (job);
@@ -379,7 +467,9 @@ start_encrypt_job (GtkcryptoFileCryptoPage *self, gboolean overwrite)
         g_thread_pool_push (job->pool, g_strdup (l->data), NULL);
     }
 
-    job->source_id = g_timeout_add (500, check_job_done, job);
+    gtk_widget_set_visible (job->is_encrypt ? self->enc_cancel_btn
+                                            : self->dec_cancel_btn, TRUE);
+    job->source_id = g_timeout_add (200, check_job_done, job);
 }
 
 typedef struct {
@@ -481,6 +571,14 @@ start_decrypt_job (GtkcryptoFileCryptoPage *self, gboolean overwrite)
     job->delete_file = gtk_switch_get_active (self->delete_switch);
     job->overwrite = overwrite;
     g_mutex_init (&job->mutex);
+    job->errors = g_ptr_array_new_with_free_func (g_free);
+    job->cancellable = g_cancellable_new ();
+    if (job->is_encrypt) {
+        g_set_object (&self->enc_cancellable, job->cancellable);
+    } else {
+        g_set_object (&self->dec_cancellable, job->cancellable);
+    }
+    g_atomic_int_add (&self->busy_workers, (gint)job->total);
 
     gtk_widget_set_sensitive (self->decrypt_btn, FALSE);
     gtk_spinner_start (self->dec_spinner);
@@ -494,7 +592,15 @@ start_decrypt_job (GtkcryptoFileCryptoPage *self, gboolean overwrite)
         g_clear_error (&pool_error);
         gtk_widget_set_sensitive (self->decrypt_btn, TRUE);
         gtk_spinner_stop (self->dec_spinner);
+        g_atomic_int_add (&self->busy_workers, -(gint)job->total);
+        if (job->is_encrypt) {
+            g_clear_object (&self->enc_cancellable);
+        } else {
+            g_clear_object (&self->dec_cancellable);
+        }
         gcry_free (job->pwd);
+        g_ptr_array_free (job->errors, TRUE);
+        g_object_unref (job->cancellable);
         g_mutex_clear (&job->mutex);
         g_object_unref (job->page);
         g_free (job);
@@ -504,7 +610,9 @@ start_decrypt_job (GtkcryptoFileCryptoPage *self, gboolean overwrite)
         g_thread_pool_push (job->pool, g_strdup (l->data), NULL);
     }
 
-    job->source_id = g_timeout_add (500, check_job_done, job);
+    gtk_widget_set_visible (job->is_encrypt ? self->enc_cancel_btn
+                                            : self->dec_cancel_btn, TRUE);
+    job->source_id = g_timeout_add (200, check_job_done, job);
 }
 
 static gboolean
@@ -536,6 +644,38 @@ decrypt_clicked_cb (GtkButton *btn, gpointer user_data)
         return;
     }
     start_decrypt_job (self, FALSE);
+}
+
+
+static void
+cancel_enc_job (GtkcryptoFileCryptoPage *self)
+{
+    if (self->enc_cancellable != NULL) {
+        g_cancellable_cancel (self->enc_cancellable);
+    }
+}
+
+
+static void
+cancel_dec_job (GtkcryptoFileCryptoPage *self)
+{
+    if (self->dec_cancellable != NULL) {
+        g_cancellable_cancel (self->dec_cancellable);
+    }
+}
+
+
+/* Cancel running jobs and wait (briefly) for workers to leave the core, so
+ * temporary output files are removed before the application exits. */
+void
+gtkcrypto_file_crypto_page_shutdown (GtkcryptoFileCryptoPage *self)
+{
+    cancel_enc_job (self);
+    cancel_dec_job (self);
+    for (gint i = 0; i < 500 && g_atomic_int_get (&self->busy_workers) > 0;
+         i++) {
+        g_usleep (10 * 1000);
+    }
 }
 
 
@@ -616,7 +756,13 @@ build_encrypt_page (GtkcryptoFileCryptoPage *self)
     gtk_widget_add_css_class (self->encrypt_btn, "suggested-action");
     gtk_widget_add_css_class (self->encrypt_btn, "pill");
     self->enc_spinner = GTK_SPINNER (gtk_spinner_new ());
+    self->enc_cancel_btn = gtk_button_new_with_label ("Cancel");
+    gtk_widget_add_css_class (self->enc_cancel_btn, "pill");
+    gtk_widget_set_visible (self->enc_cancel_btn, FALSE);
+    g_signal_connect_swapped (self->enc_cancel_btn, "clicked",
+                              G_CALLBACK (cancel_enc_job), self);
     gtk_box_append (GTK_BOX (action_box), self->encrypt_btn);
+    gtk_box_append (GTK_BOX (action_box), self->enc_cancel_btn);
     gtk_box_append (GTK_BOX (action_box), GTK_WIDGET (self->enc_spinner));
     g_signal_connect (self->encrypt_btn, "clicked", G_CALLBACK (encrypt_clicked_cb), self);
 
@@ -694,7 +840,13 @@ build_decrypt_page (GtkcryptoFileCryptoPage *self)
     gtk_widget_add_css_class (self->decrypt_btn, "suggested-action");
     gtk_widget_add_css_class (self->decrypt_btn, "pill");
     self->dec_spinner = GTK_SPINNER (gtk_spinner_new ());
+    self->dec_cancel_btn = gtk_button_new_with_label ("Cancel");
+    gtk_widget_add_css_class (self->dec_cancel_btn, "pill");
+    gtk_widget_set_visible (self->dec_cancel_btn, FALSE);
+    g_signal_connect_swapped (self->dec_cancel_btn, "clicked",
+                              G_CALLBACK (cancel_dec_job), self);
     gtk_box_append (GTK_BOX (action_box), self->decrypt_btn);
+    gtk_box_append (GTK_BOX (action_box), self->dec_cancel_btn);
     gtk_box_append (GTK_BOX (action_box), GTK_WIDGET (self->dec_spinner));
     g_signal_connect (self->decrypt_btn, "clicked", G_CALLBACK (decrypt_clicked_cb), self);
 
@@ -717,6 +869,8 @@ gtkcrypto_file_crypto_page_finalize (GObject *object)
     GtkcryptoFileCryptoPage *self = GTKCRYPTO_FILE_CRYPTO_PAGE (object);
     g_slist_free_full (self->enc_files_list, g_free);
     g_slist_free_full (self->dec_files_list, g_free);
+    g_clear_object (&self->enc_cancellable);
+    g_clear_object (&self->dec_cancellable);
     G_OBJECT_CLASS (gtkcrypto_file_crypto_page_parent_class)->finalize (object);
 }
 

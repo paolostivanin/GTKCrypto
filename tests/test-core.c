@@ -282,6 +282,61 @@ test_v1_compatibility (void)
     g_assert_cmpmem (data, length, payload, sizeof payload - 1);
 }
 
+static void
+test_hash_multi_and_cancel (void)
+{
+    g_autofree gchar *path = path_for ("multi");
+    write_file (path, (const guint8 *)"hello\n", 6);
+
+    const gint algos[] = { GCRY_MD_SHA256, GCRY_MD_MD5 };
+    const gint sizes[] = { SHA256_DIGEST_SIZE, MD5_DIGEST_SIZE };
+    gchar *hex[2] = { NULL, NULL };
+    g_autoptr(GError) error = NULL;
+
+    g_assert_true (gtkcrypto_hash_file (path, algos, sizes, 2, NULL, hex,
+                                        &error));
+    g_assert_no_error (error);
+    g_autofree gchar *sha = get_file_hash (path, GCRY_MD_SHA256,
+                                           SHA256_DIGEST_SIZE);
+    g_autofree gchar *md5 = get_file_hash (path, GCRY_MD_MD5,
+                                           MD5_DIGEST_SIZE);
+    g_assert_cmpstr (hex[0], ==, sha);
+    g_assert_cmpstr (hex[1], ==, md5);
+    g_free (hex[0]);
+    g_free (hex[1]);
+
+    g_autoptr(GCancellable) cancellable = g_cancellable_new ();
+    g_cancellable_cancel (cancellable);
+    g_assert_false (gtkcrypto_hash_file (path, algos, sizes, 2, cancellable,
+                                         hex, &error));
+    g_assert_error (error, GTKCRYPTO_ERROR, GTKCRYPTO_ERROR_CANCELLED);
+    g_assert_null (hex[0]);
+    g_assert_null (hex[1]);
+}
+
+static void
+test_cancelled_encrypt_leaves_no_files (void)
+{
+    g_autofree gchar *input = path_for ("cancel-in");
+    g_autofree gchar *output = path_for ("cancel-in.enc");
+    write_file (input, (const guint8 *)"data", 4);
+
+    g_autoptr(GCancellable) cancellable = g_cancellable_new ();
+    g_cancellable_cancel (cancellable);
+    g_autoptr(GError) error = NULL;
+    g_assert_false (gtkcrypto_encrypt_file (input, output, password,
+                                            sizeof password - 1, FALSE,
+                                            cancellable, &error));
+    g_assert_error (error, GTKCRYPTO_ERROR, GTKCRYPTO_ERROR_CANCELLED);
+    g_assert_false (g_file_test (output, G_FILE_TEST_EXISTS));
+
+    g_autoptr(GDir) dir = g_dir_open (test_dir, 0, NULL);
+    const gchar *name;
+    while ((name = g_dir_read_name (dir)) != NULL) {
+        g_assert_false (g_str_has_prefix (name, ".cancel-in.enc."));
+    }
+}
+
 int
 main (int argc, char **argv)
 {
@@ -295,6 +350,9 @@ main (int argc, char **argv)
     g_assert_no_error (error);
 
     g_test_add_func ("/hash/boundaries", test_hash_boundaries);
+    g_test_add_func ("/hash/multi-and-cancel", test_hash_multi_and_cancel);
+    g_test_add_func ("/crypto/cancel-cleans-up",
+                     test_cancelled_encrypt_leaves_no_files);
     g_test_add_func ("/crypto/v3-roundtrip-failures",
                      test_v3_roundtrip_and_failures);
     g_test_add_func ("/crypto/v3-empty-text", test_v3_empty_and_text);

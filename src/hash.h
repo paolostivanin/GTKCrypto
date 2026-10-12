@@ -1,6 +1,7 @@
 #pragma once
 
 #include <glib.h>
+#include <gio/gio.h>
 #include <gcrypt.h>
 
 #define HASH_COMPUTED         ((gpointer) 10)
@@ -29,3 +30,13 @@ gpointer compute_hash   (gcry_md_hd_t *hd,
 gchar *finalize_hash    (gcry_md_hd_t *hd,
                          gint          algo,
                          gint          digest_size);
+
+/* Hash FILE_PATH with all ALGOS in a single read pass. On success hex_out[i]
+ * holds the lowercase hex digest for algos[i] (free each with g_free). */
+gboolean gtkcrypto_hash_file (const gchar  *file_path,
+                              const gint   *algos,
+                              const gint   *digest_sizes,
+                              guint         n_algos,
+                              GCancellable *cancellable,
+                              gchar       **hex_out,
+                              GError      **error);

@@ -29,6 +29,12 @@ The header is followed by exactly `plaintext length` bytes of ciphertext and a
 16-byte GCM tag. Parsers reject unknown IDs, non-zero reserved fields, unsafe
 KDF parameters, integer overflow, and size mismatches before deriving a key.
 
+A single GCM stream is limited to 2^36 - 32 bytes, so the encryptor rejects
+larger inputs up front. When decrypting files, the plaintext is streamed to a
+private temporary file (mode 0600) before the tag can be verified; it is only
+renamed to the destination once authentication succeeds, and the temporary file
+is unlinked (not securely wiped) on failure or cancellation.
+
 Passwords are the exact UTF-8 bytes supplied by the user, without a terminating
 NUL. No Unicode normalization is performed.
 

@@ -1,6 +1,7 @@
 #include <gcrypt.h>
 #include "hashing-page.h"
 #include "../hash.h"
+#include "../crypt-common.h"
 #include "../gtkcrypto.h"
 #include "../state.h"
 
@@ -61,6 +62,7 @@ struct _GtkcryptoHashingPage {
     GThreadPool     *compute_pool;
     GHashTable      *hash_cache;
     guint64          compute_generation;
+    GCancellable    *compute_cancellable;
 
     /* Compare sub-page */
     GtkLabel        *file1_label;
@@ -77,11 +79,11 @@ G_DEFINE_TYPE (GtkcryptoHashingPage, gtkcrypto_hashing_page, GTK_TYPE_BOX)
 
 typedef struct {
     GtkcryptoHashingPage *page;
-    gint                  algo_index;
     gchar                *filename;
-    gint                  hash_algo;
-    gint                  digest_size;
+    gint                  indices[NUM_HASH_ALGOS];
+    guint                 n_algos;
     guint64               generation;
+    GCancellable         *cancellable;
 } ComputeThreadData;
 
 typedef struct {
@@ -162,6 +164,15 @@ hash_done_idle (gpointer user_data)
         return G_SOURCE_REMOVE;
     }
 
+    if (!gtk_switch_get_active (GTK_SWITCH (hd->page->hash_switches[hd->algo_index]))) {
+        /* Switched off while computing: discard the result. */
+        gtk_spinner_stop (GTK_SPINNER (hd->page->hash_spinners[hd->algo_index]));
+        g_object_unref (hd->page);
+        g_free (hd->hash);
+        g_free (hd);
+        return G_SOURCE_REMOVE;
+    }
+
     if (hd->hash) {
         gtk_label_set_text (GTK_LABEL (hd->page->hash_result_labels[hd->algo_index]), hd->hash);
         g_hash_table_insert (hd->page->hash_cache,
@@ -189,17 +200,79 @@ compute_hash_thread (gpointer data, gpointer user_data)
     (void)user_data;
     ComputeThreadData *td = data;
 
-    gchar *hash = get_file_hash (td->filename, td->hash_algo, td->digest_size);
+    gint algos[NUM_HASH_ALGOS];
+    gint sizes[NUM_HASH_ALGOS];
+    gchar *hex[NUM_HASH_ALGOS];
+    for (guint i = 0; i < td->n_algos; i++) {
+        algos[i] = hash_algos[td->indices[i]].algo;
+        sizes[i] = hash_algos[td->indices[i]].digest_size;
+    }
 
-    HashDoneData *hd = g_new0 (HashDoneData, 1);
-    hd->page = td->page;
-    hd->algo_index = td->algo_index;
-    hd->hash = hash;
-    hd->generation = td->generation;
-    g_idle_add (hash_done_idle, hd);
+    /* A single pass over the file feeds every requested algorithm. */
+    g_autoptr(GError) error = NULL;
+    gboolean ok = gtkcrypto_hash_file (td->filename, algos, sizes,
+                                       td->n_algos, td->cancellable, hex,
+                                       &error);
+    gboolean cancelled = !ok && g_error_matches (error, GTKCRYPTO_ERROR,
+                                                 GTKCRYPTO_ERROR_CANCELLED);
 
+    /* Cancelled work belongs to a stale generation; the page already reset
+     * its rows, so there is nothing to report. */
+    if (!cancelled) {
+        for (guint i = 0; i < td->n_algos; i++) {
+            HashDoneData *hd = g_new0 (HashDoneData, 1);
+            hd->page = g_object_ref (td->page);
+            hd->algo_index = td->indices[i];
+            hd->hash = ok ? hex[i] : NULL;
+            hd->generation = td->generation;
+            g_idle_add (hash_done_idle, hd);
+        }
+    }
+
+    g_object_unref (td->page);
+    g_object_unref (td->cancellable);
     g_free (td->filename);
     g_free (td);
+}
+
+
+static void
+start_compute_for_indices (GtkcryptoHashingPage *self,
+                           const gint *indices, guint n)
+{
+    if (self->compute_filename == NULL) return;
+
+    ComputeThreadData *td = g_new0 (ComputeThreadData, 1);
+    td->page = g_object_ref (self);
+    td->filename = g_strdup (self->compute_filename);
+    td->generation = self->compute_generation;
+    if (self->compute_cancellable == NULL) {
+        self->compute_cancellable = g_cancellable_new ();
+    }
+    td->cancellable = g_object_ref (self->compute_cancellable);
+
+    for (guint i = 0; i < n; i++) {
+        gint idx = indices[i];
+        /* Cache hit -> just paint the result. */
+        gpointer cached = g_hash_table_lookup (self->hash_cache,
+                                               hash_algos[idx].label);
+        if (cached) {
+            gtk_label_set_text (GTK_LABEL (self->hash_result_labels[idx]), cached);
+            update_expected_match (self);
+            continue;
+        }
+        gtk_spinner_start (GTK_SPINNER (self->hash_spinners[idx]));
+        td->indices[td->n_algos++] = idx;
+    }
+
+    if (td->n_algos == 0) {
+        g_object_unref (td->page);
+        g_object_unref (td->cancellable);
+        g_free (td->filename);
+        g_free (td);
+        return;
+    }
+    g_thread_pool_push (self->compute_pool, td, NULL);
 }
 
 
@@ -207,39 +280,22 @@ static void
 start_compute_for_index (GtkcryptoHashingPage *self, gint idx)
 {
     if (idx < 0 || idx >= NUM_HASH_ALGOS) return;
-    if (self->compute_filename == NULL) return;
-
-    /* Cache hit -> just paint the result. */
-    gpointer cached = g_hash_table_lookup (self->hash_cache, hash_algos[idx].label);
-    if (cached) {
-        gtk_label_set_text (GTK_LABEL (self->hash_result_labels[idx]), cached);
-        update_expected_match (self);
-        return;
-    }
-
-    gtk_spinner_start (GTK_SPINNER (self->hash_spinners[idx]));
-
-    ComputeThreadData *td = g_new0 (ComputeThreadData, 1);
-    td->page = self;
-    g_object_ref (td->page);
-    td->algo_index = idx;
-    td->filename = g_strdup (self->compute_filename);
-    td->hash_algo = hash_algos[idx].algo;
-    td->digest_size = hash_algos[idx].digest_size;
-    td->generation = self->compute_generation;
-
-    g_thread_pool_push (self->compute_pool, td, NULL);
+    start_compute_for_indices (self, &idx, 1);
 }
 
 
 static void
 start_all_enabled_computes (GtkcryptoHashingPage *self)
 {
-    if (self->compute_filename == NULL) return;
+    gint indices[NUM_HASH_ALGOS];
+    guint n = 0;
     for (gint i = 0; i < NUM_HASH_ALGOS; i++) {
         if (gtk_switch_get_active (GTK_SWITCH (self->hash_switches[i]))) {
-            start_compute_for_index (self, i);
+            indices[n++] = i;
         }
+    }
+    if (n > 0) {
+        start_compute_for_indices (self, indices, n);
     }
 }
 
@@ -285,6 +341,12 @@ set_compute_file (GtkcryptoHashingPage *self, gchar *path /* takes ownership */)
     self->compute_filename = path;
     self->compute_generation++;
 
+    /* Abort hashing of the previous file and start a fresh cancellable. */
+    if (self->compute_cancellable != NULL) {
+        g_cancellable_cancel (self->compute_cancellable);
+        g_clear_object (&self->compute_cancellable);
+    }
+
     g_autofree gchar *basename = g_path_get_basename (self->compute_filename);
     gtk_label_set_text (self->compute_file_label, basename);
 
@@ -292,6 +354,7 @@ set_compute_file (GtkcryptoHashingPage *self, gchar *path /* takes ownership */)
     g_hash_table_remove_all (self->hash_cache);
     for (gint i = 0; i < NUM_HASH_ALGOS; i++) {
         gtk_label_set_text (GTK_LABEL (self->hash_result_labels[i]), "");
+        gtk_spinner_stop (GTK_SPINNER (self->hash_spinners[i]));
         gtk_widget_remove_css_class (self->hash_rows[i], "hash-match");
     }
 
@@ -765,6 +828,10 @@ gtkcrypto_hashing_page_finalize (GObject *object)
     g_free (self->compare_file1);
     g_free (self->compare_file2);
     g_free (self->expected_hash);
+    if (self->compute_cancellable != NULL) {
+        g_cancellable_cancel (self->compute_cancellable);
+        g_clear_object (&self->compute_cancellable);
+    }
     if (self->compute_pool)
         g_thread_pool_free (self->compute_pool, FALSE, FALSE);
     if (self->hash_cache)

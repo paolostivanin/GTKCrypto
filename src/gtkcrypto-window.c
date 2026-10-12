@@ -19,6 +19,8 @@ struct _GtkcryptoWindow {
 
 G_DEFINE_TYPE (GtkcryptoWindow, gtkcrypto_window, ADW_TYPE_APPLICATION_WINDOW)
 
+static gboolean close_request_cb (GtkWindow *window, gpointer user_data);
+
 typedef struct {
     const gchar *title;
     const gchar *icon_name;
@@ -159,9 +161,21 @@ gtkcrypto_window_init (GtkcryptoWindow *self)
     GtkListBoxRow *first_row = gtk_list_box_get_row_at_index (self->sidebar, 0);
     gtk_list_box_select_row (self->sidebar, first_row);
 
+    g_signal_connect (self, "close-request", G_CALLBACK (close_request_cb), NULL);
+
     /* Window defaults */
     gtk_window_set_default_size (GTK_WINDOW (self), 900, 600);
     gtk_window_set_title (GTK_WINDOW (self), "GTKCrypto");
+}
+
+
+static gboolean
+close_request_cb (GtkWindow *window, gpointer user_data)
+{
+    (void)user_data;
+    GtkcryptoWindow *self = GTKCRYPTO_WINDOW (window);
+    gtkcrypto_file_crypto_page_shutdown (self->file_crypto_page);
+    return FALSE;
 }
 
 
