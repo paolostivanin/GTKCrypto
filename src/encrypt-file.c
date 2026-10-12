@@ -117,9 +117,11 @@ gtkcrypto_encrypt_file (const gchar *input_path,
     header[V3_OFFSET_NONCE_LENGTH] = GTKCRYPTO_NONCE_SIZE;
     header[V3_OFFSET_TAG_LENGTH] = GTKCRYPTO_TAG_SIZE;
     memset (header + V3_OFFSET_RESERVED, 0, 3);
-    put_be32 (header + V3_OFFSET_TIME, GTKCRYPTO_ARGON2_TIME);
-    put_be32 (header + V3_OFFSET_MEMORY, GTKCRYPTO_ARGON2_MEMORY_KIB);
-    put_be32 (header + V3_OFFSET_LANES, GTKCRYPTO_ARGON2_LANES);
+    GtkcryptoKdfParams kdf;
+    gtkcrypto_kdf_params_current (&kdf);
+    put_be32 (header + V3_OFFSET_TIME, kdf.time);
+    put_be32 (header + V3_OFFSET_MEMORY, kdf.memory_kib);
+    put_be32 (header + V3_OFFSET_LANES, kdf.lanes);
     put_be64 (header + V3_OFFSET_PLAINTEXT_SIZE, plaintext_size);
     gcry_randomize (header + V3_OFFSET_SALT, GTKCRYPTO_SALT_SIZE,
                     GCRY_STRONG_RANDOM);
@@ -128,9 +130,7 @@ gtkcrypto_encrypt_file (const gchar *input_path,
 
     if (!gtkcrypto_argon2id_derive (password, password_len,
                                     header + V3_OFFSET_SALT,
-                                    GTKCRYPTO_ARGON2_TIME,
-                                    GTKCRYPTO_ARGON2_MEMORY_KIB,
-                                    GTKCRYPTO_ARGON2_LANES,
+                                    kdf.time, kdf.memory_kib, kdf.lanes,
                                     key, error)) {
         goto out;
     }

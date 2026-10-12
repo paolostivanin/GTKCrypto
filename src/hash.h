@@ -40,3 +40,14 @@ gboolean gtkcrypto_hash_file (const gchar  *file_path,
                               GCancellable *cancellable,
                               gchar       **hex_out,
                               GError      **error);
+
+/* Same as gtkcrypto_hash_file() for an already open descriptor (e.g. a pipe).
+ * NAME is only used in error messages. The descriptor is not closed. */
+gboolean gtkcrypto_hash_fd   (gint          fd,
+                              const gchar  *name,
+                              const gint   *algos,
+                              const gint   *digest_sizes,
+                              guint         n_algos,
+                              GCancellable *cancellable,
+                              gchar       **hex_out,
+                              GError      **error);

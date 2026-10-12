@@ -2,7 +2,9 @@
 #include <gcrypt.h>
 #include "gtkcrypto-application.h"
 #include "gtkcrypto-window.h"
+#include "crypt-common.h"
 #include "preferences-dialog.h"
+#include "state.h"
 
 #define APP_ID          "com.github.paolostivanin.gtkcrypto"
 #define GCRYPT_MIN_VER  "1.10.1"
@@ -98,6 +100,9 @@ gtkcrypto_application_startup (GApplication *app)
         return;
     }
     gcry_control (GCRYCTL_INITIALIZATION_FINISHED, 0);
+
+    gint level = state_get_int ("kdf-level", GTKCRYPTO_KDF_STANDARD);
+    gtkcrypto_set_kdf_level ((GtkcryptoKdfLevel)level);
 
     GdkDisplay *display = gdk_display_get_default ();
     GtkIconTheme *icon_theme = gtk_icon_theme_get_for_display (display);

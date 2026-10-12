@@ -337,6 +337,48 @@ test_cancelled_encrypt_leaves_no_files (void)
     }
 }
 
+static void
+test_kdf_levels (void)
+{
+    g_autofree gchar *input = path_for ("kdf-in");
+    write_file (input, (const guint8 *)"kdf level data", 14);
+
+    for (gint level = GTKCRYPTO_KDF_STANDARD; level <= GTKCRYPTO_KDF_MAXIMUM;
+         level++) {
+        g_autofree gchar *name = g_strdup_printf ("kdf-%d.enc", level);
+        g_autofree gchar *back_name = g_strdup_printf ("kdf-%d.out", level);
+        g_autofree gchar *encrypted = path_for (name);
+        g_autofree gchar *recovered = path_for (back_name);
+        GtkcryptoKdfParams expected;
+        g_autoptr(GError) error = NULL;
+
+        gtkcrypto_set_kdf_level ((GtkcryptoKdfLevel)level);
+        gtkcrypto_kdf_params_current (&expected);
+        g_assert_true (gtkcrypto_encrypt_file (input, encrypted, password,
+                                               sizeof password - 1, FALSE,
+                                               NULL, &error));
+        g_assert_no_error (error);
+
+        /* The parameters are stored in the header (offsets 16, 20, 24)... */
+        g_autoptr(GBytes) container = read_file (encrypted);
+        const guint8 *data = g_bytes_get_data (container, NULL);
+        g_assert_cmpuint (GUINT32_FROM_BE (*(const guint32 *)(data + 16)), ==,
+                          expected.time);
+        g_assert_cmpuint (GUINT32_FROM_BE (*(const guint32 *)(data + 20)), ==,
+                          expected.memory_kib);
+        g_assert_cmpuint (GUINT32_FROM_BE (*(const guint32 *)(data + 24)), ==,
+                          expected.lanes);
+
+        /* ...so decryption works whatever level is configured later. */
+        gtkcrypto_set_kdf_level (GTKCRYPTO_KDF_STANDARD);
+        g_assert_true (gtkcrypto_decrypt_file (encrypted, recovered, password,
+                                               sizeof password - 1, FALSE,
+                                               NULL, &error));
+        assert_files_equal (input, recovered);
+    }
+    gtkcrypto_set_kdf_level (GTKCRYPTO_KDF_STANDARD);
+}
+
 int
 main (int argc, char **argv)
 {
@@ -355,6 +397,7 @@ main (int argc, char **argv)
                      test_cancelled_encrypt_leaves_no_files);
     g_test_add_func ("/crypto/v3-roundtrip-failures",
                      test_v3_roundtrip_and_failures);
+    g_test_add_func ("/crypto/kdf-levels", test_kdf_levels);
     g_test_add_func ("/crypto/v3-empty-text", test_v3_empty_and_text);
     g_test_add_func ("/crypto/v2-compatibility", test_v2_compatibility);
     g_test_add_func ("/crypto/v1-compatibility", test_v1_compatibility);

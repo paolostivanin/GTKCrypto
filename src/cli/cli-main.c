@@ -2,8 +2,10 @@
 #include <pthread.h>
 #include <stdio.h>
 #include <errno.h>
+#include <fcntl.h>
 #include <stdlib.h>
 #include <string.h>
+#include <termios.h>
 #include <unistd.h>
 #include <sys/stat.h>
 #include <glib.h>
@@ -12,12 +14,14 @@
 
 #include "../hash.h"
 #include "../gtkcrypto.h"
+#include "../crypt-common.h"
 #include "../encrypt-files-cb.h"
 #include "../decrypt-files-cb.h"
 
 #define GCRYPT_MIN_VER  "1.10.1"
 #define SECMEM_SIZE     32768
 #define MIN_PWD_LEN     8
+#define MAX_PWD_LEN     1023
 
 #define EXIT_USAGE 2
 #define EXIT_AUTHENTICATION 3
@@ -67,8 +71,8 @@ static const HashName HASH_NAMES[] = {
  * While a file operation runs, SIGINT/SIGTERM/SIGHUP are blocked and consumed
  * by a helper thread that cancels the operation. The core then aborts and
  * removes its temporary output file instead of leaving ".name.XXXXXX" behind.
- * It is only active around the core call, so Ctrl-C at the password prompt
- * keeps its default behaviour. */
+ * It is only active around the core calls, so Ctrl-C at the password prompt
+ * keeps working. */
 
 static GCancellable *cli_cancellable;
 static pthread_t     signal_thread;
@@ -160,6 +164,7 @@ join_names (const HashName *names, gsize n)
     return g_string_free (s, FALSE);
 }
 
+
 /* ---- Password helpers ---- */
 
 static void
@@ -220,29 +225,139 @@ read_password_file (const gchar *path, GError **err)
     return secure;
 }
 
+/* Reads the first line from FD (a pipe, here-string, ...) without ever
+ * keeping it in non-secure memory beyond a wiped stack buffer. */
 static gchar *
-prompt_password_once (const gchar *prompt)
+read_password_fd (gint fd, GError **err)
 {
-    gchar *p = getpass (prompt);
-    if (p == NULL) return NULL;
-    gchar *secure = to_secure (p);
-    secure_wipe (p, strlen (p));
+    char buf[MAX_PWD_LEN + 1];
+    gsize len = 0;
+    gboolean too_long = FALSE;
+
+    for (;;) {
+        char c;
+        ssize_t n = read (fd, &c, 1);
+        if (n < 0 && errno == EINTR) continue;
+        if (n < 0) {
+            g_set_error (err, G_FILE_ERROR, g_file_error_from_errno (errno),
+                         "Unable to read password: %s", g_strerror (errno));
+            secure_wipe (buf, sizeof buf);
+            return NULL;
+        }
+        if (n == 0 || c == '\n') break;
+        if (len < MAX_PWD_LEN) {
+            buf[len++] = c;
+        } else {
+            too_long = TRUE;
+        }
+    }
+    buf[len] = '\0';
+    if (len > 0 && buf[len - 1] == '\r') buf[--len] = '\0';
+
+    gchar *secure = NULL;
+    if (too_long) {
+        g_set_error (err, G_FILE_ERROR, G_FILE_ERROR_INVAL,
+                     "Password is longer than %d bytes", MAX_PWD_LEN);
+    } else {
+        secure = to_secure (buf);
+    }
+    secure_wipe (buf, sizeof buf);
+    return secure;
+}
+
+static volatile sig_atomic_t prompt_signal;
+
+static void
+prompt_signal_handler (int sig)
+{
+    prompt_signal = sig;
+}
+
+/* Reads a password from the controlling terminal with echo disabled. Returns
+ * a secure-memory copy, or NULL (with *interrupted set when a signal arrived,
+ * after the terminal has been restored). */
+static gchar *
+prompt_password_once (const gchar *prompt, gboolean *interrupted)
+{
+    int tty = open ("/dev/tty", O_RDWR | O_CLOEXEC | O_NOCTTY);
+    if (tty < 0) {
+        fprintf (stderr, "No terminal available: use --password-file or "
+                         "--password-fd\n");
+        return NULL;
+    }
+
+    struct termios old, quiet;
+    if (tcgetattr (tty, &old) != 0) {
+        fprintf (stderr, "Unable to configure the terminal: %s\n", g_strerror (errno));
+        close (tty);
+        return NULL;
+    }
+    quiet = old;
+    quiet.c_lflag &= ~(tcflag_t)(ECHO | ECHONL);
+
+    struct sigaction sa, old_int, old_term, old_hup;
+    memset (&sa, 0, sizeof sa);
+    sa.sa_handler = prompt_signal_handler;
+    sigemptyset (&sa.sa_mask);                /* no SA_RESTART: read() returns */
+    prompt_signal = 0;
+    sigaction (SIGINT, &sa, &old_int);
+    sigaction (SIGTERM, &sa, &old_term);
+    sigaction (SIGHUP, &sa, &old_hup);
+
+    tcsetattr (tty, TCSAFLUSH, &quiet);
+    ssize_t ignored = write (tty, prompt, strlen (prompt));
+    (void)ignored;
+
+    char buf[MAX_PWD_LEN + 1];
+    gsize len = 0;
+    gboolean too_long = FALSE, failed = FALSE;
+    for (;;) {
+        char c;
+        ssize_t n = read (tty, &c, 1);
+        if (prompt_signal != 0) { failed = TRUE; break; }
+        if (n < 0 && errno == EINTR) continue;
+        if (n <= 0) { failed = (len == 0 && n < 0); break; }
+        if (c == '\n' || c == '\r') break;
+        if (len < MAX_PWD_LEN) buf[len++] = c; else too_long = TRUE;
+    }
+    buf[len] = '\0';
+
+    tcsetattr (tty, TCSAFLUSH, &old);
+    ignored = write (tty, "\n", 1);
+    sigaction (SIGINT, &old_int, NULL);
+    sigaction (SIGTERM, &old_term, NULL);
+    sigaction (SIGHUP, &old_hup, NULL);
+    close (tty);
+
+    if (prompt_signal != 0) {
+        *interrupted = TRUE;
+        secure_wipe (buf, sizeof buf);
+        return NULL;
+    }
+    gchar *secure = NULL;
+    if (too_long) {
+        fprintf (stderr, "Password is longer than %d bytes.\n", MAX_PWD_LEN);
+    } else if (!failed) {
+        secure = to_secure (buf);
+    }
+    secure_wipe (buf, sizeof buf);
     return secure;
 }
 
 static gchar *
-prompt_password_confirm (void)
+prompt_password_confirm (gboolean *interrupted)
 {
-    gchar *first = prompt_password_once ("Password: ");
+    gchar *first = prompt_password_once ("Password: ", interrupted);
     if (first == NULL) return NULL;
 
-    gchar *p2 = getpass ("Confirm password: ");
-    if (p2 == NULL) {
+    gchar *second = prompt_password_once ("Confirm password: ", interrupted);
+    if (second == NULL) {
         gcry_free (first);
         return NULL;
     }
-    gboolean match = strcmp (first, p2) == 0;
-    secure_wipe (p2, strlen (p2));
+    gboolean match = strcmp (first, second) == 0;
+    secure_wipe (second, strlen (second));
+    gcry_free (second);
 
     if (!match) {
         fprintf (stderr, "Passwords do not match.\n");
@@ -252,35 +367,54 @@ prompt_password_confirm (void)
     return first;
 }
 
-/* Returns gcry-secure-allocated password, or NULL on error (already reported). */
+typedef struct {
+    const gchar *file;      /* --password-file */
+    gint         fd;        /* --password-fd, -1 when unset */
+    gboolean     use_stdin; /* --password-stdin */
+} PasswordSource;
+
+/* Returns gcry-secure-allocated password, or NULL on error (already reported).
+ * NEW_PASSWORD requests confirmation and enforces the minimum length; existing
+ * data may have been protected by a shorter one, so decrypt only needs a
+ * non-empty password. */
 static gchar *
-obtain_password (const gchar *password_file, gboolean confirm)
+obtain_password (const PasswordSource *src, gboolean new_password,
+                 int *exit_code)
 {
     gchar *pwd = NULL;
-    if (password_file != NULL) {
-        GError *err = NULL;
-        pwd = read_password_file (password_file, &err);
+    GError *err = NULL;
+    gboolean interrupted = FALSE;
+
+    if (src->file != NULL) {
+        pwd = read_password_file (src->file, &err);
+    } else if (src->use_stdin || src->fd >= 0) {
+        pwd = read_password_fd (src->use_stdin ? STDIN_FILENO : src->fd, &err);
+    } else {
+        pwd = new_password ? prompt_password_confirm (&interrupted)
+                           : prompt_password_once ("Password: ", &interrupted);
         if (pwd == NULL) {
-            fprintf (stderr, "Failed to read password file: %s\n",
-                     err ? err->message : "unknown error");
-            g_clear_error (&err);
+            *exit_code = interrupted ? EXIT_INTERRUPTED : 1;
             return NULL;
         }
-    } else {
-        pwd = confirm ? prompt_password_confirm () : prompt_password_once ("Password: ");
-        if (pwd == NULL) return NULL;
+    }
+    if (pwd == NULL) {
+        fprintf (stderr, "Failed to read password: %s\n",
+                 err ? err->message : "out of secure memory");
+        g_clear_error (&err);
+        *exit_code = 1;
+        return NULL;
     }
 
-    /* The minimum only applies to new passwords: older files may have been
-     * encrypted with shorter ones and must stay readable. */
-    if (confirm && strlen (pwd) < MIN_PWD_LEN) {
+    if (new_password && strlen (pwd) < MIN_PWD_LEN) {
         fprintf (stderr, "Password must be at least %d characters.\n", MIN_PWD_LEN);
         gcry_free (pwd);
+        *exit_code = 1;
         return NULL;
     }
     if (*pwd == '\0') {
         fprintf (stderr, "Password must not be empty.\n");
         gcry_free (pwd);
+        *exit_code = 1;
         return NULL;
     }
     return pwd;
@@ -289,25 +423,119 @@ obtain_password (const gchar *password_file, gboolean confirm)
 
 /* ---- Subcommand: hash ---- */
 
+static gboolean
+hash_one (const gchar *path, const gint *ids, const gint *sizes, guint n,
+          GCancellable *cancellable, gchar **hex, GError **error)
+{
+    if (g_strcmp0 (path, "-") == 0) {
+        return gtkcrypto_hash_fd (STDIN_FILENO, "stdin", ids, sizes, n,
+                                  cancellable, hex, error);
+    }
+    return gtkcrypto_hash_file (path, ids, sizes, n, cancellable, hex, error);
+}
+
+/* Verifies a sha256sum-style list ("<hex>  <name>" or "<hex> *<name>").
+ * Returns the number of problems (mismatches, unreadable files, bad lines). */
+static guint
+check_sums (const gchar *list_path, const HashName *hn, gboolean quiet,
+            GCancellable *cancellable)
+{
+    FILE *f = g_strcmp0 (list_path, "-") == 0 ? stdin : fopen (list_path, "r");
+    if (f == NULL) {
+        fprintf (stderr, "%s: %s\n", list_path, g_strerror (errno));
+        return 1;
+    }
+
+    guint problems = 0, bad_format = 0, mismatches = 0, unreadable = 0;
+    char *line = NULL;
+    size_t cap = 0;
+    ssize_t len;
+    gsize hex_len = (gsize)hn->digest_size * 2;
+
+    while ((len = getline (&line, &cap, f)) >= 0) {
+        while (len > 0 && (line[len - 1] == '\n' || line[len - 1] == '\r')) {
+            line[--len] = '\0';
+        }
+        if (len == 0) continue;
+
+        gboolean ok_format = (gsize)len > hex_len + 2 &&
+                             line[hex_len] == ' ' &&
+                             (line[hex_len + 1] == ' ' || line[hex_len + 1] == '*');
+        for (gsize i = 0; ok_format && i < hex_len; i++) {
+            if (!g_ascii_isxdigit (line[i])) ok_format = FALSE;
+        }
+        if (!ok_format) {
+            bad_format++;
+            problems++;
+            continue;
+        }
+
+        const gchar *name = line + hex_len + 2;
+        gchar *hex[1] = { NULL };
+        g_autoptr(GError) error = NULL;
+        gint id = hn->gcry_id, size = hn->digest_size;
+        if (!hash_one (name, &id, &size, 1, cancellable, hex, &error)) {
+            if (g_error_matches (error, GTKCRYPTO_ERROR, GTKCRYPTO_ERROR_CANCELLED)) {
+                problems++;
+                break;
+            }
+            printf ("%s: FAILED open or read\n", name);
+            unreadable++;
+            problems++;
+            continue;
+        }
+        if (g_ascii_strncasecmp (hex[0], line, hex_len) == 0) {
+            if (!quiet) printf ("%s: OK\n", name);
+        } else {
+            printf ("%s: FAILED\n", name);
+            mismatches++;
+            problems++;
+        }
+        g_free (hex[0]);
+    }
+    free (line);
+    if (f != stdin) fclose (f);
+
+    if (bad_format > 0) {
+        fprintf (stderr, "WARNING: %u line%s improperly formatted\n",
+                 bad_format, bad_format == 1 ? " is" : "s are");
+    }
+    if (unreadable > 0) {
+        fprintf (stderr, "WARNING: %u listed file%s could not be read\n",
+                 unreadable, unreadable == 1 ? "" : "s");
+    }
+    if (mismatches > 0) {
+        fprintf (stderr, "WARNING: %u computed checksum%s did NOT match\n",
+                 mismatches, mismatches == 1 ? "" : "s");
+    }
+    return problems;
+}
+
 static int
 cmd_hash (int argc, char **argv)
 {
     g_autofree gchar *algo_arg = NULL;
+    gboolean check = FALSE, quiet = FALSE;
     g_auto(GStrv) files = NULL;
 
     GOptionEntry entries[] = {
         { "algo", 'a', 0, G_OPTION_ARG_STRING, &algo_arg,
           "Algorithm name(s), comma-separated. Default: sha256.", "NAME[,NAME...]" },
+        { "check", 'c', 0, G_OPTION_ARG_NONE, &check,
+          "Read checksum lists from the FILEs and verify them (one algorithm).", NULL },
+        { "quiet", 'q', 0, G_OPTION_ARG_NONE, &quiet,
+          "With --check, do not print OK lines.", NULL },
         { G_OPTION_REMAINING, 0, 0, G_OPTION_ARG_FILENAME_ARRAY, &files,
           NULL, NULL },
         { 0 },
     };
 
-    g_autoptr(GOptionContext) ctx = g_option_context_new ("FILE");
+    g_autoptr(GOptionContext) ctx = g_option_context_new ("FILE...");
     g_autofree gchar *valid = join_names (HASH_NAMES, G_N_ELEMENTS (HASH_NAMES));
     g_autofree gchar *summary = g_strdup_printf (
-        "Compute one or more hash digests of FILE.\n\n"
-        "Output format matches sha256sum: '<hex>  FILE' per line.\n\n"
+        "Compute one or more hash digests of each FILE ('-' reads standard input).\n\n"
+        "Output format matches sha256sum: '<hex>  FILE' per line. With --check the\n"
+        "FILEs are such lists and each listed file is verified.\n\n"
         "Available algorithms: %s.", valid);
     g_option_context_set_summary (ctx, summary);
     g_option_context_add_main_entries (ctx, entries, NULL);
@@ -318,13 +546,13 @@ cmd_hash (int argc, char **argv)
         g_error_free (err);
         return EXIT_USAGE;
     }
-    if (files == NULL || files[0] == NULL || files[1] != NULL) {
-        fprintf (stderr, "Expected exactly one FILE argument.\n");
+    if (files == NULL || files[0] == NULL) {
+        fprintf (stderr, "Expected at least one FILE argument.\n");
         return EXIT_USAGE;
     }
-    const gchar *path = files[0];
 
     g_auto(GStrv) algos = g_strsplit (algo_arg ? algo_arg : "sha256", ",", -1);
+    const HashName *selected[G_N_ELEMENTS (HASH_NAMES)];
     gint ids[G_N_ELEMENTS (HASH_NAMES)];
     gint sizes[G_N_ELEMENTS (HASH_NAMES)];
     guint n = 0;
@@ -340,6 +568,7 @@ cmd_hash (int argc, char **argv)
             fprintf (stderr, "Too many algorithms requested.\n");
             return EXIT_USAGE;
         }
+        selected[n] = hn;
         ids[n] = hn->gcry_id;
         sizes[n] = hn->digest_size;
         n++;
@@ -348,164 +577,367 @@ cmd_hash (int argc, char **argv)
         fprintf (stderr, "No algorithm given.\n");
         return EXIT_USAGE;
     }
+    if (check && n != 1) {
+        fprintf (stderr, "--check works with exactly one algorithm.\n");
+        return EXIT_USAGE;
+    }
 
-    /* One read pass over the file feeds every requested digest. */
-    gchar *hex[G_N_ELEMENTS (HASH_NAMES)];
     GCancellable *cancellable = interrupt_guard_begin ();
-    g_autoptr(GError) hash_error = NULL;
-    gboolean ok = gtkcrypto_hash_file (path, ids, sizes, n, cancellable,
-                                       hex, &hash_error);
-    interrupt_guard_end ();
-    if (!ok) {
-        fprintf (stderr, "%s\n", hash_error->message);
-        return exit_code_for_error (hash_error);
-    }
-    for (guint i = 0; i < n; i++) {
-        printf ("%s  %s\n", hex[i], path);
-        g_free (hex[i]);
-    }
-    return 0;
-}
+    int rc = 0;
 
+    for (gsize f = 0; files[f] != NULL && rc != EXIT_INTERRUPTED; f++) {
+        if (check) {
+            if (check_sums (files[f], selected[0], quiet, cancellable) > 0 && rc == 0) {
+                rc = g_cancellable_is_cancelled (cancellable) ?
+                     EXIT_INTERRUPTED : 1;
+            }
+            continue;
+        }
 
-/* ---- Subcommand: encrypt ---- */
-
-static int
-cmd_encrypt (int argc, char **argv)
-{
-    g_autofree gchar *pwd_file = NULL;
-    g_autofree gchar *output_arg = NULL;
-    gboolean force = FALSE;
-    g_auto(GStrv) files = NULL;
-
-    GOptionEntry entries[] = {
-        { "password-file", 'p', 0, G_OPTION_ARG_FILENAME, &pwd_file,
-          "Read password from PATH (first line). Otherwise prompt interactively.", "PATH" },
-        { "output", 'o', 0, G_OPTION_ARG_FILENAME, &output_arg,
-          "Write encrypted data to PATH. Default: FILE.enc.", "PATH" },
-        { "force", 'f', 0, G_OPTION_ARG_NONE, &force,
-          "Replace an existing output atomically.", NULL },
-        { G_OPTION_REMAINING, 0, 0, G_OPTION_ARG_FILENAME_ARRAY, &files, NULL, NULL },
-        { 0 },
-    };
-
-    g_autoptr(GOptionContext) ctx = g_option_context_new ("FILE");
-    g_option_context_set_summary (ctx,
-        "Encrypt FILE using the portable GTC3 format (AES-256-GCM + Argon2id).\n"
-        "The result is written to FILE.enc unless --output is supplied.\n"
-        "The password is asked interactively (and confirmed) unless --password-file is given.");
-    g_option_context_add_main_entries (ctx, entries, NULL);
-
-    GError *err = NULL;
-    if (!g_option_context_parse (ctx, &argc, &argv, &err)) {
-        fprintf (stderr, "%s\n", err->message);
-        g_error_free (err);
-        return EXIT_USAGE;
-    }
-    if (files == NULL || files[0] == NULL || files[1] != NULL) {
-        fprintf (stderr, "Expected exactly one FILE argument.\n");
-        return EXIT_USAGE;
-    }
-
-    gchar *pwd = obtain_password (pwd_file, TRUE);
-    if (pwd == NULL) return 1;
-
-    g_autofree gchar *default_output = output_arg == NULL ?
-        g_strconcat (files[0], ".enc", NULL) : NULL;
-    const gchar *output = output_arg != NULL ? output_arg : default_output;
-    GError *crypto_error = NULL;
-    GCancellable *cancellable = interrupt_guard_begin ();
-    gboolean ok = gtkcrypto_encrypt_file (files[0], output,
-                                          (const guint8 *)pwd, strlen (pwd),
-                                          force, cancellable, &crypto_error);
-    interrupt_guard_end ();
-    secure_wipe (pwd, strlen (pwd));
-    gcry_free (pwd);
-
-    if (!ok) {
-        int rc = exit_code_for_error (crypto_error);
-        fprintf (stderr, "%s\n", crypto_error->message);
-        g_error_free (crypto_error);
-        return rc;
-    }
-    return 0;
-}
-
-
-/* ---- Subcommand: decrypt ---- */
-
-static int
-cmd_decrypt (int argc, char **argv)
-{
-    g_autofree gchar *pwd_file = NULL;
-    g_autofree gchar *output_arg = NULL;
-    gboolean delete_after = FALSE;
-    gboolean force = FALSE;
-    g_auto(GStrv) files = NULL;
-
-    GOptionEntry entries[] = {
-        { "password-file", 'p', 0, G_OPTION_ARG_FILENAME, &pwd_file,
-          "Read password from PATH (first line). Otherwise prompt interactively.", "PATH" },
-        { "delete", 'd', 0, G_OPTION_ARG_NONE, &delete_after,
-          "Delete the encrypted FILE after a successful decryption.", NULL },
-        { "output", 'o', 0, G_OPTION_ARG_FILENAME, &output_arg,
-          "Write plaintext to PATH.", "PATH" },
-        { "force", 'f', 0, G_OPTION_ARG_NONE, &force,
-          "Replace an existing output atomically.", NULL },
-        { G_OPTION_REMAINING, 0, 0, G_OPTION_ARG_FILENAME_ARRAY, &files, NULL, NULL },
-        { 0 },
-    };
-
-    g_autoptr(GOptionContext) ctx = g_option_context_new ("FILE");
-    g_option_context_set_summary (ctx,
-        "Decrypt FILE. The output is written next to the source: '.enc' is stripped\n"
-        "from the name when present, otherwise '.decrypted' is appended.");
-    g_option_context_add_main_entries (ctx, entries, NULL);
-
-    GError *err = NULL;
-    if (!g_option_context_parse (ctx, &argc, &argv, &err)) {
-        fprintf (stderr, "%s\n", err->message);
-        g_error_free (err);
-        return EXIT_USAGE;
-    }
-    if (files == NULL || files[0] == NULL || files[1] != NULL) {
-        fprintf (stderr, "Expected exactly one FILE argument.\n");
-        return EXIT_USAGE;
-    }
-
-    gchar *pwd = obtain_password (pwd_file, FALSE);
-    if (pwd == NULL) return 1;
-
-    g_autofree gchar *default_output = NULL;
-    if (output_arg == NULL) {
-        default_output = g_str_has_suffix (files[0], ".enc") ?
-            g_strndup (files[0], strlen (files[0]) - 4) :
-            g_strconcat (files[0], ".decrypted", NULL);
-    }
-    const gchar *output = output_arg != NULL ? output_arg : default_output;
-    GError *crypto_error = NULL;
-    GCancellable *cancellable = interrupt_guard_begin ();
-    gboolean ok = gtkcrypto_decrypt_file (files[0], output,
-                                          (const guint8 *)pwd, strlen (pwd),
-                                          force, cancellable, &crypto_error);
-    interrupt_guard_end ();
-    secure_wipe (pwd, strlen (pwd));
-    gcry_free (pwd);
-
-    if (!ok) {
-        int rc = exit_code_for_error (crypto_error);
-        fprintf (stderr, "%s\n", crypto_error->message);
-        g_error_free (crypto_error);
-        return rc;
-    }
-
-    if (delete_after) {
-        if (g_unlink (files[0]) != 0) {
-            fprintf (stderr, "Decryption succeeded but failed to delete %s\n", files[0]);
-            return 1;
+        /* One read pass over the file feeds every requested digest. */
+        gchar *hex[G_N_ELEMENTS (HASH_NAMES)];
+        g_autoptr(GError) hash_error = NULL;
+        if (!hash_one (files[f], ids, sizes, n, cancellable, hex, &hash_error)) {
+            fprintf (stderr, "%s\n", hash_error->message);
+            int code = exit_code_for_error (hash_error);
+            if (rc == 0 || code == EXIT_INTERRUPTED) rc = code;
+            continue;
+        }
+        for (guint i = 0; i < n; i++) {
+            printf ("%s  %s\n", hex[i], files[f]);
+            g_free (hex[i]);
         }
     }
+
+    interrupt_guard_end ();
+    return rc;
+}
+
+
+/* ---- Subcommands: encrypt / decrypt ---- */
+
+typedef struct {
+    gboolean encrypt;
+    gboolean quiet;
+    gboolean verbose;
+    gboolean force;
+    gboolean delete_source;
+} CryptOptions;
+
+static gboolean show_progress;
+static const gchar *progress_label;
+static gint progress_last = -1;
+
+static void
+cli_progress_cb (guint64 done, guint64 total, gpointer user_data)
+{
+    (void)user_data;
+    if (total == 0) return;
+    gint pct = (gint)(done * 100 / total);
+    if (pct != progress_last) {
+        progress_last = pct;
+        fprintf (stderr, "\r%s: %3d%%", progress_label, pct);
+        fflush (stderr);
+    }
+}
+
+/* Copies all of STDIN into a fresh private temporary file and returns its
+ * path. The container format stores the plaintext length in its header, so a
+ * stream has to be spooled to disk first. */
+static gchar *
+spool_stdin (GCancellable *cancellable, GError **error)
+{
+    g_autofree gchar *path = g_build_filename (g_get_tmp_dir (),
+                                               ".gtkcrypto-stdin-XXXXXX", NULL);
+    gint fd = g_mkstemp_full (path, O_RDWR | O_CLOEXEC, 0600);
+    if (fd < 0) {
+        g_set_error (error, GTKCRYPTO_ERROR, GTKCRYPTO_ERROR_IO,
+                     "Unable to create temporary file: %s", g_strerror (errno));
+        return NULL;
+    }
+
+    guint8 buf[65536];
+    gboolean ok = TRUE;
+    for (;;) {
+        if (!gtkcrypto_check_cancelled (cancellable, error)) { ok = FALSE; break; }
+        ssize_t n = read (STDIN_FILENO, buf, sizeof buf);
+        if (n == 0) break;
+        if (n < 0) {
+            if (errno == EINTR) continue;
+            g_set_error (error, GTKCRYPTO_ERROR, GTKCRYPTO_ERROR_IO,
+                         "Unable to read standard input: %s", g_strerror (errno));
+            ok = FALSE;
+            break;
+        }
+        if (!gtkcrypto_write_full (fd, buf, (gsize)n, cancellable, error)) {
+            ok = FALSE;
+            break;
+        }
+    }
+    secure_wipe ((char *)buf, sizeof buf);
+    close (fd);
+    if (!ok) {
+        g_unlink (path);
+        return NULL;
+    }
+    return g_steal_pointer (&path);
+}
+
+static gboolean
+copy_file_to_stdout (const gchar *path, GCancellable *cancellable,
+                     GError **error)
+{
+    gint fd = g_open (path, O_RDONLY | O_CLOEXEC | O_NOFOLLOW, 0);
+    if (fd < 0) {
+        g_set_error (error, GTKCRYPTO_ERROR, GTKCRYPTO_ERROR_IO,
+                     "Unable to read result: %s", g_strerror (errno));
+        return FALSE;
+    }
+    guint8 buf[65536];
+    gboolean ok = TRUE;
+    for (;;) {
+        if (!gtkcrypto_check_cancelled (cancellable, error)) { ok = FALSE; break; }
+        ssize_t n = read (fd, buf, sizeof buf);
+        if (n == 0) break;
+        if (n < 0) {
+            if (errno == EINTR) continue;
+            g_set_error (error, GTKCRYPTO_ERROR, GTKCRYPTO_ERROR_IO,
+                         "Unable to read result: %s", g_strerror (errno));
+            ok = FALSE;
+            break;
+        }
+        if (!gtkcrypto_write_full (STDOUT_FILENO, buf, (gsize)n, cancellable, error)) {
+            ok = FALSE;
+            break;
+        }
+    }
+    secure_wipe ((char *)buf, sizeof buf);
+    close (fd);
+    return ok;
+}
+
+static gchar *
+default_output_name (const gchar *input, gboolean encrypt)
+{
+    if (g_strcmp0 (input, "-") == 0) {
+        return g_strdup ("-");
+    }
+    if (encrypt) {
+        return g_strconcat (input, ".enc", NULL);
+    }
+    return g_str_has_suffix (input, ".enc") && strlen (input) > 4 ?
+        g_strndup (input, strlen (input) - 4) :
+        g_strconcat (input, ".decrypted", NULL);
+}
+
+/* Processes one input. Returns 0 or an exit code. */
+static int
+process_one (const CryptOptions *opt, const gchar *input,
+             const gchar *output_arg, const gchar *pwd,
+             GCancellable *cancellable)
+{
+    gboolean from_stdin = g_strcmp0 (input, "-") == 0;
+    g_autofree gchar *output = output_arg != NULL ? g_strdup (output_arg)
+                                                  : default_output_name (input, opt->encrypt);
+    gboolean to_stdout = g_strcmp0 (output, "-") == 0;
+    g_autoptr(GError) error = NULL;
+
+    if (to_stdout && opt->encrypt && isatty (STDOUT_FILENO)) {
+        fprintf (stderr, "Refusing to write encrypted data to a terminal; "
+                         "redirect stdout or use --output.\n");
+        return EXIT_USAGE;
+    }
+
+    /* All locals the 'failed' label touches are declared before the first
+     * goto, so no jump can skip an initialisation. */
+    g_autofree gchar *spooled_input = NULL;
+    g_autofree gchar *temp_output = NULL;
+    const gchar *source = input;
+    const gchar *destination = output;
+    gboolean overwrite = opt->force;
+    gboolean ok = FALSE;
+    if (from_stdin) {
+        spooled_input = spool_stdin (cancellable, &error);
+        if (spooled_input == NULL) goto failed;
+        source = spooled_input;
+    }
+
+    if (to_stdout) {
+        /* The core writes atomically to a path, so stage the result in a
+         * private temporary file and stream it afterwards. */
+        temp_output = g_build_filename (g_get_tmp_dir (),
+                                        ".gtkcrypto-out-XXXXXX", NULL);
+        gint fd = g_mkstemp_full (temp_output, O_RDWR | O_CLOEXEC, 0600);
+        if (fd < 0) {
+            g_set_error (&error, GTKCRYPTO_ERROR, GTKCRYPTO_ERROR_IO,
+                         "Unable to create temporary file: %s", g_strerror (errno));
+            goto failed;
+        }
+        close (fd);
+        destination = temp_output;
+        overwrite = TRUE;
+    }
+
+    if (show_progress) {
+        progress_label = from_stdin ? "stdin" : input;
+        progress_last = -1;
+        gtkcrypto_set_progress (cli_progress_cb, NULL);
+    }
+    ok = opt->encrypt ?
+        gtkcrypto_encrypt_file (source, destination, (const guint8 *)pwd,
+                                strlen (pwd), overwrite, cancellable, &error) :
+        gtkcrypto_decrypt_file (source, destination, (const guint8 *)pwd,
+                                strlen (pwd), overwrite, cancellable, &error);
+    if (show_progress) {
+        gtkcrypto_set_progress (NULL, NULL);
+        fputc ('\n', stderr);
+    }
+    if (ok && to_stdout) {
+        ok = copy_file_to_stdout (temp_output, cancellable, &error);
+    }
+
+    if (spooled_input != NULL) g_unlink (spooled_input);
+    if (temp_output != NULL) g_unlink (temp_output);
+    if (!ok) goto failed;
+
+    if (opt->verbose && !opt->quiet) {
+        fprintf (stderr, "%s %s -> %s\n", opt->encrypt ? "Encrypted" : "Decrypted",
+                 from_stdin ? "stdin" : input, to_stdout ? "stdout" : output);
+    }
+    if (opt->delete_source && !from_stdin && g_unlink (input) != 0) {
+        fprintf (stderr, "Operation succeeded but failed to delete %s: %s\n",
+                 input, g_strerror (errno));
+        return 1;
+    }
     return 0;
+
+failed:
+    if (spooled_input != NULL) g_unlink (spooled_input);
+    if (temp_output != NULL) g_unlink (temp_output);
+    fprintf (stderr, "%s%s%s\n", from_stdin ? "" : input, from_stdin ? "" : ": ",
+             error != NULL ? error->message : "Unknown error");
+    return exit_code_for_error (error);
+}
+
+static int
+cmd_crypt (int argc, char **argv, gboolean encrypt)
+{
+    CryptOptions opt = { .encrypt = encrypt };
+    PasswordSource pwd_src = { .fd = -1 };
+    g_autofree gchar *pwd_file = NULL;
+    g_autofree gchar *output_arg = NULL;
+    g_autofree gchar *kdf_arg = NULL;
+    gint pwd_fd = -1;
+    g_auto(GStrv) files = NULL;
+
+    GOptionEntry entries[] = {
+        { "password-file", 'p', 0, G_OPTION_ARG_FILENAME, &pwd_file,
+          "Read the password from PATH (first line).", "PATH" },
+        { "password-fd", 0, 0, G_OPTION_ARG_INT, &pwd_fd,
+          "Read the password (first line) from file descriptor N.", "N" },
+        { "password-stdin", 0, 0, G_OPTION_ARG_NONE, &pwd_src.use_stdin,
+          "Read the password (first line) from standard input.", NULL },
+        { "output", 'o', 0, G_OPTION_ARG_FILENAME, &output_arg,
+          "Write the result to PATH ('-' for standard output). Single input only.", "PATH" },
+        { "force", 'f', 0, G_OPTION_ARG_NONE, &opt.force,
+          "Replace existing output atomically.", NULL },
+        { "delete", 'd', 0, G_OPTION_ARG_NONE, &opt.delete_source,
+          encrypt ? "Delete the original FILE after a successful encryption."
+                  : "Delete the encrypted FILE after a successful decryption.", NULL },
+        { "quiet", 'q', 0, G_OPTION_ARG_NONE, &opt.quiet,
+          "Only print errors.", NULL },
+        { "verbose", 'v', 0, G_OPTION_ARG_NONE, &opt.verbose,
+          "Print a line per processed file and, on a terminal, progress.", NULL },
+        { G_OPTION_REMAINING, 0, 0, G_OPTION_ARG_FILENAME_ARRAY, &files, NULL, NULL },
+        { 0 },
+    };
+    GOptionEntry kdf_entries[] = {
+        { "kdf", 0, 0, G_OPTION_ARG_STRING, &kdf_arg,
+          "Key derivation strength: standard (default), strong or maximum.", "LEVEL" },
+        { 0 },
+    };
+
+    g_autoptr(GOptionContext) ctx = g_option_context_new ("FILE...");
+    g_option_context_set_summary (ctx, encrypt ?
+        "Encrypt each FILE using the portable GTC3 format (AES-256-GCM + Argon2id).\n"
+        "The result is written to FILE.enc unless --output is supplied. FILE '-'\n"
+        "reads standard input (the result then goes to standard output).\n"
+        "The password is asked interactively (and confirmed) unless one of the\n"
+        "--password-* options is given." :
+        "Decrypt each FILE. The output is written next to the source: '.enc' is\n"
+        "stripped from the name when present, otherwise '.decrypted' is appended.\n"
+        "FILE '-' reads standard input (the result then goes to standard output).");
+    g_option_context_add_main_entries (ctx, entries, NULL);
+    if (encrypt) {
+        g_option_context_add_main_entries (ctx, kdf_entries, NULL);
+    }
+
+    GError *err = NULL;
+    if (!g_option_context_parse (ctx, &argc, &argv, &err)) {
+        fprintf (stderr, "%s\n", err->message);
+        g_error_free (err);
+        return EXIT_USAGE;
+    }
+    if (files == NULL || files[0] == NULL) {
+        fprintf (stderr, "Expected at least one FILE argument.\n");
+        return EXIT_USAGE;
+    }
+    guint n_files = g_strv_length (files);
+    if (output_arg != NULL && n_files > 1) {
+        fprintf (stderr, "--output can only be used with a single FILE.\n");
+        return EXIT_USAGE;
+    }
+    guint stdin_inputs = 0;
+    for (guint i = 0; i < n_files; i++) {
+        if (g_strcmp0 (files[i], "-") == 0) stdin_inputs++;
+    }
+    if (stdin_inputs > 1) {
+        fprintf (stderr, "Standard input can only be used once.\n");
+        return EXIT_USAGE;
+    }
+    if (stdin_inputs == 1 && pwd_src.use_stdin) {
+        fprintf (stderr, "--password-stdin cannot be combined with input from standard input.\n");
+        return EXIT_USAGE;
+    }
+    if ((pwd_file != NULL) + (pwd_fd >= 0) + (pwd_src.use_stdin ? 1 : 0) > 1) {
+        fprintf (stderr, "Use only one of --password-file, --password-fd and --password-stdin.\n");
+        return EXIT_USAGE;
+    }
+    if (opt.quiet && opt.verbose) {
+        fprintf (stderr, "--quiet and --verbose are mutually exclusive.\n");
+        return EXIT_USAGE;
+    }
+    if (kdf_arg != NULL) {
+        if (g_ascii_strcasecmp (kdf_arg, "standard") == 0) {
+            gtkcrypto_set_kdf_level (GTKCRYPTO_KDF_STANDARD);
+        } else if (g_ascii_strcasecmp (kdf_arg, "strong") == 0) {
+            gtkcrypto_set_kdf_level (GTKCRYPTO_KDF_STRONG);
+        } else if (g_ascii_strcasecmp (kdf_arg, "maximum") == 0) {
+            gtkcrypto_set_kdf_level (GTKCRYPTO_KDF_MAXIMUM);
+        } else {
+            fprintf (stderr, "Unknown --kdf level: %s (use standard, strong or maximum)\n",
+                     kdf_arg);
+            return EXIT_USAGE;
+        }
+    }
+    pwd_src.file = pwd_file;
+    pwd_src.fd = pwd_fd;
+    show_progress = opt.verbose && isatty (STDERR_FILENO);
+
+    int rc = 0;
+    gchar *pwd = obtain_password (&pwd_src, encrypt, &rc);
+    if (pwd == NULL) return rc;
+
+    GCancellable *cancellable = interrupt_guard_begin ();
+    for (guint i = 0; i < n_files && rc != EXIT_INTERRUPTED; i++) {
+        int code = process_one (&opt, files[i], output_arg, pwd, cancellable);
+        if (code != 0 && (rc == 0 || code == EXIT_INTERRUPTED)) rc = code;
+    }
+    interrupt_guard_end ();
+
+    secure_wipe (pwd, strlen (pwd));
+    gcry_free (pwd);
+    return rc;
 }
 
 
@@ -515,12 +947,12 @@ static void
 print_top_help (FILE *out)
 {
     fprintf (out,
-        "Usage: gtkcrypto-cli SUBCOMMAND [OPTIONS] FILE\n"
+        "Usage: gtkcrypto-cli SUBCOMMAND [OPTIONS] FILE...\n"
         "\n"
         "Subcommands:\n"
-        "  hash      Compute one or more hash digests of FILE\n"
-        "  encrypt   Encrypt FILE to FILE.enc\n"
-        "  decrypt   Decrypt FILE\n"
+        "  hash      Compute (or --check) hash digests of files\n"
+        "  encrypt   Encrypt files to FILE.enc\n"
+        "  decrypt   Decrypt files\n"
         "\n"
         "Other options:\n"
         "  -h, --help        Show this help and exit\n"
@@ -541,9 +973,9 @@ main (int argc, char **argv)
 
     const gchar *sub = argv[1];
 
-    if (g_strcmp0 (sub, "hash") == 0)    return cmd_hash    (argc - 1, argv + 1);
-    if (g_strcmp0 (sub, "encrypt") == 0) return cmd_encrypt (argc - 1, argv + 1);
-    if (g_strcmp0 (sub, "decrypt") == 0) return cmd_decrypt (argc - 1, argv + 1);
+    if (g_strcmp0 (sub, "hash") == 0)    return cmd_hash (argc - 1, argv + 1);
+    if (g_strcmp0 (sub, "encrypt") == 0) return cmd_crypt (argc - 1, argv + 1, TRUE);
+    if (g_strcmp0 (sub, "decrypt") == 0) return cmd_crypt (argc - 1, argv + 1, FALSE);
 
     if (g_strcmp0 (sub, "--version") == 0) {
         puts (GTKCRYPTO_VERSION);

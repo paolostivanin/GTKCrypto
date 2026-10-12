@@ -1,5 +1,9 @@
-install_data(
-  'com.github.paolostivanin.gtkcrypto.desktop',
+i18n.merge_file(
+  input: 'com.github.paolostivanin.gtkcrypto.desktop',
+  output: 'com.github.paolostivanin.gtkcrypto.desktop',
+  type: 'desktop',
+  po_dir: meson.project_source_root() / 'po',
+  install: true,
   install_dir: get_option('datadir') / 'applications',
 )
 

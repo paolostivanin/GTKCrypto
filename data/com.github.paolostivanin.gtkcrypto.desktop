@@ -2,8 +2,9 @@
 Type=Application
 Exec=gtkcrypto
 Icon=com.github.paolostivanin.gtkcrypto
-Keywords=aes;twofish;serpent;sha2;sha3;md5;gost;
+Keywords=encryption;encrypt;decrypt;aes;argon2;hash;checksum;sha256;sha3;gpg;pgp;sign;
 Terminal=false
+StartupNotify=true
 Name=GTKCrypto
-Comment=Encrypt, sign and compute hashes of a given file
+Comment=Encrypt files and text, compute hashes and sign with GPG
 Categories=GTK;GNOME;Utility;

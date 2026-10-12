@@ -16,6 +16,24 @@
 #define GTKCRYPTO_ARGON2_MEMORY_KIB 19456
 #define GTKCRYPTO_ARGON2_LANES      1
 
+/* Argon2id cost used when *writing* GTC3 data. The parameters are stored in
+ * every header, so decryption works regardless of the level in effect. */
+typedef enum {
+    GTKCRYPTO_KDF_STANDARD = 0,   /* t=2, m=19 MiB, p=1  (default) */
+    GTKCRYPTO_KDF_STRONG,         /* t=3, m=64 MiB, p=4 */
+    GTKCRYPTO_KDF_MAXIMUM         /* t=4, m=256 MiB, p=4 */
+} GtkcryptoKdfLevel;
+
+typedef struct {
+    guint32 time;
+    guint32 memory_kib;
+    guint32 lanes;
+} GtkcryptoKdfParams;
+
+void              gtkcrypto_set_kdf_level (GtkcryptoKdfLevel level);
+GtkcryptoKdfLevel gtkcrypto_get_kdf_level (void);
+void              gtkcrypto_kdf_params_current (GtkcryptoKdfParams *params);
+
 #define GTKCRYPTO_V2_HEADER_SIZE    62
 #define GTKCRYPTO_LEGACY_HMAC_SIZE  64
 #define GTKCRYPTO_LEGACY_KDF_V1     100000

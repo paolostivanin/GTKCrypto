@@ -1,44 +1,130 @@
-.TH GTKCRYPTO-CLI 1 "June 2026" "GTKCrypto 3.0.0"
+.TH GTKCRYPTO-CLI 1 "October 2026" "GTKCrypto 3.0.0"
 .SH NAME
 gtkcrypto-cli \- hash, encrypt, and decrypt files
 .SH SYNOPSIS
-.B gtkcrypto-cli
-.I SUBCOMMAND
+.B gtkcrypto-cli hash
+.RB [ -a
+.IR NAME [, NAME ...]]
+.RB [ -c " [" -q ]]
+.IR FILE ...
+.br
+.B gtkcrypto-cli encrypt
 .RI [ OPTIONS ]
-.I FILE
+.IR FILE ...
+.br
+.B gtkcrypto-cli decrypt
+.RI [ OPTIONS ]
+.IR FILE ...
 .SH DESCRIPTION
 New encrypted files use GTC3 with AES-256-GCM and Argon2id. Existing
 destinations are not replaced unless
 .B --force
-is supplied.
+is supplied. A
+.I FILE
+of
+.B -
+means standard input.
 .SH SUBCOMMANDS
 .TP
 .B hash
-Compute one or more file hashes.
+Compute one or more digests of each FILE in a single read pass, printed in
+.BR sha256sum (1)
+format. With
+.B --check
+the FILEs are checksum lists and every listed file is verified.
 .TP
 .B encrypt
-Encrypt FILE to FILE.enc or the path selected with
+Encrypt each FILE to FILE.enc, or to the path selected with
 .BR --output .
 .TP
 .B decrypt
-Decrypt a v1, v2, or v3 GTKCrypto file.
-.SH OPTIONS
+Decrypt v1, v2, or v3 GTKCrypto files. The output name drops a trailing
+.B .enc
+or, if there is none, gets
+.B .decrypted
+appended.
+.PP
+When several FILEs are given, a failure in one does not stop the others; the
+exit status reports the first failure.
+.SH HASH OPTIONS
+.TP
+.BR -a ", " --algo " NAME[,NAME...]"
+Algorithms to compute (default
+.BR sha256 ).
+Valid names are md5, sha1, sha256, sha384, sha512, sha3-256, sha3-384,
+sha3-512, blake2b-256, blake2b-512, gost94 and whirlpool.
+.TP
+.BR -c ", " --check
+Verify checksum lists (one algorithm only). Prints
+.I name: OK
+or
+.I name: FAILED
+for every entry and exits with status 1 if anything failed.
+.TP
+.BR -q ", " --quiet
+With
+.BR --check ,
+do not print OK lines.
+.SH ENCRYPT AND DECRYPT OPTIONS
 .TP
 .BR -p ", " --password-file " PATH"
-Read the password from the first line of PATH.
+Read the password from the first line of PATH. The file must be a regular file
+that is not accessible by group or others.
+.TP
+.BI --password-fd " N"
+Read the password (first line) from file descriptor N.
+.TP
+.B --password-stdin
+Read the password (first line) from standard input. Cannot be combined with
+input from standard input.
+.PP
+Without any of these the password is read from the controlling terminal
+(and confirmed when encrypting). New passwords need at least 8 characters;
+existing data can be decrypted with any non-empty password.
 .TP
 .BR -o ", " --output " PATH"
-Select the destination path.
+Select the destination path, or
+.B -
+for standard output. Only valid with a single FILE.
 .TP
 .BR -f ", " --force
 Atomically replace an existing destination after success.
 .TP
 .BR -d ", " --delete
-For decryption, delete the encrypted source after successful publication.
+Delete the source FILE after a successful operation.
+.TP
+.BI --kdf " LEVEL"
+Encrypt only. Key derivation strength: \fBstandard\fR (default, 2 passes,
+19 MiB), \fBstrong\fR (3 passes, 64 MiB) or \fBmaximum\fR (4 passes, 256 MiB).
+The parameters are stored in the file, so decryption needs no option.
+.TP
+.BR -q ", " --quiet
+Only print errors.
+.TP
+.BR -v ", " --verbose
+Print one line per processed file and, on a terminal, a progress indicator.
+.SH PIPES
+Reading from standard input or writing to standard output is supported by
+staging data in a private (mode 0600) temporary file in
+.BR $TMPDIR ,
+because the format records the plaintext length up front. The staging file is
+removed afterwards, also when the operation is interrupted. Encrypted data is
+never written to a terminal.
+.PP
+Example:
+.EX
+tar c dir | gtkcrypto-cli encrypt --password-file pw - > dir.tar.enc
+gtkcrypto-cli decrypt --password-file pw - < dir.tar.enc | tar x
+.EE
 .SH SECURITY
 GTKCrypto does not provide secure deletion. Protect password files with
-appropriate filesystem permissions.
+appropriate filesystem permissions. Plaintext processed through pipes is
+briefly stored in the temporary directory.
+.PP
+SIGINT, SIGTERM and SIGHUP during an operation cancel it cleanly and remove
+temporary output files.
 .SH EXIT STATUS
 0 indicates success, 1 an operational failure, 2 invalid command-line usage,
-3 failed authentication, and 4 an existing destination without
-.BR --force .
+3 failed authentication, 4 an existing destination without
+.BR --force ,
+and 130 an interrupted operation.

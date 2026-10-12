@@ -11,6 +11,42 @@
 
 G_DEFINE_QUARK (gtkcrypto-error-quark, gtkcrypto_error)
 
+static gint kdf_level = GTKCRYPTO_KDF_STANDARD;
+
+void
+gtkcrypto_set_kdf_level (GtkcryptoKdfLevel level)
+{
+    if (level < GTKCRYPTO_KDF_STANDARD || level > GTKCRYPTO_KDF_MAXIMUM) {
+        level = GTKCRYPTO_KDF_STANDARD;
+    }
+    g_atomic_int_set (&kdf_level, (gint)level);
+}
+
+GtkcryptoKdfLevel
+gtkcrypto_get_kdf_level (void)
+{
+    return (GtkcryptoKdfLevel)g_atomic_int_get (&kdf_level);
+}
+
+void
+gtkcrypto_kdf_params_current (GtkcryptoKdfParams *params)
+{
+    switch (gtkcrypto_get_kdf_level ()) {
+    case GTKCRYPTO_KDF_MAXIMUM:
+        *params = (GtkcryptoKdfParams){ 4, 262144, 4 };
+        break;
+    case GTKCRYPTO_KDF_STRONG:
+        *params = (GtkcryptoKdfParams){ 3, 65536, 4 };
+        break;
+    case GTKCRYPTO_KDF_STANDARD:
+    default:
+        *params = (GtkcryptoKdfParams){ GTKCRYPTO_ARGON2_TIME,
+                                        GTKCRYPTO_ARGON2_MEMORY_KIB,
+                                        GTKCRYPTO_ARGON2_LANES };
+        break;
+    }
+}
+
 static _Thread_local GtkcryptoProgressFunc progress_func;
 static _Thread_local gpointer              progress_data;
 
@@ -390,17 +426,18 @@ gtkcrypto_encrypt_bytes_v3 (const guint8 *plaintext,
     container[10] = GTKCRYPTO_SALT_SIZE;
     container[11] = GTKCRYPTO_NONCE_SIZE;
     container[12] = GTKCRYPTO_TAG_SIZE;
-    bytes_put_be32 (container + 16, GTKCRYPTO_ARGON2_TIME);
-    bytes_put_be32 (container + 20, GTKCRYPTO_ARGON2_MEMORY_KIB);
-    bytes_put_be32 (container + 24, GTKCRYPTO_ARGON2_LANES);
+    GtkcryptoKdfParams kdf;
+    gtkcrypto_kdf_params_current (&kdf);
+    bytes_put_be32 (container + 16, kdf.time);
+    bytes_put_be32 (container + 20, kdf.memory_kib);
+    bytes_put_be32 (container + 24, kdf.lanes);
     bytes_put_be64 (container + 28, plaintext_len);
     gcry_randomize (container + 36, GTKCRYPTO_SALT_SIZE, GCRY_STRONG_RANDOM);
     gcry_randomize (container + 68, GTKCRYPTO_NONCE_SIZE, GCRY_STRONG_RANDOM);
 
     if (!gtkcrypto_argon2id_derive (password, password_len, container + 36,
-                                    GTKCRYPTO_ARGON2_TIME,
-                                    GTKCRYPTO_ARGON2_MEMORY_KIB,
-                                    GTKCRYPTO_ARGON2_LANES, key, error)) {
+                                    kdf.time, kdf.memory_kib, kdf.lanes,
+                                    key, error)) {
         goto out;
     }
     gcry_error_t gerr = gcry_cipher_open (&cipher, GCRY_CIPHER_AES256,
