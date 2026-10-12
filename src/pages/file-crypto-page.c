@@ -36,11 +36,10 @@ G_DEFINE_TYPE (GtkcryptoFileCryptoPage, gtkcrypto_file_crypto_page, GTK_TYPE_BOX
 typedef struct {
     GtkcryptoFileCryptoPage *page;
     GMutex                   mutex;
-    guint                    running;
+    guint                    done;
     guint                    failed;
     guint                    total;
     gchar                   *pwd;
-    gboolean                 first_run;
     GThreadPool             *pool;
     guint                    source_id;
     gboolean                 is_encrypt;
@@ -60,9 +59,6 @@ enc_exec_thread (gpointer data, gpointer user_data)
     gchar *filename = data;
     CryptoJobData *job = user_data;
 
-    g_mutex_lock (&job->mutex);
-    job->running++;
-    g_mutex_unlock (&job->mutex);
 
     g_autofree gchar *output = g_strconcat (filename, ".enc", NULL);
     GError *error = NULL;
@@ -77,8 +73,7 @@ enc_exec_thread (gpointer data, gpointer user_data)
     }
 
     g_mutex_lock (&job->mutex);
-    job->running--;
-    job->first_run = FALSE;
+    job->done++;
     g_mutex_unlock (&job->mutex);
     g_free (filename);
 }
@@ -90,10 +85,6 @@ dec_exec_thread (gpointer data, gpointer user_data)
     gchar *filename = data;
     CryptoJobData *job = user_data;
 
-    g_mutex_lock (&job->mutex);
-    job->running++;
-    g_mutex_unlock (&job->mutex);
-    g_free (filename);
 
     g_autofree gchar *output = g_str_has_suffix (filename, ".enc") ?
         g_strndup (filename, strlen (filename) - 4) :
@@ -112,9 +103,9 @@ dec_exec_thread (gpointer data, gpointer user_data)
     }
 
     g_mutex_lock (&job->mutex);
-    job->running--;
-    job->first_run = FALSE;
+    job->done++;
     g_mutex_unlock (&job->mutex);
+    g_free (filename);
 }
 
 
@@ -144,7 +135,11 @@ check_job_done (gpointer user_data)
 {
     CryptoJobData *job = user_data;
 
-    if (job->running == 0 && !job->first_run) {
+    g_mutex_lock (&job->mutex);
+    gboolean finished = job->done >= job->total;
+    g_mutex_unlock (&job->mutex);
+
+    if (finished) {
         g_thread_pool_free (job->pool, FALSE, TRUE);
 
         JobDoneData *d = g_new0 (JobDoneData, 1);
@@ -341,11 +336,17 @@ start_encrypt_job (GtkcryptoFileCryptoPage *self, gboolean overwrite)
     job->page = g_object_ref (self);
     gsize pwd_len = strlen (pwd) + 1;
     job->pwd = gcry_malloc_secure (pwd_len);
+    if (job->pwd == NULL) {
+        show_toast (self->enc_toast_overlay,
+                    "Unable to allocate secure memory for the password");
+        g_object_unref (job->page);
+        g_free (job);
+        return;
+    }
     memcpy (job->pwd, pwd, pwd_len);
     gtk_editable_set_text (GTK_EDITABLE (self->enc_pwd_row), "");
     gtk_editable_set_text (GTK_EDITABLE (self->enc_pwd_confirm_row), "");
     job->total = g_slist_length (self->enc_files_list);
-    job->first_run = TRUE;
     job->is_encrypt = TRUE;
     job->overwrite = overwrite;
     g_mutex_init (&job->mutex);
@@ -460,10 +461,16 @@ start_decrypt_job (GtkcryptoFileCryptoPage *self, gboolean overwrite)
     job->page = g_object_ref (self);
     gsize pwd_len = strlen (pwd) + 1;
     job->pwd = gcry_malloc_secure (pwd_len);
+    if (job->pwd == NULL) {
+        show_toast (self->dec_toast_overlay,
+                    "Unable to allocate secure memory for the password");
+        g_object_unref (job->page);
+        g_free (job);
+        return;
+    }
     memcpy (job->pwd, pwd, pwd_len);
     gtk_editable_set_text (GTK_EDITABLE (self->dec_pwd_row), "");
     job->total = g_slist_length (self->dec_files_list);
-    job->first_run = TRUE;
     job->is_encrypt = FALSE;
     job->delete_file = gtk_switch_get_active (self->delete_switch);
     job->overwrite = overwrite;
