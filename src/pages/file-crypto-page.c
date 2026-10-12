@@ -197,7 +197,10 @@ paths_from_list_model (GListModel *files)
     guint n = g_list_model_get_n_items (files);
     for (guint i = 0; i < n; i++) {
         g_autoptr(GFile) f = g_list_model_get_item (files, i);
-        paths = g_slist_prepend (paths, g_file_get_path (f));
+        gchar *path = g_file_get_path (f);
+        if (path != NULL) {
+            paths = g_slist_prepend (paths, path);
+        }
     }
     return g_slist_reverse (paths);
 }
@@ -207,7 +210,10 @@ paths_from_file_list (GdkFileList *file_list)
 {
     GSList *paths = NULL;
     for (GSList *l = gdk_file_list_get_files (file_list); l; l = l->next) {
-        paths = g_slist_prepend (paths, g_file_get_path (G_FILE (l->data)));
+        gchar *path = g_file_get_path (G_FILE (l->data));
+        if (path != NULL) {
+            paths = g_slist_prepend (paths, path);
+        }
     }
     return g_slist_reverse (paths);
 }

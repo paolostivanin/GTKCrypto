@@ -81,6 +81,7 @@ sign_file (const gchar *input_file_path,
     error = gpgme_data_new (&signed_text);
     if (error) {
         g_printerr ("%s: %s\n", gpgme_strsource (error), gpgme_strerror (error));
+        gpgme_data_release (clear_text);
         cleanup (infp, NULL, NULL, NULL, &signing_key, &context);
         return GPGME_ERROR;
     }
@@ -88,24 +89,39 @@ sign_file (const gchar *input_file_path,
     error = gpgme_op_sign (context, clear_text, signed_text, GPGME_SIG_MODE_DETACH);
     if (error) {
         g_printerr ("%s: %s\n", gpgme_strsource (error), gpgme_strerror (error));
+        gpgme_data_release (clear_text);
+        gpgme_data_release (signed_text);
         cleanup (infp, NULL, NULL, NULL, &signing_key, &context);
         return GPGME_ERROR;
     }
 
     gpgme_sign_result_t result = gpgme_op_sign_result (context);
+    if (result == NULL) {
+        g_printerr ("Missing signing result\n");
+        gpgme_data_release (clear_text);
+        gpgme_data_release (signed_text);
+        cleanup (infp, NULL, NULL, NULL, &signing_key, &context);
+        return GPGME_ERROR;
+    }
     if (result->invalid_signers) {
         g_printerr ("Invalid signer found: %s\n", result->invalid_signers->fpr);
+        gpgme_data_release (clear_text);
+        gpgme_data_release (signed_text);
         cleanup (infp, NULL, NULL, NULL, &signing_key, &context);
         return GPGME_ERROR;
     }
     if (!result->signatures || result->signatures->next) {
         g_printerr ("Unexpected number of signatures created\n");
+        gpgme_data_release (clear_text);
+        gpgme_data_release (signed_text);
         cleanup (infp, NULL, NULL, NULL, &signing_key, &context);
         return GPGME_ERROR;
     }
 
     if (gpgme_data_seek (signed_text, 0, SEEK_SET) == -1) {
         g_printerr ("gpgme_data_seek error\n");
+        gpgme_data_release (clear_text);
+        gpgme_data_release (signed_text);
         cleanup (infp, NULL, NULL, NULL, &signing_key, &context);
         return GPGME_ERROR;
     }
@@ -113,6 +129,8 @@ sign_file (const gchar *input_file_path,
     gchar *buffer = g_try_malloc0 (SIG_MAXLEN);
     if (buffer == NULL) {
         g_printerr ("Couldn't allocate memory\n");
+        gpgme_data_release (clear_text);
+        gpgme_data_release (signed_text);
         cleanup (infp, NULL, NULL, NULL, &signing_key, &context);
         return MEMORY_ALLOCATION_ERROR;
     }
@@ -205,6 +223,9 @@ get_available_keys (void)
     while (1) {
         err = gpgme_op_keylist_next (ctx, &key);
         if (err) {
+            if (gpgme_err_code (err) != GPG_ERR_EOF) {
+                g_printerr ("%s: %s\n", gpgme_strsource (err), gpgme_strerror (err));
+            }
             break;
         }
         if (key->subkeys == NULL || key->subkeys->keyid == NULL ||
@@ -233,6 +254,7 @@ get_available_keys (void)
         gpgme_key_release (key);
     }
 
+    gpgme_op_keylist_end (ctx);
     gpgme_release (ctx);
 
     return list;
@@ -332,18 +354,21 @@ verify_signature (const gchar *signed_file_path,
         return NO_GPG_KEYS_AVAILABLE;
     }
 
+    /* Every signature must be good: a single bad one fails the whole check. */
+    gboolean untrusted = FALSE;
     for (; sig; sig = sig->next) {
         if ((sig->summary & GPGME_SIGSUM_VALID) || (sig->summary & GPGME_SIGSUM_GREEN)) {
-            gpgme_release (ctx);
-            return SIGNATURE_OK;
+            continue;
         } else if (sig->summary == 0 && sig->status == GPG_ERR_NO_ERROR) {  // Valid but key is not certified with a trusted signature
+            untrusted = TRUE;
+        } else {
             gpgme_release (ctx);
-            return SIGNATURE_OK_KEY_NOT_TRUSTED;
+            return BAD_SIGNATURE;
         }
     }
 
     gpgme_release (ctx);
-    return BAD_SIGNATURE;
+    return untrusted ? SIGNATURE_OK_KEY_NOT_TRUSTED : SIGNATURE_OK;
 }
 
 

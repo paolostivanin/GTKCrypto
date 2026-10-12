@@ -109,6 +109,9 @@ sign_thread_func (gpointer user_data)
 static void
 set_sign_file (GtkcryptoGpgPage *self, gchar *path /* takes ownership */)
 {
+    if (path == NULL) {
+        return;  /* non-local file: no path to sign */
+    }
     g_free (self->sign_filename);
     self->sign_filename = path;
     g_autofree gchar *basename = g_path_get_basename (path);
@@ -238,6 +241,9 @@ verify_thread_func (gpointer user_data)
 static void
 set_verify_signed_file (GtkcryptoGpgPage *self, gchar *path /* takes ownership */)
 {
+    if (path == NULL) {
+        return;
+    }
     g_free (self->verify_signed_file);
     self->verify_signed_file = path;
     g_autofree gchar *basename = g_path_get_basename (path);
@@ -247,6 +253,9 @@ set_verify_signed_file (GtkcryptoGpgPage *self, gchar *path /* takes ownership *
 static void
 set_verify_sig_file (GtkcryptoGpgPage *self, gchar *path /* takes ownership */)
 {
+    if (path == NULL) {
+        return;
+    }
     g_free (self->verify_sig_file);
     self->verify_sig_file = path;
     g_autofree gchar *basename = g_path_get_basename (path);

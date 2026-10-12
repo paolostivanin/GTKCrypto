@@ -278,6 +278,9 @@ hash_switch_toggled_cb (GObject *obj, GParamSpec *pspec, gpointer user_data)
 static void
 set_compute_file (GtkcryptoHashingPage *self, gchar *path /* takes ownership */)
 {
+    if (path == NULL) {
+        return;  /* non-local file: no path to hash */
+    }
     g_free (self->compute_filename);
     self->compute_filename = path;
     self->compute_generation++;
@@ -388,6 +391,9 @@ copy_hash_clicked_cb (GtkButton *btn, gpointer user_data)
 static void
 set_compare_file1 (GtkcryptoHashingPage *self, gchar *path)
 {
+    if (path == NULL) {
+        return;
+    }
     g_free (self->compare_file1);
     self->compare_file1 = path;
     g_autofree gchar *basename = g_path_get_basename (self->compare_file1);
@@ -398,6 +404,9 @@ set_compare_file1 (GtkcryptoHashingPage *self, gchar *path)
 static void
 set_compare_file2 (GtkcryptoHashingPage *self, gchar *path)
 {
+    if (path == NULL) {
+        return;
+    }
     g_free (self->compare_file2);
     self->compare_file2 = path;
     g_autofree gchar *basename = g_path_get_basename (self->compare_file2);

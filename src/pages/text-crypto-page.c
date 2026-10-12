@@ -189,6 +189,16 @@ encrypt_text_clicked_cb (GtkButton *btn, gpointer user_data)
     d->page = g_object_ref (self);
     gsize pwd_len = strlen (pwd) + 1;
     d->pwd = gcry_malloc_secure (pwd_len);
+    if (d->pwd == NULL) {
+        show_toast (self->enc_toast_overlay,
+                    "Unable to allocate secure memory for the password");
+        gtk_spinner_stop (self->enc_spinner);
+        gtk_widget_set_sensitive (self->enc_btn, TRUE);
+        g_object_unref (d->page);
+        g_free (text);
+        g_free (d);
+        return;
+    }
     memcpy (d->pwd, pwd, pwd_len);
     gtk_editable_set_text (GTK_EDITABLE (self->enc_pwd_row), "");
     gtk_editable_set_text (GTK_EDITABLE (self->enc_pwd_confirm_row), "");
@@ -236,7 +246,11 @@ decrypt_text_thread (gpointer user_data)
 
     gint algo = gcry_cipher_map_name ("aes256");
     gcry_cipher_hd_t hd;
-    gcry_cipher_open (&hd, algo, GCRY_CIPHER_MODE_GCM, 0);
+    if (gcry_cipher_open (&hd, algo, GCRY_CIPHER_MODE_GCM, 0)) {
+        d->error_msg = g_strdup ("Unable to initialize cipher");
+        gcry_free (iv); gcry_free (salt); gcry_free (derived_key);
+        return NULL;
+    }
 
     gpg_error_t err = gcry_kdf_derive (pwd, g_utf8_strlen (pwd, -1) + 1,
                                         GCRY_KDF_PBKDF2, GCRY_MD_SHA512,
@@ -250,19 +264,29 @@ decrypt_text_thread (gpointer user_data)
         return NULL;
     }
 
-    gcry_cipher_setkey (hd, derived_key, AES256_KEY_SIZE);
-    gcry_cipher_setiv (hd, iv, AES256_IV_SIZE);
-
     gsize enc_body_len = out_len - AES256_IV_SIZE - KDF_SALT_SIZE - TAG_SIZE;
     guchar *enc_body = g_malloc0 (enc_body_len);
     memcpy (enc_body, encrypted_buf + AES256_IV_SIZE + KDF_SALT_SIZE, enc_body_len);
 
-    gchar *plain_buf = gcry_calloc_secure (enc_body_len, 1);
-    gcry_cipher_decrypt (hd, plain_buf, enc_body_len, enc_body, enc_body_len);
+    /* One extra zeroed byte guarantees NUL termination for g_strdup below. */
+    gchar *plain_buf = gcry_calloc_secure (enc_body_len + 1, 1);
 
-    guint8 tag[TAG_SIZE];
-    memcpy (tag, encrypted_buf + (out_len - TAG_SIZE), TAG_SIZE);
-    err = gcry_cipher_checktag (hd, tag, TAG_SIZE);
+    err = gcry_cipher_setkey (hd, derived_key, AES256_KEY_SIZE);
+    if (!err) {
+        err = gcry_cipher_setiv (hd, iv, AES256_IV_SIZE);
+    }
+    if (!err && plain_buf != NULL) {
+        err = gcry_cipher_decrypt (hd, plain_buf, enc_body_len,
+                                   enc_body, enc_body_len);
+    } else if (!err) {
+        err = GPG_ERR_ENOMEM;
+    }
+
+    if (!err) {
+        guint8 tag[TAG_SIZE];
+        memcpy (tag, encrypted_buf + (out_len - TAG_SIZE), TAG_SIZE);
+        err = gcry_cipher_checktag (hd, tag, TAG_SIZE);
+    }
     gcry_cipher_close (hd);
 
     if (err) {
@@ -373,6 +397,16 @@ decrypt_text_clicked_cb (GtkButton *btn, gpointer user_data)
     d->page = g_object_ref (self);
     gsize pwd_len = strlen (pwd) + 1;
     d->pwd = gcry_malloc_secure (pwd_len);
+    if (d->pwd == NULL) {
+        show_toast (self->dec_toast_overlay,
+                    "Unable to allocate secure memory for the password");
+        gtk_spinner_stop (self->dec_spinner);
+        gtk_widget_set_sensitive (self->dec_btn, TRUE);
+        g_object_unref (d->page);
+        g_free (encrypted_buf);
+        g_free (d);
+        return;
+    }
     memcpy (d->pwd, pwd, pwd_len);
     gtk_editable_set_text (GTK_EDITABLE (self->dec_pwd_row), "");
     d->encrypted_buf = encrypted_buf;

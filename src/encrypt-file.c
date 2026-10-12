@@ -99,6 +99,13 @@ gtkcrypto_encrypt_file (const gchar *input_path,
     if (!get_regular_file_size (input_fd, &plaintext_size, error)) {
         goto out;
     }
+    /* A single GCM stream is limited to 2^36 - 32 bytes; fail early. */
+    if (plaintext_size > (G_GUINT64_CONSTANT (1) << 36) - 32) {
+        g_set_error_literal (error, GTKCRYPTO_ERROR,
+                             GTKCRYPTO_ERROR_INVALID_ARGUMENT,
+                             "Input is too large for AES-GCM (limit is 64 GiB)");
+        goto out;
+    }
 
     memcpy (header, "GTC3", 4);
     header[V3_OFFSET_VERSION] = 3;

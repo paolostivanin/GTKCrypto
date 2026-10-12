@@ -190,6 +190,15 @@ gtkcrypto_atomic_output_open (GtkcryptoAtomicOutput *output,
 
     g_autofree gchar *dir = g_path_get_dirname (destination);
     g_autofree gchar *base = g_path_get_basename (destination);
+    /* ".<base>.XXXXXX" must fit in NAME_MAX (255) bytes; cut on a UTF-8
+     * character boundary so long names do not fail with ENAMETOOLONG. */
+    gsize base_max = 255 - 1 - 7;
+    if (strlen (base) > base_max) {
+        while (base_max > 0 && (base[base_max] & 0xC0) == 0x80) {
+            base_max--;
+        }
+        base[base_max] = '\0';
+    }
     output->path = g_strdup_printf ("%s/.%s.XXXXXX", dir, base);
     output->fd = g_mkstemp_full (output->path, O_RDWR | O_CLOEXEC, 0600);
     if (output->fd < 0) {
@@ -224,6 +233,23 @@ gtkcrypto_atomic_output_commit (GtkcryptoAtomicOutput *output, GError **error)
         rename_result = (gint)syscall (SYS_renameat2, AT_FDCWD, output->path,
                                       AT_FDCWD, output->destination,
                                       RENAME_NOREPLACE);
+        if (rename_result != 0 &&
+            (errno == EINVAL || errno == ENOSYS || errno == ENOTSUP)) {
+            /* Filesystem without RENAME_NOREPLACE: hard-link instead, and as
+             * a last resort check-then-rename on filesystems without links. */
+            rename_result = link (output->path, output->destination);
+            if (rename_result == 0) {
+                rename_result = g_unlink (output->path);
+            } else if (errno == EPERM || errno == ENOTSUP || errno == EINVAL ||
+                       errno == ENOSYS) {
+                if (g_file_test (output->destination, G_FILE_TEST_EXISTS)) {
+                    errno = EEXIST;
+                } else {
+                    rename_result = g_rename (output->path,
+                                              output->destination);
+                }
+            }
+        }
 #else
         rename_result = link (output->path, output->destination);
         if (rename_result == 0) {
